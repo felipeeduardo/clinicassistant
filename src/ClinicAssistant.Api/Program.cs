@@ -7,6 +7,7 @@ using ClinicAssistant.Application.Clinics;
 using ClinicAssistant.Application.Scheduling;
 using ClinicAssistant.Contracts.Scheduling;
 using ClinicAssistant.Application.WhatsApp;
+using ClinicAssistant.Application.Conversations;
 using ClinicAssistant.Infrastructure;
 using ClinicAssistant.Infrastructure.Identity;
 using ClinicAssistant.Infrastructure.Persistence;
@@ -63,9 +64,16 @@ try
     {
         options.AddPolicy("PlatformAdmin", policy => policy.RequireRole("PlatformAdmin"));
         options.AddPolicy("ClinicStaff", policy => policy.RequireRole("ClinicAdmin", "Receptionist", "Professional"));
+        options.AddPolicy("ClinicAdmin", policy => policy.RequireRole("ClinicAdmin"));
     });
+    builder.Services.AddProblemDetails();
     builder.Services.AddEndpointsApiExplorer();
     builder.Services.AddSwaggerGen();
+    var frontendOrigins = builder.Configuration.GetSection("Frontend:AllowedOrigins").Get<string[]>() ?? ["http://localhost:3000"];
+    builder.Services.AddCors(options => options.AddPolicy("Frontend", policy => policy
+        .WithOrigins(frontendOrigins)
+        .AllowAnyHeader()
+        .AllowAnyMethod()));
     builder.Services.AddHealthChecks()
         .AddCheck("postgresql", new PostgreSqlHealthCheck(builder.Configuration), tags: ["ready"])
         .AddCheck("rabbitmq", new TcpHealthCheck(builder.Configuration, "RabbitMq", 5672), tags: ["ready"])
@@ -106,12 +114,15 @@ try
         var statusCode = exception switch
         {
             UnauthorizedAccessException => StatusCodes.Status401Unauthorized,
+            KeyNotFoundException => StatusCodes.Status404NotFound,
+            DbUpdateConcurrencyException => StatusCodes.Status409Conflict,
             InvalidOperationException => StatusCodes.Status400BadRequest,
             _ => StatusCodes.Status500InternalServerError
         };
         await Results.Problem(statusCode: statusCode, title: statusCode == 500 ? "Unexpected error" : exception?.Message).ExecuteAsync(context);
     }));
     app.UseHttpsRedirection();
+    app.UseCors("Frontend");
     app.UseAuthentication();
     app.UseAuthorization();
     app.UseSwagger();
@@ -160,6 +171,15 @@ try
     clinic.MapPost("/appointments/{id:guid}/cancel", async (Guid id, CancelAppointmentRequest request, ISchedulingService service, CancellationToken ct) => Results.Ok(await service.CancelAsync(id, request, ct)));
     clinic.MapGet("/whatsapp/integration/status", async (IWhatsAppIntegrationStatusService service, CancellationToken ct) =>
         (await service.GetCurrentAsync(ct)) is { } status ? Results.Ok(status) : Results.NotFound());
+    var conversations = app.MapGroup("/api/conversations").RequireAuthorization("ClinicStaff").WithTags("Conversations");
+    conversations.MapGet("/", async ([AsParameters] ConversationListQuery query, IConversationAdministrationService service, CancellationToken ct) => Results.Ok(await service.ListAsync(query, ct)));
+    conversations.MapGet("/{id:guid}", async (Guid id, IConversationAdministrationService service, CancellationToken ct) => (await service.GetAsync(id, ct)) is { } item ? Results.Ok(item) : Results.NotFound());
+    conversations.MapGet("/{id:guid}/messages", async (Guid id, int page, int pageSize, IConversationAdministrationService service, CancellationToken ct) => (await service.GetMessagesAsync(id, page, pageSize, ct)) is { } items ? Results.Ok(items) : Results.NotFound());
+    conversations.MapPost("/{id:guid}/messages/{messageId:guid}/read", async (Guid id, Guid messageId, ConversationOperationRequest request, IConversationAdministrationService service, CancellationToken ct) => { await service.MarkReadAsync(id, messageId, request.ExpectedVersion, ct); return Results.NoContent(); });
+    conversations.MapPost("/{id:guid}/assign", async (Guid id, ConversationOperationRequest request, IConversationAdministrationService service, CancellationToken ct) => { await service.AssignAsync(id, request, ct); return Results.NoContent(); }).RequireAuthorization("ClinicAdmin");
+    conversations.MapPost("/{id:guid}/release", async (Guid id, ConversationOperationRequest request, IConversationAdministrationService service, CancellationToken ct) => { await service.ReleaseAsync(id, request, ct); return Results.NoContent(); }).RequireAuthorization("ClinicAdmin");
+    conversations.MapPost("/{id:guid}/automation/pause", async (Guid id, ConversationOperationRequest request, IConversationAdministrationService service, CancellationToken ct) => { await service.PauseAsync(id, request, ct); return Results.NoContent(); }).RequireAuthorization("ClinicAdmin");
+    conversations.MapPost("/{id:guid}/automation/resume", async (Guid id, ConversationOperationRequest request, IConversationAdministrationService service, CancellationToken ct) => { await service.ResumeAsync(id, request, ct); return Results.NoContent(); }).RequireAuthorization("ClinicAdmin");
     app.MapPost("/api/webhooks/whatsapp/twilio/{integrationKey}", async (string integrationKey, HttpRequest request, IWhatsAppIncomingWebhookService service, TwilioWebhookUrlResolver urlResolver, IOptions<WhatsAppOptions> options, CancellationToken cancellationToken) =>
     {
         var stopwatch = Stopwatch.StartNew();

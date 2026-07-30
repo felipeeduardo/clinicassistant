@@ -136,6 +136,10 @@ public sealed class Conversation : Entity, ITenantEntity
         Version++;
         UpdatedAt = DateTimeOffset.UtcNow;
     }
+    public void Assign(Guid userId) { AssignedUserId = userId; Status = ConversationStatus.Human; AutomationMode = ConversationAutomationMode.Human; Version++; UpdatedAt = DateTimeOffset.UtcNow; }
+    public void Release() { AssignedUserId = null; Status = ConversationStatus.WaitingHuman; AutomationMode = ConversationAutomationMode.Human; Version++; UpdatedAt = DateTimeOffset.UtcNow; }
+    public void PauseAutomation() { AutomationMode = ConversationAutomationMode.Paused; Version++; UpdatedAt = DateTimeOffset.UtcNow; }
+    public void ResumeAutomation() { AutomationMode = ConversationAutomationMode.Automated; if (Status != ConversationStatus.Closed) Status = ConversationStatus.Bot; Version++; UpdatedAt = DateTimeOffset.UtcNow; }
 }
 
 public sealed class ConversationMessage : Entity, ITenantEntity
@@ -222,6 +226,7 @@ public sealed class ConversationMessage : Entity, ITenantEntity
         }
         UpdatedAt = now;
     }
+    public void MarkReadByOperator() { ReadAt ??= DateTimeOffset.UtcNow; UpdatedAt = DateTimeOffset.UtcNow; }
 }
 
 public sealed class WhatsAppMedia : Entity, ITenantEntity

@@ -7,4 +7,6 @@
 **/TestResults/
 **/.prompts/
 coverage/
-
+frontend/node_modules/
+frontend/.next/
+frontend/test-results/

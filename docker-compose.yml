@@ -23,6 +23,7 @@ services:
       Jwt__Secret: ${JWT_SECRET:-development-only-secret-change-before-production-2026}
       Jwt__AccessTokenMinutes: ${JWT_ACCESS_TOKEN_MINUTES:-15}
       Jwt__RefreshTokenDays: ${JWT_REFRESH_TOKEN_DAYS:-14}
+      Frontend__AllowedOrigins__0: http://localhost:${FRONTEND_PORT:-3000}
       WhatsApp__Provider: ${WHATSAPP_PROVIDER:-Fake}
       WhatsApp__MaximumRetryAttempts: ${WHATSAPP_MAXIMUM_RETRY_ATTEMPTS:-3}
       WhatsApp__RequestTimeoutSeconds: ${WHATSAPP_REQUEST_TIMEOUT_SECONDS:-15}
@@ -102,6 +103,49 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+    networks: [clinic-assistant]
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    environment:
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8080}
+    ports:
+      - "${FRONTEND_PORT:-3000}:3000"
+    depends_on:
+      api:
+        condition: service_started
+    networks: [clinic-assistant]
+
+  test-data-seeder:
+    profiles: [e2e, development]
+    build:
+      context: .
+      dockerfile: infra/docker/test-data.Dockerfile
+    environment:
+      ASPNETCORE_ENVIRONMENT: Test
+      DATABASE_HOST: postgres
+      DATABASE_PORT: 5432
+      DATABASE_NAME: ${POSTGRES_DB:-clinicassistant}
+      DATABASE_USER: ${POSTGRES_USER:-clinicassistant}
+      DATABASE_PASSWORD: ${POSTGRES_PASSWORD:-clinicassistant}
+      TEST_DATA_ALLOWED_DATABASES: ${POSTGRES_DB:-clinicassistant}
+      ALLOW_TEST_DATA_RESET: "true"
+      TEST_DATA_CONFIRM: "YES"
+      CI: "true"
+      E2E_DEFAULT_PASSWORD: ${E2E_DEFAULT_PASSWORD:-ClinicAssistant-E2E-Only-2026}
+      E2E_BASE_DATE: ${E2E_BASE_DATE:-2026-08-03}
+      TEST_DATA_PROJECT_ROOT: /workspace
+    depends_on:
+      api:
+        condition: service_started
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./database:/database:ro
+      - ./scripts/test-data:/scripts:ro
+    command: ["e2e"]
     networks: [clinic-assistant]
 
   postgres:

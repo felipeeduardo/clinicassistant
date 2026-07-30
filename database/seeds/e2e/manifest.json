@@ -1,0 +1,20 @@
+{
+  "profile": "e2e",
+  "version": "1.0.0",
+  "tenantIds": {
+    "main": "00000000-0000-0000-0000-000000000101",
+    "isolated": "00000000-0000-0000-0000-000000000102"
+  },
+  "users": {
+    "adminEmail": "admin.e2e@fake.local",
+    "operatorEmail": "operator.e2e@fake.local",
+    "operator2Email": "operator2.e2e@fake.local"
+  },
+  "conversations": {
+    "waitingHuman": "00000000-0000-0000-0000-000000000401",
+    "assignedOperator": "00000000-0000-0000-0000-000000000402"
+  },
+  "appointments": {
+    "reschedulable": "00000000-0000-0000-0000-000000000503"
+  }
+}

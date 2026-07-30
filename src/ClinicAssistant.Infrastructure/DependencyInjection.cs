@@ -56,6 +56,7 @@ public static class DependencyInjection
         services.AddSingleton<IConversationResponseComposer, InMemoryConversationResponseComposer>();
         services.AddScoped<IConversationLockManager, RedisConversationLock>();
         services.AddScoped<IConversationOrchestrator, ConversationOrchestrator>();
+        services.AddScoped<IConversationAdministrationService, ConversationAdministrationService>();
         services.AddSingleton<IWhatsAppPhoneNumberFormatter, WhatsAppPhoneNumberFormatter>();
         services.AddSingleton<IPhoneMasker, PhoneMasker>();
         services.AddSingleton<IWhatsAppConversationWindowPolicy, WhatsAppConversationWindowPolicy>();

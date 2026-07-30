@@ -76,6 +76,11 @@ public sealed class ConversationOrchestrator(
             if (transition.Action == ConversationAction.Handoff) conversation.ApplyAutomationMode(ConversationAutomationMode.Human);
             else if (transition.Action == ConversationAction.CloseConversation) conversation.Close();
             else conversation.ApplyAutomationMode(ConversationAutomationMode.Automated);
+            if (transition.Action == ConversationAction.Handoff)
+            {
+                var queueItem = await dbContext.HumanQueueItems.IgnoreQueryFilters().SingleOrDefaultAsync(item => item.ConversationId == command.ConversationId && item.TenantId == command.TenantId, cancellationToken);
+                if (queueItem is null) dbContext.HumanQueueItems.Add(new HumanQueueItem(command.TenantId, command.ConversationId, conversation.Priority, "Patient requested human assistance."));
+            }
 
             var existingOptions = await dbContext.ConversationOptions.IgnoreQueryFilters().Where(item => item.TenantId == command.TenantId && item.ConversationStateId == state.Id).ToListAsync(cancellationToken);
             dbContext.ConversationOptions.RemoveRange(existingOptions);

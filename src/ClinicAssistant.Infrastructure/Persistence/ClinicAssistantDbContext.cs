@@ -35,6 +35,7 @@ public sealed class ClinicAssistantDbContext(DbContextOptions<ClinicAssistantDbC
     public DbSet<ConversationState> ConversationStates => Set<ConversationState>();
     public DbSet<ConversationProcessedMessage> ConversationProcessedMessages => Set<ConversationProcessedMessage>();
     public DbSet<ConversationOption> ConversationOptions => Set<ConversationOption>();
+    public DbSet<HumanQueueItem> HumanQueueItems => Set<HumanQueueItem>();
 
     public Guid? CurrentTenantId => _tenantContext.TenantId;
     public bool IsPlatformAdmin => _tenantContext.IsPlatformAdmin;
@@ -136,6 +137,7 @@ public sealed class ClinicAssistantDbContext(DbContextOptions<ClinicAssistantDbC
         modelBuilder.Entity<ConversationState>(entity => { entity.ToTable("conversation_states"); entity.Property(x => x.Status).HasConversion<string>().HasMaxLength(32); entity.Property(x => x.FlowState).HasConversion<string>().HasMaxLength(64); entity.Property(x => x.Intent).HasConversion<string>().HasMaxLength(64); entity.Property(x => x.ContextJson).HasColumnType("jsonb"); entity.Property(x => x.Version).IsConcurrencyToken(); entity.HasIndex(x => x.ConversationId).IsUnique(); entity.HasIndex(x => new { x.TenantId, x.ExpiresAt }); entity.HasQueryFilter(x => IsPlatformAdmin || (CurrentTenantId.HasValue && x.TenantId == CurrentTenantId.Value)); });
         modelBuilder.Entity<ConversationProcessedMessage>(entity => { entity.ToTable("conversation_processed_messages"); entity.HasIndex(x => new { x.TenantId, x.ConversationMessageId }).IsUnique(); entity.HasIndex(x => new { x.TenantId, x.ConversationId, x.ProcessedAt }); entity.HasQueryFilter(x => IsPlatformAdmin || (CurrentTenantId.HasValue && x.TenantId == CurrentTenantId.Value)); });
         modelBuilder.Entity<ConversationOption>(entity => { entity.ToTable("conversation_options"); entity.Property(x => x.Key).HasMaxLength(64); entity.Property(x => x.Value).HasMaxLength(256); entity.HasIndex(x => new { x.ConversationStateId, x.Key }).IsUnique(); entity.HasIndex(x => new { x.TenantId, x.ExpiresAt }); entity.HasQueryFilter(x => IsPlatformAdmin || (CurrentTenantId.HasValue && x.TenantId == CurrentTenantId.Value)); });
+        modelBuilder.Entity<HumanQueueItem>(entity => { entity.ToTable("human_queue_items"); entity.Property(x => x.Status).HasConversion<string>().HasMaxLength(32); entity.Property(x => x.Priority).HasConversion<string>().HasMaxLength(32); entity.Property(x => x.Reason).HasMaxLength(500); entity.Property(x => x.Version).IsConcurrencyToken(); entity.HasIndex(x => x.ConversationId).IsUnique(); entity.HasIndex(x => new { x.TenantId, x.Status, x.CreatedAt }); entity.HasQueryFilter(x => IsPlatformAdmin || (CurrentTenantId.HasValue && x.TenantId == CurrentTenantId.Value)); });
     }
 
     private sealed class EmptyTenantContext : ITenantContext

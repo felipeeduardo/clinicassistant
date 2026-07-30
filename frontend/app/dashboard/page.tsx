@@ -1,0 +1,7 @@
+"use client";
+import { useQuery } from "@tanstack/react-query";
+import { ProtectedShell } from "@/components/protected-shell";
+import { useApi } from "@/providers/providers";
+import type { IntegrationStatus } from "@/lib/api/types";
+export default function DashboardPage() { const api = useApi(); const integration = useQuery({ queryKey: ["integration-status"], queryFn: () => api.request<IntegrationStatus>("/api/whatsapp/integration/status") }); return <ProtectedShell><h1 className="text-2xl font-bold">Dashboard</h1><p className="mt-1 text-slate-600">Visão operacional inicial da clínica.</p><section className="mt-6 grid gap-4 md:grid-cols-3"><Card label="Integração WhatsApp" value={integration.isLoading ? "Carregando" : integration.data?.status ?? "Não configurada"} /><Card label="Provider" value={integration.data?.provider ?? "—"} /><Card label="Número" value={integration.data?.displayPhoneNumber ?? "—"} /></section>{integration.isError && <p className="mt-4" role="alert">Não foi possível consultar a integração WhatsApp.</p>}<section className="mt-8 rounded bg-white p-5 shadow"><h2 className="font-semibold">Indicadores</h2><p className="mt-2 text-slate-600">Indicadores de conversas e agenda serão ativados quando os endpoints agregados estiverem disponíveis.</p></section></ProtectedShell>; }
+function Card({ label, value }: { label: string; value: string }) { return <article className="rounded bg-white p-5 shadow"><p className="text-sm text-slate-600">{label}</p><p className="mt-2 text-xl font-semibold">{value}</p></article>; }
