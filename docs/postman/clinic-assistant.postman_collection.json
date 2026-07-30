@@ -1,0 +1,210 @@
+{
+  "info": {
+    "_postman_id": "084f5791-8e0d-4d86-a6b5-22eeb6aab1d2",
+    "name": "Clinic AI Assistant",
+    "description": "Collection versionada do Clinic AI Assistant. Esta versão contém os endpoints da Etapa 2 — identidade e tenants.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080",
+      "type": "string"
+    },
+    {
+      "key": "accessToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "refreshToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "unitId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "specialtyId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "professionalId",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Etapa 1 - Fundação",
+      "item": [
+        {
+          "name": "Health - Live",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/health/live"
+          }
+        },
+        {
+          "name": "Health - Ready",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/health/ready"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Etapa 2 - Identidade e tenants",
+      "item": [
+        {
+          "name": "Registrar clínica e administrador",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const response = pm.response.json();",
+                  "pm.collectionVariables.set('accessToken', response.accessToken);",
+                  "pm.collectionVariables.set('refreshToken', response.refreshToken);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tenantName\": \"Clínica Exemplo\",\n  \"tenantSlug\": \"clinica-exemplo\",\n  \"name\": \"Ana Administradora\",\n  \"email\": \"ana@clinica-exemplo.test\",\n  \"password\": \"UmaSenhaSegura123!\"\n}"
+            },
+            "url": "{{baseUrl}}/api/auth/register"
+          }
+        },
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const response = pm.response.json();",
+                  "pm.collectionVariables.set('accessToken', response.accessToken);",
+                  "pm.collectionVariables.set('refreshToken', response.refreshToken);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"ana@clinica-exemplo.test\",\n  \"password\": \"UmaSenhaSegura123!\"\n}"
+            },
+            "url": "{{baseUrl}}/api/auth/login"
+          }
+        },
+        {
+          "name": "Usuário autenticado",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/auth/me"
+          }
+        },
+        {
+          "name": "Renovar token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const response = pm.response.json();",
+                  "pm.collectionVariables.set('accessToken', response.accessToken);",
+                  "pm.collectionVariables.set('refreshToken', response.refreshToken);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}"
+            },
+            "url": "{{baseUrl}}/api/auth/refresh"
+          }
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}"
+            },
+            "url": "{{baseUrl}}/api/auth/logout"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Etapa 3 - Cadastro da clínica",
+      "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}" }] },
+      "item": [
+        { "name": "Obter clínica atual", "request": { "method": "GET", "url": "{{baseUrl}}/api/clinics/current" } },
+        { "name": "Criar ou atualizar clínica", "request": { "method": "PUT", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"legalName\": \"Clínica Exemplo LTDA\",\n  \"tradeName\": \"Clínica Exemplo\",\n  \"document\": \"12345678000190\",\n  \"email\": \"contato@clinica-exemplo.test\",\n  \"phone\": \"+5581999999999\",\n  \"timeZone\": \"America/Recife\"\n}" }, "url": "{{baseUrl}}/api/clinics/current" } },
+        { "name": "Listar unidades", "request": { "method": "GET", "url": "{{baseUrl}}/api/units" } },
+        { "name": "Criar unidade", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"name\": \"Unidade Centro\",\n  \"address\": \"Rua Exemplo, 100\",\n  \"phone\": \"+5581999999999\"\n}" }, "url": "{{baseUrl}}/api/units" } },
+        { "name": "Obter unidade", "request": { "method": "GET", "url": "{{baseUrl}}/api/units/{{unitId}}" } },
+        { "name": "Atualizar unidade", "request": { "method": "PUT", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"name\": \"Unidade Centro Atualizada\",\n  \"address\": \"Rua Exemplo, 101\",\n  \"phone\": \"+5581999999999\"\n}" }, "url": "{{baseUrl}}/api/units/{{unitId}}" } },
+        { "name": "Excluir unidade", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/units/{{unitId}}" } },
+        { "name": "Listar especialidades", "request": { "method": "GET", "url": "{{baseUrl}}/api/specialties" } },
+        { "name": "Criar especialidade", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"name\": \"Cardiologia\",\n  \"description\": \"Atendimento cardiológico\"\n}" }, "url": "{{baseUrl}}/api/specialties" } },
+        { "name": "Atualizar especialidade", "request": { "method": "PUT", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"name\": \"Cardiologia Clínica\",\n  \"description\": \"Atendimento cardiológico ambulatorial\"\n}" }, "url": "{{baseUrl}}/api/specialties/{{specialtyId}}" } },
+        { "name": "Excluir especialidade", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/specialties/{{specialtyId}}" } },
+        { "name": "Listar profissionais", "request": { "method": "GET", "url": "{{baseUrl}}/api/professionals" } },
+        { "name": "Criar profissional", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"clinicUnitId\": \"{{unitId}}\",\n  \"name\": \"Dra. Marina Silva\",\n  \"email\": \"marina@clinica-exemplo.test\",\n  \"phone\": \"+5581988888888\",\n  \"registrationNumber\": \"CRM-PE 12345\",\n  \"specialtyIds\": [\"{{specialtyId}}\"]\n}" }, "url": "{{baseUrl}}/api/professionals" } },
+        { "name": "Obter profissional", "request": { "method": "GET", "url": "{{baseUrl}}/api/professionals/{{professionalId}}" } },
+        { "name": "Atualizar profissional", "request": { "method": "PUT", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"clinicUnitId\": \"{{unitId}}\",\n  \"name\": \"Dra. Marina Silva\",\n  \"email\": \"marina@clinica-exemplo.test\",\n  \"phone\": \"+5581988888888\",\n  \"registrationNumber\": \"CRM-PE 12345\",\n  \"specialtyIds\": [\"{{specialtyId}}\"]\n}" }, "url": "{{baseUrl}}/api/professionals/{{professionalId}}" } },
+        { "name": "Excluir profissional", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/professionals/{{professionalId}}" } }
+      ]
+    }
+  ]
+}

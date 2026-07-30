@@ -1,0 +1,10 @@
+.DS_Store
+.env
+**/bin/
+**/obj/
+**/.vs/
+**/.vscode/
+**/TestResults/
+**/.prompts/
+coverage/
+
