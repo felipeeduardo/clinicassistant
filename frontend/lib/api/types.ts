@@ -1,8 +1,22 @@
 export type User = { id: string; tenantId: string; name: string; email: string; role: string };
 export type AuthResponse = { accessToken: string; refreshToken: string; accessTokenExpiresAt: string; user: User };
 export type IntegrationStatus = { provider: string; status: string; displayPhoneNumber: string; lastWebhookAt?: string; lastSuccessfulSendAt?: string; lastFailureAt?: string; failureReason?: string };
-export type Clinic = { id: string; legalName: string; tradeName: string; timeZone: string; status: string };
-export type Unit = { id: string; name: string; address: string; phone: string; status: string };
-export type Specialty = { id: string; name: string; description?: string; status: string };
+
+export type Clinic = { id: string; legalName: string; tradeName: string; document: string; email: string; phone: string; timeZone: string; status: string };
+export type Unit = { id: string; clinicId: string; name: string; address: string; phone: string; status: string };
+export type Specialty = { id: string; name: string; description?: string | null; status: string };
 export type Professional = { id: string; clinicUnitId: string; name: string; email: string; phone: string; registrationNumber: string; status: string; specialtyIds: string[] };
-export type Patient = { id: string; name: string; phone: string; email?: string; birthDate?: string; consentStatus: string };
+export type Patient = { id: string; name: string; phone: string; email?: string | null; birthDate?: string | null; consentStatus: string };
+
+export type ClinicRequest = Pick<Clinic, "legalName" | "tradeName" | "document" | "email" | "phone" | "timeZone">;
+export type UnitRequest = Pick<Unit, "name" | "address" | "phone">;
+export type SpecialtyRequest = Pick<Specialty, "name" | "description">;
+export type ProfessionalRequest = Pick<Professional, "clinicUnitId" | "name" | "email" | "phone" | "registrationNumber" | "specialtyIds">;
+export type PatientRequest = Pick<Patient, "name" | "phone" | "email" | "birthDate" | "consentStatus">;
+export type AvailableSlot = { startsAt: string; endsAt: string };
+export type Appointment = { id: string; clinicUnitId: string; professionalId: string; specialtyId: string; patientId: string; startsAt: string; endsAt: string; status: string; source: string; notes?: string | null };
+export type AppointmentRequest = Omit<Appointment, "id" | "status">;
+export type ConversationItem = { id: string; patientId: string; patientName: string; maskedPhone: string; status: string; automationMode: string; priority: string; assignedUserId?: string | null; lastMessageAt?: string | null; version: number };
+export type ConversationMessage = { id: string; direction: string; type: string; contentSanitized?: string | null; status: string; createdAt: string; readAt?: string | null; failure?: string | null };
+export type ConversationDetail = ConversationItem & { state?: { flowState: string; intent: string; status: string; invalidAttempts: number; expiresAt: string; version: number } | null; recentMessages: ConversationMessage[] };
+export type PagedResult<T> = { items: T[]; page: number; pageSize: number; totalCount: number };

@@ -1,6 +1,7 @@
 using ClinicAssistant.Application.Conversations;
 using ClinicAssistant.Application.Identity;
 using ClinicAssistant.Application.WhatsApp;
+using ClinicAssistant.Application.Realtime;
 using ClinicAssistant.Domain.WhatsApp;
 using ClinicAssistant.Domain.Conversations;
 using ClinicAssistant.Infrastructure.Persistence;
@@ -9,7 +10,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace ClinicAssistant.Infrastructure.Conversations;
 
-public sealed class ConversationAdministrationService(ClinicAssistantDbContext dbContext, TenantAccessGuard accessGuard, IPhoneMasker phoneMasker, ITenantContext tenantContext) : IConversationAdministrationService
+public sealed class ConversationAdministrationService(ClinicAssistantDbContext dbContext, TenantAccessGuard accessGuard, IPhoneMasker phoneMasker, ITenantContext tenantContext, IOperationalEventPublisher events) : IConversationAdministrationService
 {
     public async Task<PagedResult<ConversationListItem>> ListAsync(ConversationListQuery query, CancellationToken cancellationToken)
     {
@@ -46,7 +47,7 @@ public sealed class ConversationAdministrationService(ClinicAssistantDbContext d
     public Task ResumeAsync(Guid conversationId, ConversationOperationRequest request, CancellationToken cancellationToken) => MutateAsync(conversationId, request.ExpectedVersion, conversation => conversation.ResumeAutomation(), null, cancellationToken);
 
     private async Task MutateAsync(Guid conversationId, int expectedVersion, Action<Conversation> mutation, Func<Task>? nestedMutation, CancellationToken cancellationToken)
-    { var tenantId = accessGuard.RequireTenantId(); var conversation = await dbContext.Conversations.SingleOrDefaultAsync(item => item.Id == conversationId && item.TenantId == tenantId, cancellationToken) ?? throw new KeyNotFoundException(); if (conversation.Version != expectedVersion) throw new DbUpdateConcurrencyException(); mutation(conversation); if (nestedMutation is not null) await nestedMutation(); await dbContext.SaveChangesAsync(cancellationToken); }
+    { var tenantId = accessGuard.RequireTenantId(); var conversation = await dbContext.Conversations.SingleOrDefaultAsync(item => item.Id == conversationId && item.TenantId == tenantId, cancellationToken) ?? throw new KeyNotFoundException(); if (conversation.Version != expectedVersion) throw new DbUpdateConcurrencyException(); mutation(conversation); if (nestedMutation is not null) await nestedMutation(); await dbContext.SaveChangesAsync(cancellationToken); await events.PublishAsync(tenantId, "conversation.updated", new { conversation.Id, conversation.Version }, cancellationToken); }
     private IQueryable<ConversationMessageItem> MessagesQuery(Guid conversationId, Guid tenantId) => dbContext.ConversationMessages.Where(item => item.ConversationId == conversationId && item.TenantId == tenantId).Select(item => new ConversationMessageItem(item.Id, item.Direction, item.Type, item.ContentSanitized, item.Status, item.CreatedAt, item.ReadAt, item.ProviderErrorMessage));
     private async Task<HumanQueueItem> QueueItemAsync(Guid conversationId, CancellationToken cancellationToken) => await dbContext.HumanQueueItems.SingleOrDefaultAsync(item => item.ConversationId == conversationId && item.TenantId == accessGuard.RequireTenantId(), cancellationToken) ?? throw new InvalidOperationException("The conversation is not in the human queue.");
 }

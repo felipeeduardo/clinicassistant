@@ -26,6 +26,8 @@ using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.Extensions.Options;
 using System.Net;
+using ClinicAssistant.Api.Realtime;
+using ClinicAssistant.Application.Realtime;
 
 Log.Logger = new LoggerConfiguration()
     .WriteTo.Console(formatProvider: CultureInfo.InvariantCulture)
@@ -49,8 +51,10 @@ try
     if (string.IsNullOrWhiteSpace(jwtOptions.Secret) || jwtOptions.Secret.Length < 32)
         throw new InvalidOperationException("Jwt:Secret must contain at least 32 characters.");
     builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-        .AddJwtBearer(options => options.TokenValidationParameters = new TokenValidationParameters
+        .AddJwtBearer(options =>
         {
+            options.TokenValidationParameters = new TokenValidationParameters
+            {
             ValidateIssuer = true,
             ValidateAudience = true,
             ValidateLifetime = true,
@@ -58,7 +62,16 @@ try
             ValidIssuer = jwtOptions.Issuer,
             ValidAudience = jwtOptions.Audience,
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtOptions.Secret)),
-            ClockSkew = TimeSpan.FromSeconds(30)
+                ClockSkew = TimeSpan.FromSeconds(30)
+            };
+            options.Events = new JwtBearerEvents
+            {
+                OnMessageReceived = context =>
+                {
+                    if (context.HttpContext.Request.Path.StartsWithSegments("/hubs/operations")) context.Token = context.Request.Query["access_token"];
+                    return Task.CompletedTask;
+                }
+            };
         });
     builder.Services.AddAuthorization(options =>
     {
@@ -66,6 +79,8 @@ try
         options.AddPolicy("ClinicStaff", policy => policy.RequireRole("ClinicAdmin", "Receptionist", "Professional"));
         options.AddPolicy("ClinicAdmin", policy => policy.RequireRole("ClinicAdmin"));
     });
+    builder.Services.AddSignalR();
+    builder.Services.AddSingleton<IOperationalEventPublisher, SignalROperationalEventPublisher>();
     builder.Services.AddProblemDetails();
     builder.Services.AddEndpointsApiExplorer();
     builder.Services.AddSwaggerGen();
@@ -115,6 +130,7 @@ try
         {
             UnauthorizedAccessException => StatusCodes.Status401Unauthorized,
             KeyNotFoundException => StatusCodes.Status404NotFound,
+            SchedulingConflictException => StatusCodes.Status409Conflict,
             DbUpdateConcurrencyException => StatusCodes.Status409Conflict,
             InvalidOperationException => StatusCodes.Status400BadRequest,
             _ => StatusCodes.Status500InternalServerError
@@ -127,6 +143,7 @@ try
     app.UseAuthorization();
     app.UseSwagger();
     app.UseSwaggerUI();
+    app.MapHub<OperationsHub>("/hubs/operations");
     app.MapGet("/", () => Results.Ok(new { service = "Clinic AI Assistant API", status = "running" }))
         .ExcludeFromDescription();
     var auth = app.MapGroup("/api/auth").WithTags("Authentication");
@@ -166,6 +183,7 @@ try
     clinic.MapGet("/professionals/{id:guid}/availability", async (Guid id, DateOnly date, ISchedulingService service, CancellationToken ct) => Results.Ok(await service.GetAvailabilityAsync(id, date, ct)));
     clinic.MapPost("/professionals/{id:guid}/availability", async (Guid id, AvailabilityRuleRequest request, ISchedulingService service, CancellationToken ct) => { await service.AddAvailabilityRuleAsync(id, request, ct); return Results.NoContent(); });
     clinic.MapPost("/professionals/{id:guid}/blocks", async (Guid id, ScheduleBlockRequest request, ISchedulingService service, CancellationToken ct) => { await service.AddScheduleBlockAsync(id, request, ct); return Results.NoContent(); });
+    clinic.MapGet("/appointments", async (DateTimeOffset startsAt, DateTimeOffset endsAt, ISchedulingService service, CancellationToken ct) => Results.Ok(await service.GetAppointmentsAsync(startsAt, endsAt, ct)));
     clinic.MapPost("/appointments", async (AppointmentRequest request, ISchedulingService service, CancellationToken ct) => Results.Created("/api/appointments", await service.CreateAppointmentAsync(request, ct)));
     clinic.MapPost("/appointments/{id:guid}/confirm", async (Guid id, ISchedulingService service, CancellationToken ct) => Results.Ok(await service.ConfirmAsync(id, ct)));
     clinic.MapPost("/appointments/{id:guid}/cancel", async (Guid id, CancelAppointmentRequest request, ISchedulingService service, CancellationToken ct) => Results.Ok(await service.CancelAsync(id, request, ct)));
