@@ -5,9 +5,8 @@ SELECT "Id" FROM clinic_assistant.tenants
 WHERE (:'profile' = 'minimal' AND "Id" = '00000000-0000-0000-0000-000000000001')
    OR (:'profile' = 'e2e' AND "Id" IN ('00000000-0000-0000-0000-000000000101','00000000-0000-0000-0000-000000000102'))
    OR (:'profile' = 'tenant' AND "Id" = :'tenant_id'::uuid);
-DO $$ BEGIN
-  IF NOT EXISTS (SELECT 1 FROM seed_tenants) THEN RAISE EXCEPTION 'No test tenant matched the requested reset profile.'; END IF;
-END $$;
+-- A newly migrated test database has no fixture tenants yet. In that case the
+-- scoped deletes below intentionally become no-ops, keeping reset idempotent.
 
 DELETE FROM clinic_assistant.whatsapp_media m USING clinic_assistant.conversation_messages cm, seed_tenants t WHERE m."ConversationMessageId" = cm."Id" AND cm."TenantId" = t."Id";
 DELETE FROM clinic_assistant.conversation_options o USING clinic_assistant.conversation_states s, seed_tenants t WHERE o."ConversationStateId" = s."Id" AND s."TenantId" = t."Id";

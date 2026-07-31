@@ -11,6 +11,10 @@ E2E_BASE_DATE="${E2E_BASE_DATE:-2026-08-03}"
 
 fail() { printf '%s\n' "test-data: $*" >&2; exit 1; }
 
+require_psql() {
+  command -v psql >/dev/null 2>&1 || fail "psql is required for local test-data scripts. Install the PostgreSQL client or run: docker compose --profile e2e run --rm test-data-seeder e2e"
+}
+
 assert_safe_environment() {
   [ "${ASPNETCORE_ENVIRONMENT:-Development}" != "Production" ] || fail "execution is blocked in Production."
   case "$DATABASE_NAME" in
@@ -32,10 +36,24 @@ run_sql() {
 }
 
 migrations_ready() {
-  PGPASSWORD="$DATABASE_PASSWORD" psql $(psql_args) -X -v ON_ERROR_STOP=1 -Atqc "SELECT CASE WHEN to_regclass('clinic_assistant.__EFMigrationsHistory') IS NOT NULL AND EXISTS (SELECT 1 FROM clinic_assistant.\"__EFMigrationsHistory\" WHERE \"MigrationId\" = '202607300009_HumanQueue') THEN 'ok' ELSE 'missing' END" 2>/dev/null | grep -qx ok
+  PGPASSWORD="$DATABASE_PASSWORD" psql $(psql_args) -X -v ON_ERROR_STOP=1 -qc "DO \$\$
+  DECLARE history_schema text; migration_exists boolean;
+  BEGIN
+    SELECT table_schema INTO history_schema
+    FROM information_schema.tables
+    WHERE table_name = '__EFMigrationsHistory' AND table_schema IN ('public', 'clinic_assistant')
+    ORDER BY CASE table_schema WHEN 'public' THEN 1 ELSE 2 END
+    LIMIT 1;
+    IF history_schema IS NULL THEN RAISE EXCEPTION 'EF Core migrations history was not found.'; END IF;
+    EXECUTE format('SELECT EXISTS (SELECT 1 FROM %I.\"__EFMigrationsHistory\" WHERE \"MigrationId\" = %L)', history_schema, '202607300009_HumanQueue') INTO migration_exists;
+    IF NOT migration_exists THEN RAISE EXCEPTION 'Required migration 202607300009_HumanQueue was not found.'; END IF;
+  END \$\$;"
 }
 
-assert_migrations() { migrations_ready || fail "the expected EF Core migrations have not been applied."; }
+assert_migrations() {
+  require_psql
+  migrations_ready || fail "migration 202607300009_HumanQueue was not found in '$DATABASE_NAME' at $DATABASE_HOST:$DATABASE_PORT. Start the API (it applies migrations on startup) or apply migrations before running test-data scripts."
+}
 
 generate_password_hash() {
   : "${E2E_DEFAULT_PASSWORD:=ClinicAssistant-E2E-Only-2026}"
