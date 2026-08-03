@@ -18,6 +18,8 @@ public interface IClinicCatalogService
     Task<SpecialtyResponse> CreateSpecialtyAsync(SpecialtyRequest request, CancellationToken ct);
     Task<SpecialtyResponse> UpdateSpecialtyAsync(Guid id, SpecialtyRequest request, CancellationToken ct);
     Task DeleteSpecialtyAsync(Guid id, CancellationToken ct);
+    Task<SpecialtyDependenciesResponse> GetSpecialtyDependenciesAsync(Guid id, CancellationToken ct);
+    Task SetSpecialtyStatusAsync(Guid id, string status, CancellationToken ct);
     Task<IReadOnlyList<ProfessionalResponse>> GetProfessionalsAsync(CancellationToken ct);
     Task<ProfessionalResponse?> GetProfessionalAsync(Guid id, CancellationToken ct);
     Task<ProfessionalResponse> CreateProfessionalAsync(ProfessionalRequest request, CancellationToken ct);

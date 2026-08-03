@@ -57,6 +57,7 @@ public sealed class Specialty : Entity, ITenantEntity
     public string? Description { get; private set; }
     public CatalogStatus Status { get; private set; } = CatalogStatus.Active;
     public void Update(string name, string? description) { Name = name; Description = description; UpdatedAt = DateTimeOffset.UtcNow; }
+    public void SetStatus(CatalogStatus status) { Status = status; UpdatedAt = DateTimeOffset.UtcNow; }
 }
 
 public sealed class Professional : Entity, ITenantEntity

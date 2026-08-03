@@ -26,6 +26,7 @@ public sealed class ClinicAssistantDbContext(DbContextOptions<ClinicAssistantDbC
     public DbSet<Patient> Patients => Set<Patient>();
     public DbSet<AvailabilityRule> AvailabilityRules => Set<AvailabilityRule>();
     public DbSet<ScheduleBlock> ScheduleBlocks => Set<ScheduleBlock>();
+    public DbSet<ProfessionalVacation> ProfessionalVacations => Set<ProfessionalVacation>();
     public DbSet<Appointment> Appointments => Set<Appointment>();
     public DbSet<InboxMessage> InboxMessages => Set<InboxMessage>();
     public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
@@ -131,9 +132,14 @@ public sealed class ClinicAssistantDbContext(DbContextOptions<ClinicAssistantDbC
         {
             entity.ToTable("schedule_blocks"); entity.Property(x => x.Reason).HasMaxLength(500); entity.HasIndex(x => new { x.ProfessionalId, x.StartsAt }); entity.HasOne<Professional>().WithMany().HasForeignKey(x => x.ProfessionalId).OnDelete(DeleteBehavior.Cascade); entity.HasQueryFilter(x => IsPlatformAdmin || (CurrentTenantId.HasValue && x.TenantId == CurrentTenantId.Value));
         });
+        modelBuilder.Entity<ProfessionalVacation>(entity =>
+        {
+            entity.ToTable("professional_vacations"); entity.Property(x => x.Reason).HasMaxLength(500); entity.HasIndex(x => new { x.ProfessionalId, x.StartsAt });
+            entity.HasOne<Professional>().WithMany().HasForeignKey(x => x.ProfessionalId).OnDelete(DeleteBehavior.Cascade); entity.HasQueryFilter(x => IsPlatformAdmin || (CurrentTenantId.HasValue && x.TenantId == CurrentTenantId.Value));
+        });
         modelBuilder.Entity<Appointment>(entity =>
         {
-            entity.ToTable("appointments"); entity.Property(x => x.Status).HasConversion<string>().HasMaxLength(32); entity.Property(x => x.Source).HasConversion<string>().HasMaxLength(32); entity.Property(x => x.Notes).HasMaxLength(1000); entity.Property(x => x.CancellationReason).HasMaxLength(500);
+            entity.ToTable("appointments"); entity.Property(x => x.Status).HasConversion<string>().HasMaxLength(32); entity.Property(x => x.Source).HasConversion<string>().HasMaxLength(32); entity.Property(x => x.Notes).HasMaxLength(1000); entity.Property(x => x.CancellationReason).HasMaxLength(500); entity.Property(x => x.Version).IsConcurrencyToken();
             entity.HasIndex(x => new { x.ProfessionalId, x.StartsAt }); entity.HasIndex(x => new { x.PatientId, x.StartsAt }); entity.HasIndex(x => new { x.Status, x.CreatedAt });
             entity.HasOne<Professional>().WithMany().HasForeignKey(x => x.ProfessionalId).OnDelete(DeleteBehavior.Restrict); entity.HasOne<Patient>().WithMany().HasForeignKey(x => x.PatientId).OnDelete(DeleteBehavior.Restrict); entity.HasQueryFilter(x => IsPlatformAdmin || (CurrentTenantId.HasValue && x.TenantId == CurrentTenantId.Value));
         });

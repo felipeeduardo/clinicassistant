@@ -32,6 +32,7 @@ using ClinicAssistant.Application.Authorization;
 using ClinicAssistant.Application.Platform;
 using ClinicAssistant.Contracts.Platform;
 using ClinicAssistant.Api.Authorization;
+using ClinicAssistant.Application.Operations;
 
 Log.Logger = new LoggerConfiguration()
     .WriteTo.Console(formatProvider: CultureInfo.InvariantCulture)
@@ -40,6 +41,23 @@ Log.Logger = new LoggerConfiguration()
 try
 {
     var builder = WebApplication.CreateBuilder(args);
+    const string RefreshCookieName = "clinic_assistant_refresh";
+    static CookieOptions CookieOptions(HttpRequest request) => new()
+    {
+        HttpOnly = true,
+        Secure = request.IsHttps,
+        SameSite = SameSiteMode.Lax,
+        Path = "/api/auth",
+        MaxAge = TimeSpan.FromDays(14)
+    };
+    static void SetRefreshCookie(HttpResponse response, string refreshToken) => response.Cookies.Append(RefreshCookieName, refreshToken, new CookieOptions
+    {
+        HttpOnly = true,
+        Secure = response.HttpContext.Request.IsHttps,
+        SameSite = SameSiteMode.Lax,
+        Path = "/api/auth",
+        MaxAge = TimeSpan.FromDays(14)
+    });
 
     builder.Host.UseSerilog((context, services, configuration) => configuration
         .ReadFrom.Configuration(context.Configuration)
@@ -93,7 +111,8 @@ try
     builder.Services.AddCors(options => options.AddPolicy("Frontend", policy => policy
         .WithOrigins(frontendOrigins)
         .AllowAnyHeader()
-        .AllowAnyMethod()));
+        .AllowAnyMethod()
+        .AllowCredentials()));
     builder.Services.AddHealthChecks()
         .AddCheck("postgresql", new PostgreSqlHealthCheck(builder.Configuration), tags: ["ready"])
         .AddCheck("rabbitmq", new TcpHealthCheck(builder.Configuration, "RabbitMq", 5672), tags: ["ready"])
@@ -152,17 +171,10 @@ try
     app.MapGet("/", () => Results.Ok(new { service = "Clinic AI Assistant API", status = "running" }))
         .ExcludeFromDescription();
     var auth = app.MapGroup("/api/auth").WithTags("Authentication");
-    auth.MapPost("/register", async (RegisterClinicRequest request, IAuthService service, CancellationToken cancellationToken) =>
-        Results.Ok(await service.RegisterClinicAsync(request, cancellationToken))).AllowAnonymous();
-    auth.MapPost("/login", async (LoginRequest request, IAuthService service, CancellationToken cancellationToken) =>
-        Results.Ok(await service.LoginAsync(request, cancellationToken))).AllowAnonymous();
-    auth.MapPost("/refresh", async (RefreshRequest request, IAuthService service, CancellationToken cancellationToken) =>
-        Results.Ok(await service.RefreshAsync(request, cancellationToken))).AllowAnonymous();
-    auth.MapPost("/logout", async (LogoutRequest request, IAuthService service, CancellationToken cancellationToken) =>
-    {
-        await service.LogoutAsync(request, cancellationToken);
-        return Results.NoContent();
-    }).AllowAnonymous();
+    auth.MapPost("/register", async (RegisterClinicRequest request, HttpResponse response, IAuthService service, CancellationToken cancellationToken) => { var result = await service.RegisterClinicAsync(request, cancellationToken); SetRefreshCookie(response, result.RefreshToken); return Results.Ok(result); }).AllowAnonymous();
+    auth.MapPost("/login", async (LoginRequest request, HttpResponse response, IAuthService service, CancellationToken cancellationToken) => { var result = await service.LoginAsync(request, cancellationToken); SetRefreshCookie(response, result.RefreshToken); return Results.Ok(result); }).AllowAnonymous();
+    auth.MapPost("/refresh", async (HttpRequest request, HttpResponse response, IAuthService service, CancellationToken cancellationToken) => { var token = request.Cookies[RefreshCookieName] ?? throw new UnauthorizedAccessException("Refresh session is unavailable."); var result = await service.RefreshAsync(new RefreshRequest(token), cancellationToken); SetRefreshCookie(response, result.RefreshToken); return Results.Ok(result); }).AllowAnonymous();
+    auth.MapPost("/logout", async (HttpRequest request, HttpResponse response, IAuthService service, CancellationToken cancellationToken) => { var token = request.Cookies[RefreshCookieName]; if (!string.IsNullOrWhiteSpace(token)) await service.LogoutAsync(new LogoutRequest(token), cancellationToken); response.Cookies.Delete(RefreshCookieName, CookieOptions(request)); return Results.NoContent(); }).AllowAnonymous();
     auth.MapGet("/me", async (IAuthService service, CancellationToken cancellationToken) =>
         Results.Ok(await service.GetCurrentUserAsync(cancellationToken))).RequireAuthorization();
     var platform = app.MapGroup("/api/platform").RequireAuthorization("PlatformAdmin").WithTags("Platform Administration");
@@ -186,6 +198,8 @@ try
     clinic.MapPost("/specialties", async (SpecialtyRequest request, IClinicCatalogService service, CancellationToken ct) => Results.Created("/api/specialties", await service.CreateSpecialtyAsync(request, ct))).RequireAuthorization(ClinicPolicies.SpecialtiesManage);
     clinic.MapPut("/specialties/{id:guid}", async (Guid id, SpecialtyRequest request, IClinicCatalogService service, CancellationToken ct) => Results.Ok(await service.UpdateSpecialtyAsync(id, request, ct))).RequireAuthorization(ClinicPolicies.SpecialtiesManage);
     clinic.MapDelete("/specialties/{id:guid}", async (Guid id, IClinicCatalogService service, CancellationToken ct) => { await service.DeleteSpecialtyAsync(id, ct); return Results.NoContent(); }).RequireAuthorization(ClinicPolicies.SpecialtiesManage);
+    clinic.MapGet("/specialties/{id:guid}/dependencies", async (Guid id, IClinicCatalogService service, CancellationToken ct) => Results.Ok(await service.GetSpecialtyDependenciesAsync(id, ct))).RequireAuthorization(ClinicPolicies.SpecialtiesView);
+    clinic.MapPost("/specialties/{id:guid}/status/{status}", async (Guid id, string status, IClinicCatalogService service, CancellationToken ct) => { await service.SetSpecialtyStatusAsync(id, status, ct); return Results.NoContent(); }).RequireAuthorization(ClinicPolicies.SpecialtiesManage);
     clinic.MapGet("/professionals", async (IClinicCatalogService service, CancellationToken ct) => Results.Ok(await service.GetProfessionalsAsync(ct))).RequireAuthorization(ClinicPolicies.ProfessionalsView);
     clinic.MapGet("/professionals/{id:guid}", async (Guid id, IClinicCatalogService service, CancellationToken ct) => (await service.GetProfessionalAsync(id, ct) is { } item ? Results.Ok(item) : Results.NotFound())).RequireAuthorization(ClinicPolicies.ProfessionalsView);
     clinic.MapPost("/professionals", async (ProfessionalRequest request, IClinicCatalogService service, CancellationToken ct) => Results.Created("/api/professionals", await service.CreateProfessionalAsync(request, ct))).RequireAuthorization(ClinicPolicies.ProfessionalsManage);
@@ -198,22 +212,47 @@ try
     clinic.MapPut("/patients/{id:guid}", async (Guid id, PatientRequest request, ISchedulingService service, CancellationToken ct) => Results.Ok(await service.UpdatePatientAsync(id, request, ct))).RequireAuthorization(ClinicPolicies.PatientsManage);
     clinic.MapGet("/professionals/{id:guid}/availability", async (Guid id, DateOnly date, ISchedulingService service, CancellationToken ct) => Results.Ok(await service.GetAvailabilityAsync(id, date, ct))).RequireAuthorization(ClinicPolicies.ProfessionalsView);
     clinic.MapPost("/professionals/{id:guid}/availability", async (Guid id, AvailabilityRuleRequest request, ISchedulingService service, CancellationToken ct) => { await service.AddAvailabilityRuleAsync(id, request, ct); return Results.NoContent(); }).RequireAuthorization(ClinicPolicies.ProfessionalsManage);
+    clinic.MapGet("/professionals/{id:guid}/availability/rules", async (Guid id, ISchedulingService service, CancellationToken ct) => Results.Ok(await service.GetAvailabilityRulesAsync(id, ct))).RequireAuthorization(ClinicPolicies.ProfessionalsView);
+    clinic.MapPut("/professionals/{id:guid}/availability/rules", async (Guid id, IReadOnlyList<AvailabilityRuleRequest> request, ISchedulingService service, CancellationToken ct) => Results.Ok(await service.ReplaceAvailabilityRulesAsync(id, request, ct))).RequireAuthorization(ClinicPolicies.ProfessionalsManage);
     clinic.MapPost("/professionals/{id:guid}/blocks", async (Guid id, ScheduleBlockRequest request, ISchedulingService service, CancellationToken ct) => { await service.AddScheduleBlockAsync(id, request, ct); return Results.NoContent(); }).RequireAuthorization(ClinicPolicies.ProfessionalsManage);
+    clinic.MapGet("/professionals/{id:guid}/blocks", async (Guid id, ISchedulingService service, CancellationToken ct) => Results.Ok(await service.GetScheduleBlocksAsync(id, ct))).RequireAuthorization(ClinicPolicies.ProfessionalsView);
+    clinic.MapDelete("/professionals/{id:guid}/blocks/{blockId:guid}", async (Guid id, Guid blockId, ISchedulingService service, CancellationToken ct) => { await service.DeleteScheduleBlockAsync(id, blockId, ct); return Results.NoContent(); }).RequireAuthorization(ClinicPolicies.ProfessionalsManage);
+    clinic.MapGet("/professionals/{id:guid}/vacations", async (Guid id, ISchedulingService service, CancellationToken ct) => Results.Ok(await service.GetVacationsAsync(id, ct))).RequireAuthorization(ClinicPolicies.ProfessionalsView);
+    clinic.MapPost("/professionals/{id:guid}/vacations", async (Guid id, VacationRequest request, ISchedulingService service, CancellationToken ct) => { await service.AddVacationAsync(id, request, ct); return Results.NoContent(); }).RequireAuthorization(ClinicPolicies.ProfessionalsManage);
+    clinic.MapDelete("/professionals/{id:guid}/vacations/{vacationId:guid}", async (Guid id, Guid vacationId, ISchedulingService service, CancellationToken ct) => { await service.DeleteVacationAsync(id, vacationId, ct); return Results.NoContent(); }).RequireAuthorization(ClinicPolicies.ProfessionalsManage);
+    clinic.MapGet("/professionals/{id:guid}/schedule", async (Guid id, DateTimeOffset startsAt, DateTimeOffset endsAt, ISchedulingService service, CancellationToken ct) => Results.Ok(await service.GetProfessionalScheduleAsync(id, startsAt, endsAt, ct))).RequireAuthorization(ClinicPolicies.ProfessionalsView);
     clinic.MapGet("/appointments", async (DateTimeOffset startsAt, DateTimeOffset endsAt, ISchedulingService service, CancellationToken ct) => Results.Ok(await service.GetAppointmentsAsync(startsAt, endsAt, ct))).RequireAuthorization("ClinicStaff");
-    clinic.MapPost("/appointments", async (AppointmentRequest request, ISchedulingService service, CancellationToken ct) => Results.Created("/api/appointments", await service.CreateAppointmentAsync(request, ct))).RequireAuthorization("ClinicStaff");
-    clinic.MapPost("/appointments/{id:guid}/confirm", async (Guid id, ISchedulingService service, CancellationToken ct) => Results.Ok(await service.ConfirmAsync(id, ct))).RequireAuthorization("ClinicStaff");
-    clinic.MapPost("/appointments/{id:guid}/cancel", async (Guid id, CancelAppointmentRequest request, ISchedulingService service, CancellationToken ct) => Results.Ok(await service.CancelAsync(id, request, ct))).RequireAuthorization("ClinicStaff");
+    clinic.MapGet("/appointments/search", async ([AsParameters] AppointmentSearchRequest request, ISchedulingService service, CancellationToken ct) => Results.Ok(await service.SearchAppointmentsAsync(request, ct))).RequireAuthorization("ClinicStaff");
+    clinic.MapGet("/appointments/{id:guid}", async (Guid id, ISchedulingService service, CancellationToken ct) => Results.Ok(await service.GetAppointmentDetailAsync(id, ct))).RequireAuthorization("ClinicStaff");
+    clinic.MapPost("/appointments", async (AppointmentRequest request, HttpRequest httpRequest, ISchedulingService service, CancellationToken ct) => Results.Created("/api/appointments", await service.CreateAppointmentAsync(request, httpRequest.Headers["Idempotency-Key"].ToString(), ct))).RequireAuthorization("ClinicStaff");
+    clinic.MapPost("/appointments/{id:guid}/confirm", async (Guid id, AppointmentOperationRequest request, HttpRequest httpRequest, ISchedulingService service, CancellationToken ct) => Results.Ok(await service.ConfirmAsync(id, request, httpRequest.Headers["Idempotency-Key"].ToString(), ct))).RequireAuthorization("ClinicStaff");
+    clinic.MapPost("/appointments/{id:guid}/cancel", async (Guid id, CancelAppointmentRequest request, HttpRequest httpRequest, ISchedulingService service, CancellationToken ct) => Results.Ok(await service.CancelAsync(id, request, httpRequest.Headers["Idempotency-Key"].ToString(), ct))).RequireAuthorization("ClinicStaff");
+    clinic.MapPost("/appointments/{id:guid}/reschedule", async (Guid id, RescheduleAppointmentRequest request, HttpRequest httpRequest, ISchedulingService service, CancellationToken ct) => Results.Ok(await service.RescheduleAsync(id, request, httpRequest.Headers["Idempotency-Key"].ToString(), ct))).RequireAuthorization("ClinicStaff");
     clinic.MapGet("/whatsapp/integration/status", async (IWhatsAppIntegrationStatusService service, CancellationToken ct) =>
         (await service.GetCurrentAsync(ct)) is { } status ? Results.Ok(status) : Results.NotFound()).RequireAuthorization("ClinicStaff");
+    clinic.MapPost("/whatsapp/integration/validate", async (IWhatsAppIntegrationStatusService service, CancellationToken ct) => { await service.ValidateCurrentAsync(ct); return Results.NoContent(); }).RequireAuthorization("ClinicAdmin");
+    clinic.MapPost("/whatsapp/integration/enable", async (IWhatsAppIntegrationStatusService service, CancellationToken ct) => { await service.EnableCurrentAsync(ct); return Results.NoContent(); }).RequireAuthorization("ClinicAdmin");
+    clinic.MapPost("/whatsapp/integration/disable", async (IWhatsAppIntegrationStatusService service, CancellationToken ct) => { await service.DisableCurrentAsync(ct); return Results.NoContent(); }).RequireAuthorization("ClinicAdmin");
+    clinic.MapPost("/whatsapp/integration/test-message", async (HttpRequest request, IWhatsAppIntegrationStatusService service, CancellationToken ct) => { await service.QueueTestMessageAsync(request.Headers["Idempotency-Key"].ToString(), ct); return Results.Accepted(); }).RequireAuthorization("ClinicAdmin");
+    clinic.MapGet("/audit", async ([AsParameters] AuditQuery query, IAuditQueryService service, CancellationToken ct) => Results.Ok(await service.SearchAsync(query, ct))).RequireAuthorization("ClinicAdmin");
+    clinic.MapGet("/dashboard", async (IDashboardService service, CancellationToken ct) => Results.Ok(await service.GetAsync(ct))).RequireAuthorization("ClinicStaff");
     var conversations = app.MapGroup("/api/conversations").RequireAuthorization("ClinicStaff").WithTags("Conversations");
     conversations.MapGet("/", async ([AsParameters] ConversationListQuery query, IConversationAdministrationService service, CancellationToken ct) => Results.Ok(await service.ListAsync(query, ct)));
     conversations.MapGet("/{id:guid}", async (Guid id, IConversationAdministrationService service, CancellationToken ct) => (await service.GetAsync(id, ct)) is { } item ? Results.Ok(item) : Results.NotFound());
     conversations.MapGet("/{id:guid}/messages", async (Guid id, int page, int pageSize, IConversationAdministrationService service, CancellationToken ct) => (await service.GetMessagesAsync(id, page, pageSize, ct)) is { } items ? Results.Ok(items) : Results.NotFound());
+    conversations.MapGet("/{id:guid}/appointments", async (Guid id, IConversationAdministrationService service, CancellationToken ct) => Results.Ok(await service.GetAppointmentsAsync(id, ct)));
+    conversations.MapGet("/operators", async (IConversationAdministrationService service, CancellationToken ct) => Results.Ok(await service.GetAssignableUsersAsync(ct))).RequireAuthorization("ClinicAdmin");
     conversations.MapPost("/{id:guid}/messages/{messageId:guid}/read", async (Guid id, Guid messageId, ConversationOperationRequest request, IConversationAdministrationService service, CancellationToken ct) => { await service.MarkReadAsync(id, messageId, request.ExpectedVersion, ct); return Results.NoContent(); });
     conversations.MapPost("/{id:guid}/assign", async (Guid id, ConversationOperationRequest request, IConversationAdministrationService service, CancellationToken ct) => { await service.AssignAsync(id, request, ct); return Results.NoContent(); }).RequireAuthorization("ClinicAdmin");
     conversations.MapPost("/{id:guid}/release", async (Guid id, ConversationOperationRequest request, IConversationAdministrationService service, CancellationToken ct) => { await service.ReleaseAsync(id, request, ct); return Results.NoContent(); }).RequireAuthorization("ClinicAdmin");
+    conversations.MapPost("/{id:guid}/transfer", async (Guid id, ConversationTransferRequest request, IConversationAdministrationService service, CancellationToken ct) => { await service.TransferAsync(id, request, ct); return Results.NoContent(); }).RequireAuthorization("ClinicAdmin");
     conversations.MapPost("/{id:guid}/automation/pause", async (Guid id, ConversationOperationRequest request, IConversationAdministrationService service, CancellationToken ct) => { await service.PauseAsync(id, request, ct); return Results.NoContent(); }).RequireAuthorization("ClinicAdmin");
     conversations.MapPost("/{id:guid}/automation/resume", async (Guid id, ConversationOperationRequest request, IConversationAdministrationService service, CancellationToken ct) => { await service.ResumeAsync(id, request, ct); return Results.NoContent(); }).RequireAuthorization("ClinicAdmin");
+    conversations.MapPost("/{id:guid}/close", async (Guid id, ConversationOperationRequest request, IConversationAdministrationService service, CancellationToken ct) => { await service.CloseAsync(id, request, ct); return Results.NoContent(); }).RequireAuthorization("ClinicAdmin");
+    conversations.MapPost("/{id:guid}/reopen", async (Guid id, ConversationOperationRequest request, IConversationAdministrationService service, CancellationToken ct) => { await service.ReopenAsync(id, request, ct); return Results.NoContent(); }).RequireAuthorization("ClinicAdmin");
+    conversations.MapPatch("/{id:guid}/priority", async (Guid id, ConversationPriorityRequest request, IConversationAdministrationService service, CancellationToken ct) => { await service.SetPriorityAsync(id, request, ct); return Results.NoContent(); }).RequireAuthorization("ClinicAdmin");
+    conversations.MapPost("/{id:guid}/messages", async (Guid id, ManualConversationMessageRequest request, HttpRequest httpRequest, IConversationAdministrationService service, CancellationToken ct) => { await service.SendManualMessageAsync(id, request, httpRequest.Headers["Idempotency-Key"].ToString(), ct); return Results.NoContent(); }).RequireAuthorization("ClinicAdmin");
+    app.MapGet("/api/conversation-queue", async ([AsParameters] HumanQueueListQuery query, IConversationAdministrationService service, CancellationToken ct) => Results.Ok(await service.GetHumanQueueAsync(query, ct))).RequireAuthorization("ClinicAdmin");
     app.MapPost("/api/webhooks/whatsapp/twilio/{integrationKey}", async (string integrationKey, HttpRequest request, IWhatsAppIncomingWebhookService service, TwilioWebhookUrlResolver urlResolver, IOptions<WhatsAppOptions> options, CancellationToken cancellationToken) =>
     {
         var stopwatch = Stopwatch.StartNew();

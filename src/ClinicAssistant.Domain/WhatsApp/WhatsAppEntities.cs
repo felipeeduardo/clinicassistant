@@ -48,6 +48,7 @@ public sealed class WhatsAppIntegration : Entity, ITenantEntity
         UpdatedAt = DateTimeOffset.UtcNow;
     }
     public void Disable() { Status = WhatsAppIntegrationStatus.Disabled; UpdatedAt = DateTimeOffset.UtcNow; }
+    public void MarkValidated() { LastValidatedAt = DateTimeOffset.UtcNow; FailureReason = null; UpdatedAt = DateTimeOffset.UtcNow; }
     public void MarkSuccessfulSend() { LastSuccessfulSendAt = DateTimeOffset.UtcNow; FailureReason = null; UpdatedAt = DateTimeOffset.UtcNow; }
     public void MarkSendFailure(string safeReason) { LastFailureAt = DateTimeOffset.UtcNow; FailureReason = safeReason; UpdatedAt = DateTimeOffset.UtcNow; }
 }
@@ -141,6 +142,7 @@ public sealed class Conversation : Entity, ITenantEntity
     public void Release() { AssignedUserId = null; Status = ConversationStatus.WaitingHuman; AutomationMode = ConversationAutomationMode.Human; Version++; UpdatedAt = DateTimeOffset.UtcNow; }
     public void PauseAutomation() { AutomationMode = ConversationAutomationMode.Paused; Version++; UpdatedAt = DateTimeOffset.UtcNow; }
     public void ResumeAutomation() { AutomationMode = ConversationAutomationMode.Automated; if (Status != ConversationStatus.Closed) Status = ConversationStatus.Bot; Version++; UpdatedAt = DateTimeOffset.UtcNow; }
+    public void SetPriority(ConversationPriority priority) { Priority = priority; Version++; UpdatedAt = DateTimeOffset.UtcNow; }
 }
 
 public sealed class ConversationMessage : Entity, ITenantEntity

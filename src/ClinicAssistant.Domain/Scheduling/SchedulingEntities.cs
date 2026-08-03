@@ -53,6 +53,18 @@ public sealed class ScheduleBlock : Entity, ITenantEntity
     public string? Reason { get; private set; }
 }
 
+public sealed class ProfessionalVacation : Entity, ITenantEntity
+{
+    private ProfessionalVacation() { }
+    public ProfessionalVacation(Guid tenantId, Guid professionalId, DateTimeOffset startsAt, DateTimeOffset endsAt, string? reason)
+    { TenantId = tenantId; ProfessionalId = professionalId; StartsAt = startsAt; EndsAt = endsAt; Reason = reason; }
+    public Guid TenantId { get; private set; }
+    public Guid ProfessionalId { get; private set; }
+    public DateTimeOffset StartsAt { get; private set; }
+    public DateTimeOffset EndsAt { get; private set; }
+    public string? Reason { get; private set; }
+}
+
 public sealed class Appointment : Entity, ITenantEntity
 {
     private Appointment() { }
@@ -70,6 +82,8 @@ public sealed class Appointment : Entity, ITenantEntity
     public string? Notes { get; private set; }
     public DateTimeOffset? CancelledAt { get; private set; }
     public string? CancellationReason { get; private set; }
-    public void Confirm() { if (Status != AppointmentStatus.Pending) throw new InvalidOperationException("Only pending appointments can be confirmed."); Status = AppointmentStatus.Confirmed; UpdatedAt = DateTimeOffset.UtcNow; }
-    public void Cancel(string reason) { if (Status is AppointmentStatus.Cancelled or AppointmentStatus.Completed) throw new InvalidOperationException("This appointment cannot be cancelled."); Status = AppointmentStatus.Cancelled; CancelledAt = DateTimeOffset.UtcNow; CancellationReason = reason; UpdatedAt = DateTimeOffset.UtcNow; }
+    public int Version { get; private set; } = 1;
+    public void Confirm() { if (Status != AppointmentStatus.Pending) throw new InvalidOperationException("Only pending appointments can be confirmed."); Status = AppointmentStatus.Confirmed; Version++; UpdatedAt = DateTimeOffset.UtcNow; }
+    public void Cancel(string reason) { if (Status is AppointmentStatus.Cancelled or AppointmentStatus.Completed) throw new InvalidOperationException("This appointment cannot be cancelled."); Status = AppointmentStatus.Cancelled; CancelledAt = DateTimeOffset.UtcNow; CancellationReason = reason; Version++; UpdatedAt = DateTimeOffset.UtcNow; }
+    public void MarkRescheduled() { if (Status is AppointmentStatus.Cancelled or AppointmentStatus.Completed or AppointmentStatus.Rescheduled) throw new InvalidOperationException("This appointment cannot be rescheduled."); Status = AppointmentStatus.Rescheduled; Version++; UpdatedAt = DateTimeOffset.UtcNow; }
 }

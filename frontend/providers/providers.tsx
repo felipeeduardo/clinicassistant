@@ -12,8 +12,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(() => new QueryClient({ defaultOptions: { queries: { retry: 1, staleTime: 30_000 } } }));
   const [session, setSession] = useState<AuthResponse | null>(null);
   const [realtimeStatus, setRealtimeStatus] = useState<"offline" | "connecting" | "online">("offline");
-  const logout = useCallback(async () => { const refreshToken = session?.refreshToken; setSession(null); queryClient.clear(); if (refreshToken) await new ApiClient(() => null, () => undefined).request("/api/auth/logout", { method: "POST", body: JSON.stringify({ refreshToken }) }).catch(() => undefined); }, [queryClient, session]);
+  const logout = useCallback(async () => { setSession(null); queryClient.clear(); await new ApiClient(() => null, () => undefined).request("/api/auth/logout", { method: "POST" }).catch(() => undefined); }, [queryClient]);
   const login = useCallback(async (email: string, password: string) => { const result = await new ApiClient(() => null, () => undefined).request<AuthResponse>("/api/auth/login", { method: "POST", body: JSON.stringify({ email, password }) }); setSession(result); }, []);
+  useEffect(() => { let active = true; void new ApiClient(() => null, () => undefined).request<AuthResponse>("/api/auth/refresh", { method: "POST" }).then(result => { if (active) setSession(result); }).catch(() => undefined); return () => { active = false; }; }, []);
   return <QueryClientProvider client={queryClient}><AuthContext.Provider value={{ user: session?.user ?? null, token: session?.accessToken ?? null, realtimeStatus, login, logout }}><RealtimeBridge token={session?.accessToken ?? null} queryClient={queryClient} setStatus={setRealtimeStatus} />{children}</AuthContext.Provider></QueryClientProvider>;
 }
 

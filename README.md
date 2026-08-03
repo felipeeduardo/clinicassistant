@@ -48,7 +48,7 @@ Consulte também a documentação de [mensageria](docs/messaging.md), incluindo 
 
 ## Postman
 
-Importe a collection [clinic-assistant.postman_collection.json](docs/postman/clinic-assistant.postman_collection.json) no Postman. Ela usa `http://localhost:8080` por padrão e salva automaticamente os tokens devolvidos por registro, login e refresh.
+Importe a collection [clinic-assistant.postman_collection.json](docs/postman/clinic-assistant.postman_collection.json) no Postman. Ela usa `http://localhost:8080` por padrão e salva o access token devolvido por registro, login e refresh. O refresh token fica somente no cookie `HttpOnly` do Postman; não o copie para variáveis ou arquivos.
 
 ## Política de dependências
 

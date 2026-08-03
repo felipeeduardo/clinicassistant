@@ -10,7 +10,7 @@ Primeiro prepare a infraestrutura e os dados conforme o [guia E2E](../testing/e2
 cd frontend
 export E2E_DEFAULT_PASSWORD='sua-senha-e2e-local'
 export NEXT_PUBLIC_API_URL=http://localhost:8080
-npm run test:e2e
+E2E_DEFAULT_PASSWORD='<senha-do-ambiente>' npm run test:e2e
 ```
 
 Sem `E2E_DEFAULT_PASSWORD`, somente o smoke não autenticado de login é executado; os testes que exigem API são ignorados intencionalmente.

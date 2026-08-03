@@ -12,4 +12,5 @@ public sealed record UnitProfessionalSummary(Guid Id, string Name, string Regist
 public sealed record UnitAuditSummary(DateTimeOffset OccurredAt, string Action, string Result);
 public sealed record UnitDetailResponse(UnitResponse Unit, string TimeZone, IReadOnlyList<UnitBusinessHourResponse> BusinessHours, IReadOnlyList<UnitProfessionalSummary> Professionals, IReadOnlyList<UnitAuditSummary> RecentAudit);
 public sealed record SpecialtyResponse(Guid Id, string Name, string? Description, string Status);
+public sealed record SpecialtyDependenciesResponse(bool CanDeactivate, int Professionals, int FutureAppointments);
 public sealed record ProfessionalResponse(Guid Id, Guid ClinicUnitId, string Name, string Email, string Phone, string RegistrationNumber, string Status, IReadOnlyCollection<Guid> SpecialtyIds);

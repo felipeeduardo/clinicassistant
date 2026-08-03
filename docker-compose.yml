@@ -29,6 +29,7 @@ services:
       WhatsApp__RequestTimeoutSeconds: ${WHATSAPP_REQUEST_TIMEOUT_SECONDS:-15}
       WhatsApp__RawPayloadRetentionDays: ${WHATSAPP_RAW_PAYLOAD_RETENTION_DAYS:-30}
       WhatsApp__MaxWebhookBodySizeBytes: ${WHATSAPP_MAX_WEBHOOK_BODY_SIZE_BYTES:-1048576}
+      WhatsApp__TestRecipient: ${WHATSAPP_TEST_RECIPIENT:-}
       WhatsApp__Media__MaxFileSizeBytes: ${WHATSAPP_MEDIA_MAX_FILE_SIZE_BYTES:-10485760}
       WhatsApp__Media__AllowedTypes: ${WHATSAPP_MEDIA_ALLOWED_TYPES:-image/jpeg,image/png,application/pdf,audio/ogg}
       WhatsApp__Fake__DelayMilliseconds: ${WHATSAPP_FAKE_DELAY_MILLISECONDS:-100}

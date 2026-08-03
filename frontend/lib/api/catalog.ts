@@ -1,5 +1,5 @@
 import type { ApiClient } from "@/lib/api/client";
-import type { Clinic, ClinicRequest, Professional, ProfessionalRequest, Specialty, SpecialtyRequest, Unit, UnitDetail, UnitRequest } from "@/lib/api/types";
+import type { Clinic, ClinicRequest, Professional, ProfessionalRequest, ProfessionalSchedule, Specialty, SpecialtyDependencies, SpecialtyRequest, Unit, UnitDetail, UnitRequest } from "@/lib/api/types";
 
 export const catalogApi = {
   getClinic: (api: ApiClient) => api.request<Clinic>("/api/clinics/current"),
@@ -12,7 +12,10 @@ export const catalogApi = {
   listSpecialties: (api: ApiClient) => api.request<Specialty[]>("/api/specialties"),
   createSpecialty: (api: ApiClient, request: SpecialtyRequest) => api.request<Specialty>("/api/specialties", { method: "POST", body: JSON.stringify(request) }),
   updateSpecialty: (api: ApiClient, id: string, request: SpecialtyRequest) => api.request<Specialty>(`/api/specialties/${id}`, { method: "PUT", body: JSON.stringify(request) }),
+  getSpecialtyDependencies: (api: ApiClient, id: string) => api.request<SpecialtyDependencies>(`/api/specialties/${id}/dependencies`),
+  setSpecialtyStatus: (api: ApiClient, id: string, status: "Active" | "Inactive") => api.request<void>(`/api/specialties/${id}/status/${status}`, { method: "POST" }),
   listProfessionals: (api: ApiClient) => api.request<Professional[]>("/api/professionals"),
   createProfessional: (api: ApiClient, request: ProfessionalRequest) => api.request<Professional>("/api/professionals", { method: "POST", body: JSON.stringify(request) }),
   updateProfessional: (api: ApiClient, id: string, request: ProfessionalRequest) => api.request<Professional>(`/api/professionals/${id}`, { method: "PUT", body: JSON.stringify(request) }),
+  getProfessionalSchedule: (api: ApiClient, id: string, startsAt: string, endsAt: string) => api.request<ProfessionalSchedule>(`/api/professionals/${id}/schedule?startsAt=${encodeURIComponent(startsAt)}&endsAt=${encodeURIComponent(endsAt)}`),
 };

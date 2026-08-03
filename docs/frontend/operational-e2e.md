@@ -9,8 +9,8 @@ Atualizado na Etapa 9.2. Esta entrega usa somente as APIs existentes. Onde o bac
 | `/clinics` | `GET/PUT /api/clinics/current` | Disponível para a clínica da sessão; não há lista global de clínicas. |
 | `/units` | `GET/POST/PUT /api/units`, detalhe e status operacional | Disponível; detalhe apresenta fuso, horários e profissionais vinculados. A exclusão é bloqueada quando houver profissionais. |
 | `/patients` | `GET/POST/PUT /api/patients`, `GET /api/patients/search`, `GET /api/patients/{id}` | Disponível; listagem paginada com busca e filtro de consentimento, detalhe com origem, próximos agendamentos, conversas e resumo de auditoria. Telefone e e-mail são mascarados na listagem. |
-| `/professionals` | `GET/POST/PUT /api/professionals` | Disponível; depende das listas de unidades e especialidades. |
-| `/specialties` | `GET/POST/PUT /api/specialties` | Disponível. |
+| `/professionals` | `GET/POST/PUT /api/professionals`, agenda dedicada | Disponível; a tela consulta agenda dos próximos sete dias. APIs de disponibilidade, bloqueios e férias estão disponíveis para gestão administrativa. |
+| `/specialties` | `GET/POST/PUT /api/specialties`, dependências e status | Disponível; a tela expõe dependências e só permite o backend efetivar desativação quando for segura. |
 | `/appointments` | `GET /api/appointments?startsAt&endsAt`, `GET /api/professionals/{id}/availability`, `POST /api/appointments`, confirmar e cancelar | Disponível para operação diária. Reagendamento e versões esperadas continuam indisponíveis. |
 | `/conversations` | Listagem, detalhe, mensagens, marcar leitura, atribuir, liberar, pausar e retomar | Disponível. As quatro últimas ações enviam `expectedVersion` e o backend pode responder `409`. |
 | `/integrations/whatsapp` | `GET /api/whatsapp/integration/status` | Disponível em modo somente leitura, com número mascarado e diagnóstico sanitizado. |

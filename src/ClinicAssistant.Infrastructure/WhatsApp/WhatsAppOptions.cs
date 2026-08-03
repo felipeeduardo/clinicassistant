@@ -10,6 +10,7 @@ public sealed class WhatsAppOptions
     public int RequestTimeoutSeconds { get; init; } = 15;
     public int RawPayloadRetentionDays { get; init; } = 30;
     public int MaxWebhookBodySizeBytes { get; init; } = 1_048_576;
+    public string? TestRecipient { get; init; }
     public WhatsAppMediaOptions Media { get; init; } = new();
     public FakeWhatsAppOptions Fake { get; init; } = new();
 }

@@ -18,4 +18,5 @@ public sealed class HumanQueueItem : Entity, ITenantEntity
     public int Version { get; private set; }
     public void Assign(Guid userId) { AssignedUserId = userId; Status = HumanQueueItemStatus.Assigned; Version++; UpdatedAt = DateTimeOffset.UtcNow; }
     public void Release() { AssignedUserId = null; Status = HumanQueueItemStatus.Waiting; Version++; UpdatedAt = DateTimeOffset.UtcNow; }
+    public void Complete() { Status = HumanQueueItemStatus.Completed; Version++; UpdatedAt = DateTimeOffset.UtcNow; }
 }
