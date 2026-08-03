@@ -5,6 +5,8 @@ namespace ClinicAssistant.Application.Scheduling;
 public interface ISchedulingService
 {
     Task<IReadOnlyList<PatientResponse>> GetPatientsAsync(CancellationToken ct);
+    Task<PatientPage> SearchPatientsAsync(PatientSearchRequest r, CancellationToken ct);
+    Task<PatientDetailResponse> GetPatientDetailAsync(Guid id, CancellationToken ct);
     Task<PatientResponse> CreatePatientAsync(PatientRequest r, CancellationToken ct);
     Task<PatientResponse> UpdatePatientAsync(Guid id, PatientRequest r, CancellationToken ct);
     Task<IReadOnlyList<AvailableSlot>> GetAvailabilityAsync(Guid professionalId, DateOnly appointmentDate, CancellationToken ct);

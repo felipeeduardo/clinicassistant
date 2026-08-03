@@ -47,6 +47,7 @@ public sealed class WhatsAppIntegration : Entity, ITenantEntity
         ConnectedAt = DateTimeOffset.UtcNow;
         UpdatedAt = DateTimeOffset.UtcNow;
     }
+    public void Disable() { Status = WhatsAppIntegrationStatus.Disabled; UpdatedAt = DateTimeOffset.UtcNow; }
     public void MarkSuccessfulSend() { LastSuccessfulSendAt = DateTimeOffset.UtcNow; FailureReason = null; UpdatedAt = DateTimeOffset.UtcNow; }
     public void MarkSendFailure(string safeReason) { LastFailureAt = DateTimeOffset.UtcNow; FailureReason = safeReason; UpdatedAt = DateTimeOffset.UtcNow; }
 }

@@ -7,6 +7,8 @@
   },
   "users": {
     "adminEmail": "admin.e2e@fake.local",
+    "platformAdminEmail": "platform-admin.e2e@fake.local",
+    "viewerEmail": "viewer.e2e@fake.local",
     "operatorEmail": "operator.e2e@fake.local",
     "operator2Email": "operator2.e2e@fake.local"
   },

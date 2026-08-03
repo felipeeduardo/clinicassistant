@@ -2,6 +2,7 @@ using ClinicAssistant.Application.Clinics;
 using ClinicAssistant.Application.Identity;
 using ClinicAssistant.Contracts.Clinics;
 using ClinicAssistant.Domain.Clinics;
+using ClinicAssistant.Domain.Operations;
 using ClinicAssistant.Infrastructure.Persistence;
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
@@ -25,13 +26,24 @@ public sealed class ClinicCatalogService(ClinicAssistantDbContext db, TenantAcce
     }
     public async Task<IReadOnlyList<UnitResponse>> GetUnitsAsync(CancellationToken ct) => await db.ClinicUnits.OrderBy(x => x.Name).Select(x => Map(x)).ToListAsync(ct);
     public async Task<UnitResponse?> GetUnitAsync(Guid id, CancellationToken ct) => (await db.ClinicUnits.FindAsync([id], ct)) is { } unit ? Map(unit) : null;
+    public async Task<UnitDetailResponse?> GetUnitDetailAsync(Guid id, CancellationToken ct)
+    {
+        var unit = await db.ClinicUnits.SingleOrDefaultAsync(x => x.Id == id, ct); if (unit is null) return null;
+        var timeZone = await db.Clinics.Where(x => x.Id == unit.ClinicId).Select(x => x.TimeZone).SingleAsync(ct);
+        var hours = await db.UnitBusinessHours.Where(x => x.ClinicUnitId == id).OrderBy(x => x.DayOfWeek).Select(x => new UnitBusinessHourResponse(x.DayOfWeek, x.OpensAt, x.ClosesAt)).ToListAsync(ct);
+        var professionals = await db.Professionals.Where(x => x.ClinicUnitId == id).OrderBy(x => x.Name).Select(x => new UnitProfessionalSummary(x.Id, x.Name, x.RegistrationNumber, x.Status.ToString())).ToListAsync(ct);
+        var tenantId = tenantGuard.RequireTenantId(); var audit = await db.AuditRecords.AsNoTracking().Where(x => x.TenantId == tenantId && x.ResourceType == "ClinicUnit" && x.ResourceId == id).OrderByDescending(x => x.CreatedAt).Take(20).Select(x => new UnitAuditSummary(x.CreatedAt, x.Action, x.Result)).ToListAsync(ct);
+        return new(Map(unit), timeZone, hours, professionals, audit);
+    }
     public async Task<UnitResponse> CreateUnitAsync(UnitRequest request, CancellationToken ct)
     {
         await new UnitRequestValidator().ValidateAndThrowAsync(request, ct); var tenantId = tenantGuard.RequireTenantId(); var clinic = await db.Clinics.SingleOrDefaultAsync(ct) ?? throw new InvalidOperationException("Configure the clinic before adding units.");
-        var unit = new ClinicUnit(tenantId, clinic.Id, request.Name, request.Address, request.Phone); db.ClinicUnits.Add(unit); await db.SaveChangesAsync(ct); return Map(unit);
+        var unit = new ClinicUnit(tenantId, clinic.Id, request.Name, request.Address, request.Phone); db.ClinicUnits.Add(unit); db.AuditRecords.Add(new AuditRecord(tenantId, null, "unit.created", "ClinicUnit", unit.Id, "Succeeded", "Unit created by clinic administration.")); await db.SaveChangesAsync(ct); return Map(unit);
     }
-    public async Task<UnitResponse> UpdateUnitAsync(Guid id, UnitRequest request, CancellationToken ct) { await new UnitRequestValidator().ValidateAndThrowAsync(request, ct); var unit = await Require(db.ClinicUnits, id, ct); unit.Update(request.Name, request.Address, request.Phone); await db.SaveChangesAsync(ct); return Map(unit); }
-    public async Task DeleteUnitAsync(Guid id, CancellationToken ct) { db.ClinicUnits.Remove(await Require(db.ClinicUnits, id, ct)); await db.SaveChangesAsync(ct); }
+    public async Task<UnitResponse> UpdateUnitAsync(Guid id, UnitRequest request, CancellationToken ct) { await new UnitRequestValidator().ValidateAndThrowAsync(request, ct); var unit = await Require(db.ClinicUnits, id, ct); unit.Update(request.Name, request.Address, request.Phone); db.AuditRecords.Add(new AuditRecord(tenantGuard.RequireTenantId(), null, "unit.updated", "ClinicUnit", id, "Succeeded", "Unit updated by clinic administration.")); await db.SaveChangesAsync(ct); return Map(unit); }
+    public async Task DeleteUnitAsync(Guid id, CancellationToken ct) { var unit = await Require(db.ClinicUnits, id, ct); if (await db.Professionals.AnyAsync(x => x.ClinicUnitId == id, ct)) throw new InvalidOperationException("A unit with linked professionals cannot be deleted."); db.ClinicUnits.Remove(unit); await db.SaveChangesAsync(ct); }
+    public async Task SetUnitStatusAsync(Guid id, string status, CancellationToken ct) { var unit = await Require(db.ClinicUnits, id, ct); if (!Enum.TryParse<CatalogStatus>(status, true, out var value)) throw new InvalidOperationException("Invalid unit status."); unit.SetStatus(value); db.AuditRecords.Add(new AuditRecord(tenantGuard.RequireTenantId(), null, "unit.status_changed", "ClinicUnit", id, "Succeeded", $"Unit status set to {value}.")); await db.SaveChangesAsync(ct); }
+    public async Task<IReadOnlyList<UnitBusinessHourResponse>> ReplaceUnitBusinessHoursAsync(Guid id, IReadOnlyList<UnitBusinessHourRequest> request, CancellationToken ct) { var unit = await Require(db.ClinicUnits, id, ct); if (request.GroupBy(x => x.DayOfWeek).Any(x => x.Count() > 1) || request.Any(x => x.ClosesAt <= x.OpensAt)) throw new InvalidOperationException("Business hours are invalid."); var current = await db.UnitBusinessHours.Where(x => x.ClinicUnitId == id).ToListAsync(ct); db.UnitBusinessHours.RemoveRange(current); var hours = request.Select(x => new UnitBusinessHour(tenantGuard.RequireTenantId(), unit.Id, x.DayOfWeek, x.OpensAt, x.ClosesAt)).ToList(); db.UnitBusinessHours.AddRange(hours); db.AuditRecords.Add(new AuditRecord(tenantGuard.RequireTenantId(), null, "unit.business_hours_updated", "ClinicUnit", id, "Succeeded", "Business hours updated.")); await db.SaveChangesAsync(ct); return hours.OrderBy(x => x.DayOfWeek).Select(x => new UnitBusinessHourResponse(x.DayOfWeek, x.OpensAt, x.ClosesAt)).ToList(); }
     public async Task<IReadOnlyList<SpecialtyResponse>> GetSpecialtiesAsync(CancellationToken ct) => await db.Specialties.OrderBy(x => x.Name).Select(x => Map(x)).ToListAsync(ct);
     public async Task<SpecialtyResponse> CreateSpecialtyAsync(SpecialtyRequest request, CancellationToken ct) { await new SpecialtyRequestValidator().ValidateAndThrowAsync(request, ct); var entity = new Specialty(tenantGuard.RequireTenantId(), request.Name, request.Description); db.Specialties.Add(entity); await db.SaveChangesAsync(ct); return Map(entity); }
     public async Task<SpecialtyResponse> UpdateSpecialtyAsync(Guid id, SpecialtyRequest request, CancellationToken ct) { await new SpecialtyRequestValidator().ValidateAndThrowAsync(request, ct); var entity = await Require(db.Specialties, id, ct); entity.Update(request.Name, request.Description); await db.SaveChangesAsync(ct); return Map(entity); }

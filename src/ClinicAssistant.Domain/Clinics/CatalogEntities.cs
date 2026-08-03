@@ -33,6 +33,19 @@ public sealed class ClinicUnit : Entity, ITenantEntity
     public string Phone { get; private set; } = null!;
     public CatalogStatus Status { get; private set; } = CatalogStatus.Active;
     public void Update(string name, string address, string phone) { Name = name; Address = address; Phone = phone; UpdatedAt = DateTimeOffset.UtcNow; }
+    public void SetStatus(CatalogStatus status) { Status = status; UpdatedAt = DateTimeOffset.UtcNow; }
+}
+
+public sealed class UnitBusinessHour : Entity, ITenantEntity
+{
+    private UnitBusinessHour() { }
+    public UnitBusinessHour(Guid tenantId, Guid clinicUnitId, DayOfWeek dayOfWeek, TimeOnly opensAt, TimeOnly closesAt)
+    { TenantId = tenantId; ClinicUnitId = clinicUnitId; DayOfWeek = dayOfWeek; OpensAt = opensAt; ClosesAt = closesAt; }
+    public Guid TenantId { get; private set; }
+    public Guid ClinicUnitId { get; private set; }
+    public DayOfWeek DayOfWeek { get; private set; }
+    public TimeOnly OpensAt { get; private set; }
+    public TimeOnly ClosesAt { get; private set; }
 }
 
 public sealed class Specialty : Entity, ITenantEntity

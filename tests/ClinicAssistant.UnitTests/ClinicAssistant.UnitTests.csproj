@@ -1,5 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
+    <ProjectReference Include="../../src/ClinicAssistant.Api/ClinicAssistant.Api.csproj" />
     <ProjectReference Include="../../src/ClinicAssistant.Domain/ClinicAssistant.Domain.csproj" />
     <ProjectReference Include="../../src/ClinicAssistant.Application/ClinicAssistant.Application.csproj" />
     <ProjectReference Include="../../src/ClinicAssistant.Infrastructure/ClinicAssistant.Infrastructure.csproj" />

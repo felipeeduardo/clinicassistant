@@ -9,5 +9,7 @@ public sealed class Tenant : Entity
     public string Name { get; private set; } = null!;
     public string Slug { get; private set; } = null!;
     public TenantStatus Status { get; private set; } = TenantStatus.Active;
+    public void Activate() { Status = TenantStatus.Active; UpdatedAt = DateTimeOffset.UtcNow; }
     public void Suspend() { Status = TenantStatus.Suspended; UpdatedAt = DateTimeOffset.UtcNow; }
+    public void Disable() { Status = TenantStatus.Blocked; UpdatedAt = DateTimeOffset.UtcNow; }
 }

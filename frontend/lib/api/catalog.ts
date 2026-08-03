@@ -1,10 +1,12 @@
 import type { ApiClient } from "@/lib/api/client";
-import type { Clinic, ClinicRequest, Professional, ProfessionalRequest, Specialty, SpecialtyRequest, Unit, UnitRequest } from "@/lib/api/types";
+import type { Clinic, ClinicRequest, Professional, ProfessionalRequest, Specialty, SpecialtyRequest, Unit, UnitDetail, UnitRequest } from "@/lib/api/types";
 
 export const catalogApi = {
   getClinic: (api: ApiClient) => api.request<Clinic>("/api/clinics/current"),
   updateClinic: (api: ApiClient, request: ClinicRequest) => api.request<Clinic>("/api/clinics/current", { method: "PUT", body: JSON.stringify(request) }),
   listUnits: (api: ApiClient) => api.request<Unit[]>("/api/units"),
+  getUnitDetail: (api: ApiClient, id: string) => api.request<UnitDetail>(`/api/units/${id}/details`),
+  setUnitStatus: (api: ApiClient, id: string, status: "Active" | "Inactive") => api.request<void>(`/api/units/${id}/status/${status}`, { method: "POST" }),
   createUnit: (api: ApiClient, request: UnitRequest) => api.request<Unit>("/api/units", { method: "POST", body: JSON.stringify(request) }),
   updateUnit: (api: ApiClient, id: string, request: UnitRequest) => api.request<Unit>(`/api/units/${id}`, { method: "PUT", body: JSON.stringify(request) }),
   listSpecialties: (api: ApiClient) => api.request<Specialty[]>("/api/specialties"),

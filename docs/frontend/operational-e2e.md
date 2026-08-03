@@ -7,8 +7,8 @@ Atualizado na Etapa 9.2. Esta entrega usa somente as APIs existentes. Onde o bac
 | Tela | Endpoint | Estado |
 | --- | --- | --- |
 | `/clinics` | `GET/PUT /api/clinics/current` | Disponível para a clínica da sessão; não há lista global de clínicas. |
-| `/units` | `GET/POST/PUT /api/units` | Disponível. Ativar, desativar e exclusão segura dependem de contrato adicional. |
-| `/patients` | `GET/POST/PUT /api/patients` | Disponível; telefone e e-mail são mascarados na listagem. Não há detalhe dedicado, busca ou paginação. |
+| `/units` | `GET/POST/PUT /api/units`, detalhe e status operacional | Disponível; detalhe apresenta fuso, horários e profissionais vinculados. A exclusão é bloqueada quando houver profissionais. |
+| `/patients` | `GET/POST/PUT /api/patients`, `GET /api/patients/search`, `GET /api/patients/{id}` | Disponível; listagem paginada com busca e filtro de consentimento, detalhe com origem, próximos agendamentos, conversas e resumo de auditoria. Telefone e e-mail são mascarados na listagem. |
 | `/professionals` | `GET/POST/PUT /api/professionals` | Disponível; depende das listas de unidades e especialidades. |
 | `/specialties` | `GET/POST/PUT /api/specialties` | Disponível. |
 | `/appointments` | `GET /api/appointments?startsAt&endsAt`, `GET /api/professionals/{id}/availability`, `POST /api/appointments`, confirmar e cancelar | Disponível para operação diária. Reagendamento e versões esperadas continuam indisponíveis. |

@@ -11,6 +11,8 @@ using ClinicAssistant.Infrastructure.WhatsApp;
 using ClinicAssistant.Infrastructure.Conversations;
 using ClinicAssistant.Application.Conversations;
 using ClinicAssistant.Application.Realtime;
+using ClinicAssistant.Application.Platform;
+using ClinicAssistant.Infrastructure.Platform;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -58,6 +60,7 @@ public static class DependencyInjection
         services.AddScoped<IConversationLockManager, RedisConversationLock>();
         services.AddScoped<IConversationOrchestrator, ConversationOrchestrator>();
         services.AddScoped<IConversationAdministrationService, ConversationAdministrationService>();
+        services.AddScoped<IPlatformAdministrationService, PlatformAdministrationService>();
         services.AddSingleton<IOperationalEventPublisher, NoOpOperationalEventPublisher>();
         services.AddSingleton<IWhatsAppPhoneNumberFormatter, WhatsAppPhoneNumberFormatter>();
         services.AddSingleton<IPhoneMasker, PhoneMasker>();

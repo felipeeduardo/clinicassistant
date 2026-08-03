@@ -4,9 +4,13 @@ export type IntegrationStatus = { provider: string; status: string; displayPhone
 
 export type Clinic = { id: string; legalName: string; tradeName: string; document: string; email: string; phone: string; timeZone: string; status: string };
 export type Unit = { id: string; clinicId: string; name: string; address: string; phone: string; status: string };
+export type UnitDetail = { unit: Unit; timeZone: string; businessHours: { dayOfWeek: number; opensAt: string; closesAt: string }[]; professionals: { id: string; name: string; registrationNumber: string; status: string }[]; recentAudit: { occurredAt: string; action: string; result: string }[] };
 export type Specialty = { id: string; name: string; description?: string | null; status: string };
 export type Professional = { id: string; clinicUnitId: string; name: string; email: string; phone: string; registrationNumber: string; status: string; specialtyIds: string[] };
 export type Patient = { id: string; name: string; phone: string; email?: string | null; birthDate?: string | null; consentStatus: string };
+export type PatientListItem = Patient & { source: string; lastContactAt?: string | null };
+export type PatientPage = PagedResult<PatientListItem>;
+export type PatientDetail = { patient: Patient; source: string; firstContactAt?: string | null; lastContactAt?: string | null; upcomingAppointments: { id: string; startsAt: string; endsAt: string; status: string; source: string }[]; conversations: { id: string; status: string; automationMode: string; lastMessageAt?: string | null }[]; recentAudit: { occurredAt: string; action: string; result: string }[] };
 
 export type ClinicRequest = Pick<Clinic, "legalName" | "tradeName" | "document" | "email" | "phone" | "timeZone">;
 export type UnitRequest = Pick<Unit, "name" | "address" | "phone">;
@@ -20,3 +24,7 @@ export type ConversationItem = { id: string; patientId: string; patientName: str
 export type ConversationMessage = { id: string; direction: string; type: string; contentSanitized?: string | null; status: string; createdAt: string; readAt?: string | null; failure?: string | null };
 export type ConversationDetail = ConversationItem & { state?: { flowState: string; intent: string; status: string; invalidAttempts: number; expiresAt: string; version: number } | null; recentMessages: ConversationMessage[] };
 export type PagedResult<T> = { items: T[]; page: number; pageSize: number; totalCount: number };
+export type PlatformTenant = { id: string; name: string; slug: string; status: string; clinicId?: string | null; userCount: number };
+export type PlatformUser = { id: string; tenantId: string; name: string; email: string; role: string; status: string };
+export type PlatformClinic = { id: string; tenantId: string; tradeName: string; legalName: string; status: string };
+export type OnboardTenantRequest = { tenantName: string; tenantSlug: string; clinicLegalName: string; clinicTradeName: string; clinicDocument: string; clinicEmail: string; clinicPhone: string; timeZone: string; unitName: string; unitAddress: string; unitPhone: string; adminName: string; adminEmail: string; temporaryPassword: string };

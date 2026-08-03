@@ -18,4 +18,8 @@ public sealed class User : Entity, ITenantEntity
     public DateTimeOffset? LastLoginAt { get; private set; }
     public ICollection<RefreshToken> RefreshTokens { get; } = new List<RefreshToken>();
     public void RecordLogin() { LastLoginAt = DateTimeOffset.UtcNow; UpdatedAt = DateTimeOffset.UtcNow; }
+    public void UpdateRole(UserRole role) { Role = role; UpdatedAt = DateTimeOffset.UtcNow; }
+    public void Activate() { Status = UserStatus.Active; UpdatedAt = DateTimeOffset.UtcNow; }
+    public void Suspend() { Status = UserStatus.Blocked; UpdatedAt = DateTimeOffset.UtcNow; }
+    public void Disable() { Status = UserStatus.Disabled; UpdatedAt = DateTimeOffset.UtcNow; }
 }
