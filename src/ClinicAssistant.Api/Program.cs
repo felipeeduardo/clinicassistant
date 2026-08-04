@@ -102,6 +102,7 @@ try
         options.AddPolicy("ClinicAdmin", policy => policy.RequireRole("ClinicAdmin"));
         options.AddClinicPolicies();
     });
+    builder.Services.AddSingleton<Microsoft.AspNetCore.Authorization.IAuthorizationMiddlewareResultHandler, OperationalAuthorizationResultHandler>();
     builder.Services.AddSignalR();
     builder.Services.AddSingleton<IOperationalEventPublisher, SignalROperationalEventPublisher>();
     builder.Services.AddProblemDetails();
@@ -131,6 +132,7 @@ try
             .AddAspNetCoreInstrumentation()
             .AddMeter("ClinicAssistant.WhatsApp")
             .AddMeter("ClinicAssistant.Conversations")
+            .AddMeter("ClinicAssistant.Operations")
             .AddOtlpExporter());
 
     var app = builder.Build();
@@ -230,10 +232,18 @@ try
     clinic.MapPost("/appointments/{id:guid}/reschedule", async (Guid id, RescheduleAppointmentRequest request, HttpRequest httpRequest, ISchedulingService service, CancellationToken ct) => Results.Ok(await service.RescheduleAsync(id, request, httpRequest.Headers["Idempotency-Key"].ToString(), ct))).RequireAuthorization("ClinicStaff");
     clinic.MapGet("/whatsapp/integration/status", async (IWhatsAppIntegrationStatusService service, CancellationToken ct) =>
         (await service.GetCurrentAsync(ct)) is { } status ? Results.Ok(status) : Results.NotFound()).RequireAuthorization("ClinicStaff");
+    clinic.MapGet("/whatsapp/integration/twilio/configuration", async (IWhatsAppIntegrationStatusService service, CancellationToken ct) => Results.Ok(await service.GetTwilioConfigurationAsync(ct))).RequireAuthorization("ClinicAdmin");
     clinic.MapPost("/whatsapp/integration/validate", async (IWhatsAppIntegrationStatusService service, CancellationToken ct) => { await service.ValidateCurrentAsync(ct); return Results.NoContent(); }).RequireAuthorization("ClinicAdmin");
     clinic.MapPost("/whatsapp/integration/enable", async (IWhatsAppIntegrationStatusService service, CancellationToken ct) => { await service.EnableCurrentAsync(ct); return Results.NoContent(); }).RequireAuthorization("ClinicAdmin");
     clinic.MapPost("/whatsapp/integration/disable", async (IWhatsAppIntegrationStatusService service, CancellationToken ct) => { await service.DisableCurrentAsync(ct); return Results.NoContent(); }).RequireAuthorization("ClinicAdmin");
     clinic.MapPost("/whatsapp/integration/test-message", async (HttpRequest request, IWhatsAppIntegrationStatusService service, CancellationToken ct) => { await service.QueueTestMessageAsync(request.Headers["Idempotency-Key"].ToString(), ct); return Results.Accepted(); }).RequireAuthorization("ClinicAdmin");
+    clinic.MapGet("/whatsapp/templates", async ([AsParameters] WhatsAppTemplateQuery query, IWhatsAppTemplateAdministrationService service, CancellationToken ct) => Results.Ok(await service.SearchAsync(query, ct))).RequireAuthorization("ClinicAdmin");
+    clinic.MapGet("/whatsapp/templates/{templateId:guid}", async (Guid templateId, IWhatsAppTemplateAdministrationService service, CancellationToken ct) => (await service.GetAsync(templateId, ct)) is { } template ? Results.Ok(template) : Results.NotFound()).RequireAuthorization("ClinicAdmin");
+    clinic.MapPost("/whatsapp/templates", async (WhatsAppTemplateRequest request, IWhatsAppTemplateAdministrationService service, CancellationToken ct) => Results.Created("/api/whatsapp/templates", await service.CreateAsync(request, ct))).RequireAuthorization("ClinicAdmin");
+    clinic.MapPut("/whatsapp/templates/{templateId:guid}", async (Guid templateId, WhatsAppTemplateRequest request, IWhatsAppTemplateAdministrationService service, CancellationToken ct) => (await service.UpdateAsync(templateId, request, ct)) is { } template ? Results.Ok(template) : Results.NotFound()).RequireAuthorization("ClinicAdmin");
+    clinic.MapPost("/whatsapp/templates/{templateId:guid}/activate", async (Guid templateId, IWhatsAppTemplateAdministrationService service, CancellationToken ct) => await service.ActivateAsync(templateId, ct) ? Results.NoContent() : Results.NotFound()).RequireAuthorization("ClinicAdmin");
+    clinic.MapPost("/whatsapp/templates/{templateId:guid}/deactivate", async (Guid templateId, IWhatsAppTemplateAdministrationService service, CancellationToken ct) => await service.DeactivateAsync(templateId, ct) ? Results.NoContent() : Results.NotFound()).RequireAuthorization("ClinicAdmin");
+    clinic.MapPost("/whatsapp/templates/sync", async (IWhatsAppTemplateAdministrationService service, CancellationToken ct) => { await service.QueueSyncAsync(ct); return Results.Accepted(); }).RequireAuthorization("ClinicAdmin");
     clinic.MapGet("/audit", async ([AsParameters] AuditQuery query, IAuditQueryService service, CancellationToken ct) => Results.Ok(await service.SearchAsync(query, ct))).RequireAuthorization("ClinicAdmin");
     clinic.MapGet("/dashboard", async (IDashboardService service, CancellationToken ct) => Results.Ok(await service.GetAsync(ct))).RequireAuthorization("ClinicStaff");
     var conversations = app.MapGroup("/api/conversations").RequireAuthorization("ClinicStaff").WithTags("Conversations");

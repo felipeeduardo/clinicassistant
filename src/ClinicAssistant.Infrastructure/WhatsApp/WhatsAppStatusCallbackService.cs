@@ -1,11 +1,12 @@
 using ClinicAssistant.Application.WhatsApp;
 using ClinicAssistant.Domain.WhatsApp;
 using ClinicAssistant.Infrastructure.Persistence;
+using ClinicAssistant.Application.Realtime;
 using Microsoft.EntityFrameworkCore;
 
 namespace ClinicAssistant.Infrastructure.WhatsApp;
 
-public sealed class WhatsAppStatusCallbackService(ClinicAssistantDbContext dbContext, ITwilioWebhookSignatureValidator signatureValidator, IMessageStatusTransitionPolicy transitionPolicy) : IWhatsAppStatusCallbackService
+public sealed class WhatsAppStatusCallbackService(ClinicAssistantDbContext dbContext, ITwilioWebhookSignatureValidator signatureValidator, IMessageStatusTransitionPolicy transitionPolicy, IOperationalEventPublisher events) : IWhatsAppStatusCallbackService
 {
     public async Task<WhatsAppStatusCallbackResult> ProcessAsync(WhatsAppStatusCallbackRequest request, CancellationToken cancellationToken)
     {
@@ -34,6 +35,7 @@ public sealed class WhatsAppStatusCallbackService(ClinicAssistantDbContext dbCon
         if (nextStatus == ConversationMessageStatus.Failed) integration.MarkSendFailure(safeError!);
         else integration.MarkSuccessfulSend();
         await dbContext.SaveChangesAsync(cancellationToken);
+        await events.PublishAsync(integration.TenantId, "whatsapp.message.status.changed", new { MessageId = message.Id, ConversationId = message.ConversationId, Status = message.Status.ToString() }, cancellationToken);
         WhatsAppTelemetry.StatusUpdates.Add(1);
         return new(WhatsAppStatusCallbackResultStatus.Updated);
     }

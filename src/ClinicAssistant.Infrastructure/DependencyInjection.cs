@@ -26,8 +26,12 @@ public static class DependencyInjection
 {
     public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
-        var connectionString = configuration.GetConnectionString("Default")
-            ?? throw new InvalidOperationException("ConnectionStrings:Default must be configured.");
+        var target = configuration["Database:Target"]?.Trim().ToLowerInvariant() ?? "primary";
+        var environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT") ?? "Production";
+        if (target == "test" && string.Equals(environment, "Production", StringComparison.OrdinalIgnoreCase)) throw new InvalidOperationException("Database target 'test' is blocked in Production.");
+        var connectionName = target switch { "primary" => "Primary", "test" => "Test", _ => throw new InvalidOperationException("Database:Target must be 'primary' or 'test'.") };
+        var connectionString = configuration.GetConnectionString(connectionName) ?? configuration.GetConnectionString("Default")
+            ?? throw new InvalidOperationException($"ConnectionStrings:{connectionName} must be configured.");
 
         services.AddDbContext<ClinicAssistantDbContext>(options => options.UseNpgsql(connectionString));
         var redisHost = configuration["Redis:Host"] ?? "localhost";
@@ -80,6 +84,8 @@ public static class DependencyInjection
         services.AddScoped<IWhatsAppOutgoingMessageProcessor, WhatsAppOutgoingMessageProcessor>();
         services.AddScoped<IWhatsAppStatusCallbackService, WhatsAppStatusCallbackService>();
         services.AddScoped<IWhatsAppIntegrationStatusService, WhatsAppIntegrationStatusService>();
+        services.AddScoped<IWhatsAppTemplateAdministrationService, WhatsAppTemplateAdministrationService>();
+        services.AddScoped<IWhatsAppTemplateSyncProcessor, WhatsAppTemplateSyncProcessor>();
         services.AddSingleton<FakeWhatsAppGateway>();
         services.AddHttpClient<ITwilioMessageClient, TwilioHttpMessageClient>((serviceProvider, client) =>
         {
@@ -87,6 +93,7 @@ public static class DependencyInjection
             client.BaseAddress = new Uri(twilioOptions.BaseUrl, UriKind.Absolute);
             client.Timeout = TimeSpan.FromSeconds(twilioOptions.RequestTimeoutSeconds);
         });
+        services.AddHttpClient<ITwilioTemplateClient, TwilioHttpTemplateClient>(client => client.BaseAddress = new Uri("https://content.twilio.com/"));
         services.AddScoped<TwilioWhatsAppGateway>();
         services.AddScoped<IWhatsAppGateway>(serviceProvider =>
         {

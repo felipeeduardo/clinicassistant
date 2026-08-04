@@ -1,6 +1,7 @@
 using System.Text.Json;
 using ClinicAssistant.Application.Conversations;
 using ClinicAssistant.Application.WhatsApp;
+using ClinicAssistant.Application.Realtime;
 using ClinicAssistant.Domain.Conversations;
 using ClinicAssistant.Domain.Messaging;
 using ClinicAssistant.Domain.WhatsApp;
@@ -15,6 +16,7 @@ public sealed class ConversationOrchestrator(
     IConversationLockManager lockManager,
     IConversationStateMachine stateMachine,
     IConversationResponseComposer responseComposer,
+    IOperationalEventPublisher events,
     Microsoft.Extensions.Options.IOptions<ConversationOptions> options) : IConversationOrchestrator
 {
     private readonly ConversationOptions _options = options.Value;
@@ -76,10 +78,15 @@ public sealed class ConversationOrchestrator(
             if (transition.Action == ConversationAction.Handoff) conversation.ApplyAutomationMode(ConversationAutomationMode.Human);
             else if (transition.Action == ConversationAction.CloseConversation) conversation.Close();
             else conversation.ApplyAutomationMode(ConversationAutomationMode.Automated);
+            var queueItemCreated = false;
             if (transition.Action == ConversationAction.Handoff)
             {
                 var queueItem = await dbContext.HumanQueueItems.IgnoreQueryFilters().SingleOrDefaultAsync(item => item.ConversationId == command.ConversationId && item.TenantId == command.TenantId, cancellationToken);
-                if (queueItem is null) dbContext.HumanQueueItems.Add(new HumanQueueItem(command.TenantId, command.ConversationId, conversation.Priority, "Patient requested human assistance."));
+                if (queueItem is null)
+                {
+                    dbContext.HumanQueueItems.Add(new HumanQueueItem(command.TenantId, command.ConversationId, conversation.Priority, "Patient requested human assistance."));
+                    queueItemCreated = true;
+                }
             }
 
             var existingOptions = await dbContext.ConversationOptions.IgnoreQueryFilters().Where(item => item.TenantId == command.TenantId && item.ConversationStateId == state.Id).ToListAsync(cancellationToken);
@@ -98,6 +105,13 @@ public sealed class ConversationOrchestrator(
             dbContext.OutboxMessages.Add(outboxMessage);
             dbContext.ConversationProcessedMessages.Add(processedMessage);
             await dbContext.SaveChangesAsync(cancellationToken);
+            if (transition.Action == ConversationAction.Handoff)
+            {
+                var eventName = queueItemCreated ? "queue.item.created" : "queue.item.updated";
+                await events.PublishAsync(command.TenantId, eventName, new { ConversationId = conversation.Id, Priority = conversation.Priority.ToString(), conversation.Version }, cancellationToken);
+            }
+            await events.PublishAsync(command.TenantId, "conversation.updated", new { conversation.Id, conversation.Version }, cancellationToken);
+            await events.PublishAsync(command.TenantId, "dashboard.invalidated", new { }, cancellationToken);
             ConversationTelemetry.Processed.Add(1);
             return ConversationOrchestrationResult.Processed;
         }

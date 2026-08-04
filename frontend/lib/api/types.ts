@@ -1,6 +1,9 @@
 export type User = { id: string; tenantId: string; name: string; email: string; role: string };
 export type AuthResponse = { accessToken: string; accessTokenExpiresAt: string; user: User };
 export type IntegrationStatus = { provider: string; status: string; displayPhoneNumber: string; lastWebhookAt?: string; lastSuccessfulSendAt?: string; lastFailureAt?: string; failureReason?: string };
+export type TwilioConfigurationStatus = { provider: string; accountSidMasked: string; authTokenConfigured: boolean; whatsAppFromMasked: string; incomingWebhookBaseUrl?: string | null; statusCallbackBaseUrl?: string | null; environment: string; signatureValidationEnabled: boolean; enabled: boolean; lastValidatedAt?: string | null };
+export type WhatsAppTemplate = { id: string; name: string; provider: string; languageCode: string; category?: string | null; status: string; contentSidMasked: string; updatedAt: string };
+export type WhatsAppTemplateDetail = WhatsAppTemplate & { variables: string[]; createdAt: string };
 
 export type Clinic = { id: string; legalName: string; tradeName: string; document: string; email: string; phone: string; timeZone: string; status: string };
 export type Unit = { id: string; clinicId: string; name: string; address: string; phone: string; status: string };
@@ -9,6 +12,10 @@ export type Specialty = { id: string; name: string; description?: string | null;
 export type SpecialtyDependencies = { canDeactivate: boolean; professionals: number; futureAppointments: number };
 export type Professional = { id: string; clinicUnitId: string; name: string; email: string; phone: string; registrationNumber: string; status: string; specialtyIds: string[] };
 export type ProfessionalSchedule = { appointments: Appointment[]; blocks: { id: string; startsAt: string; endsAt: string; reason?: string | null }[]; vacations: { id: string; startsAt: string; endsAt: string; reason?: string | null }[] };
+export type AvailabilityRule = { id: string; dayOfWeek: number; startTime: string; endTime: string; slotDurationMinutes: number; active: boolean };
+export type AvailabilityRuleRequest = Omit<AvailabilityRule, "id">;
+export type SchedulePeriod = { id: string; startsAt: string; endsAt: string; reason?: string | null };
+export type SchedulePeriodRequest = Omit<SchedulePeriod, "id">;
 export type Patient = { id: string; name: string; phone: string; email?: string | null; birthDate?: string | null; consentStatus: string };
 export type PatientListItem = Patient & { source: string; lastContactAt?: string | null };
 export type PatientPage = PagedResult<PatientListItem>;

@@ -1,4 +1,5 @@
 using ClinicAssistant.Application.Conversations;
+using ClinicAssistant.Application.Realtime;
 using ClinicAssistant.Domain.Conversations;
 using ClinicAssistant.Domain.Scheduling;
 using ClinicAssistant.Domain.WhatsApp;
@@ -70,7 +71,7 @@ public sealed class ConversationOrchestratorTests
     private static ConversationOrchestrator CreateOrchestrator(ClinicAssistantDbContext dbContext, IConversationLockManager lockManager)
     {
         var options = Options.Create(new ConversationOptions { StateExpirationMinutes = 30, MaximumInvalidAttempts = 3, MaxOptionsPerMessage = 10, MaxMessageLength = 2_000 });
-        return new(dbContext, lockManager, new ConversationStateMachine(options), new InMemoryConversationResponseComposer(), options);
+        return new(dbContext, lockManager, new ConversationStateMachine(options), new InMemoryConversationResponseComposer(), new NoOpOperationalEventPublisher(), options);
     }
 
     private static ClinicAssistantDbContext CreateDbContext() => new(new DbContextOptionsBuilder<ClinicAssistantDbContext>().UseInMemoryDatabase(Guid.NewGuid().ToString("N")).Options);

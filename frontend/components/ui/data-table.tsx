@@ -1,0 +1,7 @@
+import type { HTMLAttributes, TableHTMLAttributes } from "react";
+import { cn } from "./utils";
+
+export function DataTable({ className, ...props }: TableHTMLAttributes<HTMLTableElement>) { return <div className="overflow-x-auto rounded-panel border border-slate-200 bg-white shadow-panel"><table className={cn("w-full min-w-[42rem] text-left text-sm", className)} {...props} /></div>; }
+export function TableCell({ className, ...props }: HTMLAttributes<HTMLTableCellElement>) { return <td className={cn("border-b border-slate-100 px-4 py-3 align-middle", className)} {...props} />; }
+export function TableHeader({ className, ...props }: HTMLAttributes<HTMLTableCellElement>) { return <th className={cn("border-b border-slate-200 bg-slate-50 px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-600", className)} {...props} />; }
+export function Pagination({ page, hasPrevious, hasNext, onPrevious, onNext }: { page: number; hasPrevious: boolean; hasNext: boolean; onPrevious: () => void; onNext: () => void }) { return <nav className="flex items-center justify-between gap-3" aria-label="Paginação"><span className="text-sm text-slate-600">Página {page}</span><div className="flex gap-2"><button className="rounded-control border border-slate-300 px-3 py-1.5 text-sm disabled:opacity-50" disabled={!hasPrevious} onClick={onPrevious}>Anterior</button><button className="rounded-control border border-slate-300 px-3 py-1.5 text-sm disabled:opacity-50" disabled={!hasNext} onClick={onNext}>Próxima</button></div></nav>; }

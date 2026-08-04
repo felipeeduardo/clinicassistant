@@ -16,13 +16,14 @@ builder.Services.AddHostedService<MessagingWorker>();
 builder.Services.AddHostedService<WhatsAppIncomingMessageConsumer>();
 builder.Services.AddHostedService<SendWhatsAppMessageConsumer>();
 builder.Services.AddHostedService<ConversationMessageReceivedConsumer>();
+builder.Services.AddHostedService<WhatsAppTemplateSyncConsumer>();
 var rabbitOptions = builder.Configuration.GetSection(RabbitMqOptions.SectionName).Get<RabbitMqOptions>() ?? new RabbitMqOptions();
 builder.Services.AddSingleton(rabbitOptions);
 builder.Services.AddSingleton<RabbitMqPublisher>();
 builder.Services.AddOpenTelemetry()
     .ConfigureResource(resource => resource.AddService("ClinicAssistant.Worker"))
     .WithTracing(tracing => tracing.AddSource("ClinicAssistant.WhatsApp").AddSource("ClinicAssistant.Conversations").AddOtlpExporter())
-    .WithMetrics(metrics => metrics.AddMeter("ClinicAssistant.Conversations").AddOtlpExporter());
+    .WithMetrics(metrics => metrics.AddMeter("ClinicAssistant.Conversations").AddMeter("ClinicAssistant.WhatsApp").AddMeter("ClinicAssistant.Worker").AddMeter("ClinicAssistant.Operations").AddOtlpExporter());
 builder.Services.AddSerilog((_, configuration) => configuration
     .ReadFrom.Configuration(builder.Configuration)
     .Enrich.FromLogContext()

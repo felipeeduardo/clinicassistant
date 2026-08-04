@@ -26,7 +26,7 @@ public sealed class RabbitMqPublisher(RabbitMqOptions options)
         await channel.ExchangeDeclareAsync(WhatsAppDeadLetterExchange, ExchangeType.Topic, durable: true, cancellationToken: cancellationToken);
         await channel.QueueDeclareAsync("whatsapp.deadletter", durable: true, exclusive: false, autoDelete: false, cancellationToken: cancellationToken);
         await channel.QueueBindAsync("whatsapp.deadletter", WhatsAppDeadLetterExchange, "#", cancellationToken: cancellationToken);
-        foreach (var queue in new[] { "whatsapp.incoming", "whatsapp.outgoing", "whatsapp.status", "whatsapp.conversation" })
+        foreach (var queue in new[] { "whatsapp.incoming", "whatsapp.outgoing", "whatsapp.status", "whatsapp.conversation", "whatsapp.templates" })
         {
             var arguments = new Dictionary<string, object?>
             {
@@ -39,6 +39,7 @@ public sealed class RabbitMqPublisher(RabbitMqOptions options)
         await channel.QueueBindAsync("whatsapp.outgoing", WhatsAppExchange, "whatsapp.outgoing.#", cancellationToken: cancellationToken);
         await channel.QueueBindAsync("whatsapp.status", WhatsAppExchange, "whatsapp.status.#", cancellationToken: cancellationToken);
         await channel.QueueBindAsync("whatsapp.conversation", WhatsAppExchange, "whatsapp.conversation.#", cancellationToken: cancellationToken);
+        await channel.QueueBindAsync("whatsapp.templates", WhatsAppExchange, "whatsapp.templates.#", cancellationToken: cancellationToken);
     }
 
     public async Task PublishAsync(string messageType, string payload, Guid messageId, Guid tenantId, CancellationToken cancellationToken)
@@ -78,6 +79,7 @@ public sealed class RabbitMqPublisher(RabbitMqOptions options)
         "WhatsAppIncomingMessageReceived" => (WhatsAppExchange, "whatsapp.incoming"),
         "ConversationMessageReceived" => (WhatsAppExchange, "whatsapp.conversation.received"),
         "SendWhatsAppMessageCommand" => (WhatsAppExchange, GetOutgoingRoutingKey(payload)),
+        "SyncWhatsAppTemplatesCommand" => (WhatsAppExchange, "whatsapp.templates.sync"),
         _ => (LegacyExchange, messageType)
     };
 

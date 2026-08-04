@@ -1,5 +1,9 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-body { @apply bg-slate-50 text-slate-900; }
-button:focus-visible, a:focus-visible, input:focus-visible { @apply outline outline-2 outline-offset-2 outline-blue-600; }
+
+@layer base {
+  body { @apply min-h-screen bg-slate-50 text-slate-900 antialiased; }
+  button, a, input, select, textarea { @apply focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600; }
+  button:disabled { @apply cursor-not-allowed; }
+}

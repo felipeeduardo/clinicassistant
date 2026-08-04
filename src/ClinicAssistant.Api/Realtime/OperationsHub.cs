@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using ClinicAssistant.Application.Operations;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 
@@ -17,7 +18,14 @@ public sealed class OperationsHub : Hub
         }
 
         await Groups.AddToGroupAsync(Context.ConnectionId, TenantGroup(tenantId));
+        OperationalTelemetry.SignalRConnectionsActive.Add(1);
         await base.OnConnectedAsync();
+    }
+
+    public override async Task OnDisconnectedAsync(Exception? exception)
+    {
+        OperationalTelemetry.SignalRConnectionsActive.Add(-1);
+        await base.OnDisconnectedAsync(exception);
     }
 
     public static string TenantGroup(Guid tenantId) => TenantGroup(tenantId.ToString("D"));

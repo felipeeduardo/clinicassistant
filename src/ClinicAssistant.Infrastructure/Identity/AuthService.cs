@@ -3,6 +3,7 @@ using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
 using ClinicAssistant.Application.Identity;
+using ClinicAssistant.Application.Operations;
 using ClinicAssistant.Contracts.Identity;
 using ClinicAssistant.Domain.Identity;
 using ClinicAssistant.Infrastructure.Persistence;
@@ -46,12 +47,14 @@ public sealed class AuthService(ClinicAssistantDbContext dbContext, ITenantConte
         var tokenHash = HashRefreshToken(request.RefreshToken);
         var token = await dbContext.RefreshTokens.IgnoreQueryFilters().Include(candidate => candidate.User)
             .SingleOrDefaultAsync(candidate => candidate.TokenHash == tokenHash, cancellationToken);
+        if (token?.RevokedAt is not null) OperationalTelemetry.RefreshTokenReuseDetected.Add(1);
         if (token is null || !token.IsActive(DateTimeOffset.UtcNow) || token.User.Status != UserStatus.Active) throw new UnauthorizedAccessException("Invalid refresh token.");
 
         var replacement = CreateRefreshToken(token.User);
         token.Revoke(replacement.Entity.TokenHash);
         dbContext.RefreshTokens.Add(replacement.Entity);
         await dbContext.SaveChangesAsync(cancellationToken);
+        OperationalTelemetry.RefreshTokenRotations.Add(1);
         return CreateAuthResponse(token.User, replacement);
     }
 

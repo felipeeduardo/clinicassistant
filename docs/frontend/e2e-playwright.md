@@ -15,11 +15,23 @@ E2E_DEFAULT_PASSWORD='<senha-do-ambiente>' npm run test:e2e
 
 Sem `E2E_DEFAULT_PASSWORD`, somente o smoke não autenticado de login é executado; os testes que exigem API são ignorados intencionalmente.
 
-## Cobertura inicial
+## Cobertura atual
 
 - formulário de login;
 - login do administrador E2E;
-- acesso autenticado a pacientes e agenda;
+- onboarding de tenant pelo administrador de plataforma;
+- busca e abertura do detalhe de paciente fixture;
+- acesso autenticado à agenda;
+- detalhe e confirmação de consulta pendente do seed E2E;
+- criação, bloqueio de conflito, reagendamento e cancelamento de consulta;
+- disponibilidade, bloqueio de agenda e férias de profissional;
+- criação e edição de especialidade administrativa;
 - acesso à Inbox sem referência ao tenant isolado.
+- assumir, transferir, liberar, priorizar, pausar, retomar, encerrar e reabrir atendimento humano;
+- criação, edição, ativação e desativação de template WhatsApp;
+- visualização da fila humana e da integração WhatsApp simulada.
+- validação e mensagem de teste pelo `FakeWhatsAppGateway`.
+- isolamento multi-tenant de pacientes e permissões de visualização.
+- atualização de catálogo entre duas sessões por SignalR.
 
 Os artefatos Playwright (trace e screenshot) são preservados somente em falhas. Cada execução pressupõe que `reset`, `seed` e `validate` já foram executados; os testes não alteram o banco nem chamam scripts de reset.

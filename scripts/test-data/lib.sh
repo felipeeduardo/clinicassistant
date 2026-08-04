@@ -2,6 +2,15 @@
 set -eu
 
 TEST_DATA_PROJECT_ROOT="${TEST_DATA_PROJECT_ROOT:-$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd)}"
+
+# Local scripts are expected to work from a freshly cloned workspace. Load the
+# project .env only when the caller has not already supplied a target database.
+# Explicitly exported DATABASE_NAME remains the highest-priority override.
+if [ -z "${DATABASE_NAME:-}" ] && [ -f "$TEST_DATA_PROJECT_ROOT/.env" ]; then
+  set -a
+  . "$TEST_DATA_PROJECT_ROOT/.env"
+  set +a
+fi
 DATABASE_NAME="${DATABASE_NAME:-${POSTGRES_DB:-clinicassistant}}"
 DATABASE_HOST="${DATABASE_HOST:-${POSTGRES_HOST:-localhost}}"
 DATABASE_PORT="${DATABASE_PORT:-${POSTGRES_PORT:-5432}}"

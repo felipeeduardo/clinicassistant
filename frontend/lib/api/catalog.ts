@@ -1,5 +1,5 @@
 import type { ApiClient } from "@/lib/api/client";
-import type { Clinic, ClinicRequest, Professional, ProfessionalRequest, ProfessionalSchedule, Specialty, SpecialtyDependencies, SpecialtyRequest, Unit, UnitDetail, UnitRequest } from "@/lib/api/types";
+import type { AvailabilityRule, AvailabilityRuleRequest, Clinic, ClinicRequest, Professional, ProfessionalRequest, ProfessionalSchedule, SchedulePeriod, SchedulePeriodRequest, Specialty, SpecialtyDependencies, SpecialtyRequest, Unit, UnitDetail, UnitRequest } from "@/lib/api/types";
 
 export const catalogApi = {
   getClinic: (api: ApiClient) => api.request<Clinic>("/api/clinics/current"),
@@ -18,4 +18,12 @@ export const catalogApi = {
   createProfessional: (api: ApiClient, request: ProfessionalRequest) => api.request<Professional>("/api/professionals", { method: "POST", body: JSON.stringify(request) }),
   updateProfessional: (api: ApiClient, id: string, request: ProfessionalRequest) => api.request<Professional>(`/api/professionals/${id}`, { method: "PUT", body: JSON.stringify(request) }),
   getProfessionalSchedule: (api: ApiClient, id: string, startsAt: string, endsAt: string) => api.request<ProfessionalSchedule>(`/api/professionals/${id}/schedule?startsAt=${encodeURIComponent(startsAt)}&endsAt=${encodeURIComponent(endsAt)}`),
+  listAvailabilityRules: (api: ApiClient, id: string) => api.request<AvailabilityRule[]>(`/api/professionals/${id}/availability/rules`),
+  addAvailabilityRule: (api: ApiClient, id: string, request: AvailabilityRuleRequest) => api.request<void>(`/api/professionals/${id}/availability`, { method: "POST", body: JSON.stringify(request) }),
+  listScheduleBlocks: (api: ApiClient, id: string) => api.request<SchedulePeriod[]>(`/api/professionals/${id}/blocks`),
+  addScheduleBlock: (api: ApiClient, id: string, request: SchedulePeriodRequest) => api.request<void>(`/api/professionals/${id}/blocks`, { method: "POST", body: JSON.stringify(request) }),
+  deleteScheduleBlock: (api: ApiClient, id: string, blockId: string) => api.request<void>(`/api/professionals/${id}/blocks/${blockId}`, { method: "DELETE" }),
+  listVacations: (api: ApiClient, id: string) => api.request<SchedulePeriod[]>(`/api/professionals/${id}/vacations`),
+  addVacation: (api: ApiClient, id: string, request: SchedulePeriodRequest) => api.request<void>(`/api/professionals/${id}/vacations`, { method: "POST", body: JSON.stringify(request) }),
+  deleteVacation: (api: ApiClient, id: string, vacationId: string) => api.request<void>(`/api/professionals/${id}/vacations/${vacationId}`, { method: "DELETE" }),
 };

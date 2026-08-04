@@ -38,6 +38,16 @@ DATABASE_PASSWORD=
 
 > Ao mudar `POSTGRES_DB` em uma instalação já criada, o volume do PostgreSQL pode continuar usando o banco antigo. Confirme com `docker compose ps` e recrie o volume apenas se for seguro fazê-lo.
 
+## Banco de testes local
+
+Em instalações novas, o Compose cria `clinicassistant` e também `clinicassistant_test` pelo script `database/init/01-create-test-database.sql`. Esse script só é executado na primeira inicialização do volume PostgreSQL.
+
+Se o volume já existir, crie o banco de testes uma única vez sem apagar os dados existentes:
+
+```bash
+docker compose exec postgres createdb -U clinicassistant clinicassistant_test
+```
+
 > No Compose atual, `test-data-seeder` usa ambiente `Test`, mas `api` e `worker` estão fixados em `Development`. A variável exportada no terminal não altera esses dois containers.
 
 ## 3. Primeira execução

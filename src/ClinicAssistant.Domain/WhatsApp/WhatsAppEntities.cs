@@ -79,6 +79,12 @@ public sealed class WhatsAppTemplate : Entity, ITenantEntity
     public WhatsAppTemplateStatus Status { get; private set; } = WhatsAppTemplateStatus.Draft;
     public string? ParametersSchema { get; private set; }
     public void MarkApproved() { Status = WhatsAppTemplateStatus.Approved; UpdatedAt = DateTimeOffset.UtcNow; }
+    public void Update(string name, string languageCode, string? category, string? parametersSchema)
+    {
+        Name = name; LanguageCode = languageCode; Category = category; ParametersSchema = parametersSchema; UpdatedAt = DateTimeOffset.UtcNow;
+    }
+    public void Activate() { Status = WhatsAppTemplateStatus.Approved; UpdatedAt = DateTimeOffset.UtcNow; }
+    public void Deactivate() { Status = WhatsAppTemplateStatus.Disabled; UpdatedAt = DateTimeOffset.UtcNow; }
 }
 
 public sealed class Conversation : Entity, ITenantEntity

@@ -1,6 +1,7 @@
 using System.Diagnostics.Metrics;
 using System.Text.Json;
 using ClinicAssistant.Application.WhatsApp;
+using ClinicAssistant.Application.Realtime;
 using ClinicAssistant.Domain.Messaging;
 using ClinicAssistant.Domain.Scheduling;
 using ClinicAssistant.Domain.WhatsApp;
@@ -10,7 +11,7 @@ using Npgsql;
 
 namespace ClinicAssistant.Infrastructure.WhatsApp;
 
-public sealed class WhatsAppIncomingMessageProcessor(ClinicAssistantDbContext dbContext, IWhatsAppMediaPolicy mediaPolicy) : IWhatsAppIncomingMessageProcessor
+public sealed class WhatsAppIncomingMessageProcessor(ClinicAssistantDbContext dbContext, IWhatsAppMediaPolicy mediaPolicy, IOperationalEventPublisher events) : IWhatsAppIncomingMessageProcessor
 {
     public async Task<WhatsAppIncomingMessageProcessingResult> ProcessAsync(WhatsAppIncomingMessageReceived message, CancellationToken cancellationToken)
     {
@@ -59,6 +60,13 @@ public sealed class WhatsAppIncomingMessageProcessor(ClinicAssistantDbContext db
             await dbContext.SaveChangesAsync(cancellationToken);
             await transaction.CommitAsync(cancellationToken);
             WhatsAppTelemetry.IncomingMessages.Add(1);
+            await events.PublishAsync(message.TenantId, "whatsapp.inbound.received", new
+            {
+                ConversationId = conversation.Id,
+                MessageId = conversationMessage.Id,
+                Type = conversationMessage.Type.ToString(),
+                conversation.Version
+            }, cancellationToken);
             return WhatsAppIncomingMessageProcessingResult.Processed;
         }
         catch (DbUpdateException exception) when (exception.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation })

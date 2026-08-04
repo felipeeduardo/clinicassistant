@@ -10,6 +10,7 @@ public sealed class TwilioOptions
     public string BaseUrl { get; init; } = "https://api.twilio.com";
     public string? IncomingWebhookBaseUrl { get; init; }
     public string? StatusCallbackBaseUrl { get; init; }
+    public bool SignatureValidationEnabled { get; init; } = true;
     public int RequestTimeoutSeconds { get; init; } = 15;
     public string[] TrustedProxyAddresses { get; init; } = [];
 }
