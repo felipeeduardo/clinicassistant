@@ -9,7 +9,7 @@ test("busca e abre o detalhe de um paciente do tenant E2E", async ({ authenticat
   await expect(page.getByRole("button", { name: "Paciente E2E Principal" })).toBeVisible();
   await page.getByRole("button", { name: "Paciente E2E Principal" }).click();
   await expect(page.getByRole("heading", { name: "Paciente E2E Principal" })).toBeVisible();
-  await expect(page.getByText("Contato")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Contato" })).toBeVisible();
 });
 
 test("acessa a agenda com os dados determinísticos", async ({ authenticatedPage: page }) => {

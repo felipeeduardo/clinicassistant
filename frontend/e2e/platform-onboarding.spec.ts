@@ -17,7 +17,7 @@ test("administrador de plataforma cria um tenant", async ({ page }) => {
   await page.getByLabel("Documento").fill(`TEST-${suffix}`);
   await page.getByLabel("E-mail da clínica").fill(`clinic-${suffix}@example.test`);
   await page.getByLabel("Telefone da clínica").fill("+558100000001");
-  await page.getByLabel("Unidade").fill("Unidade E2E");
+  await page.getByLabel("Unidade", { exact: true }).fill("Unidade E2E");
   await page.getByLabel("Endereço da unidade").fill("Rua de Teste, 100");
   await page.getByLabel("Telefone da unidade").fill("+558100000002");
   await page.getByLabel("Administrador").fill("Administrador E2E");

@@ -10,8 +10,8 @@ test("administra disponibilidade, bloqueio e férias de um profissional", async 
   await expect(page.getByRole("dialog", { name: /Agenda de Dra\. Ana Souza/ })).toBeVisible();
 
   await page.getByLabel("Dia da semana").selectOption("2");
-  await page.getByLabel("Início").fill("07:00");
-  await page.getByLabel("Fim").fill("08:00");
+  await page.locator("#availability-start").fill("07:00");
+  await page.locator("#availability-end").fill("08:00");
   await page.getByRole("button", { name: "Adicionar disponibilidade" }).click();
   await expect(page.getByText(/terça: 07:00–08:00/)).toBeVisible();
 

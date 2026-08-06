@@ -52,7 +52,7 @@ test("fila humana, dashboard e auditoria são atualizados em outra sessão", asy
     await loginAs(dashboardObserver, e2e.manifest.users.adminEmail);
     await dashboardObserver.goto("/dashboard");
     await expect(dashboardObserver.getByText("Tempo real conectado")).toBeVisible();
-    const dashboardQueue = dashboardObserver.getByText("Fila humana").locator("xpath=ancestor::section[1]").locator("p").last();
+    const dashboardQueue = dashboardObserver.getByText("Fila humana", { exact: true }).locator("xpath=ancestor::section[1]").locator("p").last();
     await expect(dashboardQueue).not.toHaveText("—");
     const dashboardBefore = Number(await dashboardQueue.textContent());
 

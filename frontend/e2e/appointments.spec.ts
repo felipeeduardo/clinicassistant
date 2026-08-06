@@ -11,7 +11,7 @@ test("abre o detalhe e confirma uma consulta pendente do seed E2E", async ({ aut
   await expect(pendingRow).toBeVisible();
   await pendingRow.getByRole("button", { name: "Detalhes" }).click();
   await expect(page.getByRole("dialog", { name: "Detalhe do agendamento" })).toBeVisible();
-  await expect(page.getByText("Paciente")).toBeVisible();
+  await expect(page.getByRole("dialog", { name: "Detalhe do agendamento" }).getByText("Paciente", { exact: true })).toBeVisible();
 
   await page.getByLabel("Fechar painel").click();
   await pendingRow.getByRole("button", { name: "Confirmar" }).click();

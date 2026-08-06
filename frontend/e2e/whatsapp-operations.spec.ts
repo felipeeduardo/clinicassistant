@@ -33,7 +33,7 @@ test("cria e encontra um template administrativo", async ({ authenticatedPage: p
 
 test("exibe fila humana e integração WhatsApp fake", async ({ authenticatedPage: page }) => {
   await page.goto("/conversations");
-  await expect(page.getByText("Fila humana")).toBeVisible();
+  await expect(page.getByText("Fila humana", { exact: true })).toBeVisible();
   await page.goto("/integrations/whatsapp");
   await expect(page.getByRole("heading", { name: "Integração WhatsApp" })).toBeVisible();
   await expect(page.getByText("Operações administrativas")).toBeVisible();
