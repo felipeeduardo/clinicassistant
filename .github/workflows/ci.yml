@@ -66,10 +66,10 @@ jobs:
           WHATSAPP_TEST_RECIPIENT: +550000000301
       - name: Wait for API and frontend health
         run: |
-          curl --fail --retry 30 --retry-delay 2 --retry-connrefused --retry-all-errors --max-time 10 http://127.0.0.1:8080/health/ready
-          curl --fail --retry 30 --retry-delay 2 --retry-connrefused --retry-all-errors --max-time 10 http://127.0.0.1:3000/login
+          curl --fail --retry 30 --retry-delay 2 --retry-connrefused --retry-all-errors --max-time 10 http://localhost:8080/health/ready
+          curl --fail --retry 30 --retry-delay 2 --retry-connrefused --retry-all-errors --max-time 10 http://localhost:3000/login
       - name: Detect OpenAPI and Postman drift
-        run: bash scripts/postman/check-openapi-drift.sh http://127.0.0.1:8080/swagger/v1/swagger.json
+        run: bash scripts/postman/check-openapi-drift.sh http://localhost:8080/swagger/v1/swagger.json
       - run: docker compose --profile e2e run --rm test-data-seeder e2e
         env:
           DATABASE_TARGET: test
@@ -85,7 +85,7 @@ jobs:
         working-directory: frontend
         env:
           CI: true
-          E2E_BASE_URL: http://127.0.0.1:3000
+          E2E_BASE_URL: http://localhost:3000
           E2E_DEFAULT_PASSWORD: ClinicAssistant-E2E-Only-2026
       - if: failure()
         uses: actions/upload-artifact@v4
