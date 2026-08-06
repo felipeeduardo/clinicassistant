@@ -66,8 +66,8 @@ jobs:
           WHATSAPP_TEST_RECIPIENT: +550000000301
       - name: Wait for API and frontend health
         run: |
-          curl --fail --retry 30 --retry-delay 2 --retry-connrefused http://127.0.0.1:8080/health/ready
-          curl --fail --retry 30 --retry-delay 2 --retry-connrefused http://127.0.0.1:3000/login
+          curl --fail --retry 30 --retry-delay 2 --retry-connrefused --retry-all-errors --max-time 10 http://127.0.0.1:8080/health/ready
+          curl --fail --retry 30 --retry-delay 2 --retry-connrefused --retry-all-errors --max-time 10 http://127.0.0.1:3000/login
       - name: Detect OpenAPI and Postman drift
         run: bash scripts/postman/check-openapi-drift.sh http://127.0.0.1:8080/swagger/v1/swagger.json
       - run: docker compose --profile e2e run --rm test-data-seeder e2e
