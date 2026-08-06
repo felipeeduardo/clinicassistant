@@ -88,7 +88,7 @@ export function AppShell({ user, realtimeStatus, onLogout, children }: { user: U
       {children}
     </div>
 
-    {mobileOpen && <div className="fixed inset-0 z-overlay md:hidden" role="dialog" aria-modal="true" aria-label="Menu de navegação">
+    {mobileOpen && <div className="fixed inset-0 z-overlay md:hidden" onKeyDown={event => { if (event.key === "Escape") setMobileOpen(false); }} role="dialog" aria-modal="true" aria-label="Menu de navegação">
       <button className="absolute inset-0 bg-slate-950/50" aria-label="Fechar menu ao tocar fora" onClick={() => setMobileOpen(false)} />
       <aside className="relative flex h-full w-72 flex-col bg-slate-950 p-4 text-white shadow-floating">
         <div className="mb-7 flex items-center justify-between"><Brand /><Button aria-label="Fechar menu" className="text-slate-300 hover:bg-slate-800 hover:text-white" onClick={() => setMobileOpen(false)} size="icon" variant="ghost"><Icon name="close" /></Button></div>

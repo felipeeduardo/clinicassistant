@@ -1,12 +1,12 @@
 # Arquitetura
 
-O Clinic AI Assistant é iniciado como um monólito modular em .NET 10. A separação física é:
+O Clinic Assistant é um monólito modular em .NET 10. A separação física é:
 
 - `Domain`: regras de negócio puras e primitivas.
 - `Application`: casos de uso e portas de entrada/saída.
 - `Infrastructure`: EF Core, PostgreSQL e adaptadores de infraestrutura.
 - `Api`: HTTP, Swagger, health checks, logging e telemetria.
-- `Worker`: processamento assíncrono; os consumidores RabbitMQ entram na Etapa 5.
+- `Worker`: publicação da Outbox e consumidores RabbitMQ.
 - `Contracts`: contratos de integração e DTOs públicos.
 
 As dependências seguem o sentido `Api/Worker → Infrastructure/Application → Domain`. O domínio não depende de detalhes de infraestrutura.
@@ -17,7 +17,7 @@ A API publica traces e métricas por OpenTelemetry via OTLP quando `OTEL_EXPORTE
 
 ## Banco de dados
 
-PostgreSQL é o sistema de registro. O contexto EF Core já está preparado, com schema `clinic_assistant`; as entidades e a primeira migration serão introduzidas na Etapa 2, junto à modelagem de tenancy.
+PostgreSQL é o sistema de registro, no schema `clinic_assistant`. O contexto EF Core contém tenancy, catálogo, agenda, mensageria, WhatsApp, conversas, fila humana, idempotência e auditoria. A API seleciona explicitamente `ConnectionStrings:Primary` ou `ConnectionStrings:Test` por `Database:Target`; o alvo de testes é bloqueado em produção.
 
 ## Tenancy e identidade
 

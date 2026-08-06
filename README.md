@@ -1,55 +1,59 @@
-# Clinic AI Assistant
+# Clinic Assistant
 
-Fundação do SaaS multiempresa para atendimento administrativo de clínicas via WhatsApp. Esta entrega corresponde à **Etapa 1**: estrutura .NET 10, infraestrutura local, observabilidade e endpoints operacionais.
+Plataforma SaaS multiempresa para a operação administrativa de clínicas: cadastros, agenda, conversas, fila humana e integração WhatsApp. A solução aplica isolamento por tenant, processamento assíncrono com Inbox/Outbox, tempo real por SignalR e dados determinísticos para validação E2E.
 
 ## Stack
 
-.NET 10, ASP.NET Core, EF Core, PostgreSQL, RabbitMQ, Redis, Serilog, OpenTelemetry, Docker Compose e Swagger.
+.NET 10, ASP.NET Core, EF Core, PostgreSQL, RabbitMQ, Redis, Serilog, OpenTelemetry, Next.js, React, TypeScript, Tailwind, Playwright e Docker Compose.
 
-## Estrutura
-
-```text
-src/
-  ClinicAssistant.Api            # Host HTTP
-  ClinicAssistant.Application    # Casos de uso e portas
-  ClinicAssistant.Contracts      # Contratos públicos
-  ClinicAssistant.Domain         # Núcleo de domínio
-  ClinicAssistant.Infrastructure # Persistência e adaptadores
-  ClinicAssistant.Worker         # Processamento em segundo plano
-tests/
-  ClinicAssistant.UnitTests
-infra/docker/
-docs/
-```
-
-## Executar
+## Executar localmente
 
 ```bash
 cp .env.example .env
 docker compose up --build
 ```
 
-- API/Swagger: `http://localhost:8080/swagger`
+- Frontend: `http://localhost:3000`
+- API e Swagger: `http://localhost:8080/swagger`
 - Liveness: `http://localhost:8080/health/live`
 - Readiness: `http://localhost:8080/health/ready`
 - RabbitMQ: `http://localhost:15672`
 
-O `.env.example` contém apenas credenciais de desenvolvimento. Não versione `.env` nem segredos reais.
+O `.env.example` contém somente valores de desenvolvimento. Não versione `.env`, tokens, senhas ou credenciais Twilio.
 
-O RabbitMQ pode levar cerca de um minuto na primeira inicialização, enquanto cria os dados persistentes. O Docker Compose aguarda esse período antes de considerar o health check do broker.
+## Validar
 
-## Próximas etapas
+```bash
+dotnet restore ClinicAssistant.sln
+dotnet build ClinicAssistant.sln --no-restore
+dotnet test ClinicAssistant.sln --no-build
 
-A Etapa 2 introduz `Tenant`, `User`, JWT, refresh token rotativo, contexto do tenant, filtros globais EF e a primeira migration. A modelagem de cadastros e agenda permanece deliberadamente fora desta fundação.
+cd frontend
+npm ci
+npm run lint
+npm run typecheck
+npm run test
+npm run build
+```
 
-Consulte [arquitetura](docs/architecture.md) e [desenvolvimento](docs/development.md) para mais detalhes.
+Para a validação E2E com dados determinísticos, siga o [guia de execução](docs/testing/e2e-execution-guide.md).
 
-Consulte também a documentação de [mensageria](docs/messaging.md), incluindo os fluxos de outbox, inbox, retry e dead-letter queue.
+## Documentação
 
-## Postman
+Consulte o [índice da documentação](docs/README.md). Os contratos HTTP são expostos pela [especificação OpenAPI em execução](docs/api/openapi.md); a [collection Postman](docs/postman/README.md) reúne os fluxos manuais mais usados.
 
-Importe a collection [clinic-assistant.postman_collection.json](docs/postman/clinic-assistant.postman_collection.json) no Postman. Ela usa `http://localhost:8080` por padrão e salva o access token devolvido por registro, login e refresh. O refresh token fica somente no cookie `HttpOnly` do Postman; não o copie para variáveis ou arquivos.
+## Estrutura
 
-## Política de dependências
-
-Os avisos do compilador são tratados como erros. As versões centralizadas devem permanecer em linhas estáveis e sem vulnerabilidades conhecidas pelo NuGet; não reduza essa proteção para contornar falhas de restore.
+```text
+src/
+  ClinicAssistant.Api            # Host HTTP e SignalR
+  ClinicAssistant.Application    # Casos de uso e portas
+  ClinicAssistant.Contracts      # DTOs e contratos públicos
+  ClinicAssistant.Domain         # Núcleo de domínio
+  ClinicAssistant.Infrastructure # EF Core, PostgreSQL e adaptadores
+  ClinicAssistant.Worker         # Processamento assíncrono
+frontend/                         # Aplicação operacional Next.js
+tests/                            # Testes unitários
+database/                         # Migrations, reset e seeds E2E
+docs/                             # Documentação de produto e operação
+```

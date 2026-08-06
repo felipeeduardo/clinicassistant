@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import nextConfig from "../next.config";
+import { createSecurityHeaders } from "@/lib/security-headers";
 
 describe("security headers", () => {
   it("restricts content sources without wildcards or unsafe-eval", async () => {
@@ -14,5 +15,11 @@ describe("security headers", () => {
     expect(csp).not.toContain("*");
     expect(headers).toContainEqual({ key: "X-Frame-Options", value: "DENY" });
     expect(headers).toContainEqual({ key: "X-Content-Type-Options", value: "nosniff" });
+  });
+
+  it("uses the configured HTTPS API and secure WebSocket origins", () => {
+    const csp = createSecurityHeaders("https://api.clinic.example.test").find(header => header.key === "Content-Security-Policy")?.value;
+    expect(csp).toContain("connect-src 'self' https://api.clinic.example.test wss://api.clinic.example.test");
+    expect(csp).not.toContain("http://localhost:8080");
   });
 });

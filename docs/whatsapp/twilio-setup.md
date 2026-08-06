@@ -12,3 +12,5 @@ As credenciais Twilio são de nível de plataforma e devem permanecer somente no
 Para rotação, atualize o secret do ambiente, reinicie ou recarregue a aplicação conforme a plataforma e execute **Validar configuração**. Não use o navegador, `localStorage` ou campos administrativos para transportar credenciais.
 
 Use `whatsapp:` apenas no limite com o Twilio; telefones internos permanecem em E.164. Templates aprovados exigem `ContentSid` e são necessários fora da janela de 24 horas.
+
+Para validar produção de forma controlada, siga o [checklist de prontidão e smoke real](../operations/twilio-production-readiness.md). Não dispare mensagens reais pelo CI comum ou por pull requests.

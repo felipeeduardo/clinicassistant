@@ -1,0 +1,80 @@
+name: Manual Twilio smoke
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirmation:
+        description: "Digite SEND_ONE_TWILIO_SMOKE para autorizar uma única mensagem de teste"
+        required: true
+        type: string
+      change_reference:
+        description: "Referência do change, incidente ou validação operacional"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  manual_twilio_smoke:
+    if: inputs.confirmation == 'SEND_ONE_TWILIO_SMOKE'
+    name: Send one protected Twilio smoke message
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      name: twilio-production-smoke
+    concurrency:
+      group: manual-twilio-smoke
+      cancel-in-progress: false
+    env:
+      SMOKE_API_URL: ${{ secrets.TWILIO_SMOKE_API_URL }}
+      SMOKE_ADMIN_EMAIL: ${{ secrets.TWILIO_SMOKE_ADMIN_EMAIL }}
+      SMOKE_ADMIN_PASSWORD: ${{ secrets.TWILIO_SMOKE_ADMIN_PASSWORD }}
+    steps:
+      - name: Validate protected configuration
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$SMOKE_API_URL"
+          test -n "$SMOKE_ADMIN_EMAIL"
+          test -n "$SMOKE_ADMIN_PASSWORD"
+          case "$SMOKE_API_URL" in https://*) ;; *) echo "TWILIO_SMOKE_API_URL must use HTTPS." >&2; exit 1 ;; esac
+
+      - name: Validate and send exactly one allowlisted test message
+        shell: bash
+        env:
+          CHANGE_REFERENCE: ${{ inputs.change_reference }}
+        run: |
+          set -euo pipefail
+          base_url="${SMOKE_API_URL%/}"
+          cookie_jar="$RUNNER_TEMP/twilio-smoke-cookies.txt"
+          token=""
+          status='{}'
+          result="failed before the message request"
+          cleanup() {
+            if [[ -n "$token" ]]; then
+              status="$(curl --silent --show-error --cookie "$cookie_jar" -H "Authorization: Bearer $token" "$base_url/api/whatsapp/integration/status" || true)"
+              curl --silent --show-error --output /dev/null --cookie "$cookie_jar" -X POST "$base_url/api/auth/logout" || true
+            fi
+            {
+              echo "## Manual Twilio smoke"
+              echo
+              echo "- Change/reference: ${CHANGE_REFERENCE}"
+              echo "- Requested messages: 1"
+              echo "- Provider: $(jq -r '.provider // "not validated"' <<<"$status")"
+              echo "- Integration status: $(jq -r '.status // "not available"' <<<"$status")"
+              echo "- Result: $result"
+            } >> "$GITHUB_STEP_SUMMARY"
+          }
+          trap cleanup EXIT
+
+          login_body="$(jq -nc --arg email "$SMOKE_ADMIN_EMAIL" --arg password "$SMOKE_ADMIN_PASSWORD" '{email: $email, password: $password}')"
+          login_response="$(curl --fail-with-body --silent --show-error --cookie "$cookie_jar" --cookie-jar "$cookie_jar" -H 'Content-Type: application/json' --data "$login_body" "$base_url/api/auth/login")"
+          token="$(jq -r '.accessToken // empty' <<<"$login_response")"
+          test -n "$token"
+          status="$(curl --fail-with-body --silent --show-error --cookie "$cookie_jar" -H "Authorization: Bearer $token" "$base_url/api/whatsapp/integration/status")"
+          jq -e '.provider == "Twilio" and .status == "Connected"' <<<"$status" >/dev/null
+          curl --fail-with-body --silent --show-error --output /dev/null --cookie "$cookie_jar" -H "Authorization: Bearer $token" -X POST "$base_url/api/whatsapp/integration/validate"
+          idempotency_key="twilio-smoke-$(uuidgen | tr '[:upper:]' '[:lower:]')"
+          curl --fail-with-body --silent --show-error --output /dev/null --cookie "$cookie_jar" -H "Authorization: Bearer $token" -H "Idempotency-Key: $idempotency_key" -X POST "$base_url/api/whatsapp/integration/test-message"
+          result="request accepted by Clinic Assistant; delivery confirmation is tracked asynchronously by StatusCallback."

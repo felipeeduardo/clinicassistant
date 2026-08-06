@@ -1,44 +1,31 @@
-# Frontend operacional E2E — dependências
+# Frontend operacional e E2E
 
-Atualizado na Etapa 9.2. Esta entrega usa somente as APIs existentes. Onde o backend não fornece uma operação, a interface não simula resultado e o fluxo fica explicitamente bloqueado.
+O frontend utiliza apenas contratos existentes. O backend é a fonte de verdade para autorização, isolamento por tenant, concorrência e regras de negócio.
 
-## Matriz tela x endpoint
+## Matriz tela x API
 
-| Tela | Endpoint | Estado |
+| Área | Rotas e capacidades | Acesso |
 | --- | --- | --- |
-| `/clinics` | `GET/PUT /api/clinics/current` | Disponível para a clínica da sessão; não há lista global de clínicas. |
-| `/units` | `GET/POST/PUT /api/units`, detalhe e status operacional | Disponível; detalhe apresenta fuso, horários e profissionais vinculados. A exclusão é bloqueada quando houver profissionais. |
-| `/patients` | `GET/POST/PUT /api/patients`, `GET /api/patients/search`, `GET /api/patients/{id}` | Disponível; listagem paginada com busca e filtro de consentimento, detalhe com origem, próximos agendamentos, conversas e resumo de auditoria. Telefone e e-mail são mascarados na listagem. |
-| `/professionals` | `GET/POST/PUT /api/professionals`, agenda dedicada | Disponível; a tela consulta agenda dos próximos sete dias. APIs de disponibilidade, bloqueios e férias estão disponíveis para gestão administrativa. |
-| `/specialties` | `GET/POST/PUT /api/specialties`, dependências e status | Disponível; a tela expõe dependências e só permite o backend efetivar desativação quando for segura. |
-| `/appointments` | `GET /api/appointments?startsAt&endsAt`, `GET /api/professionals/{id}/availability`, `POST /api/appointments`, confirmar e cancelar | Disponível para operação diária. Reagendamento e versões esperadas continuam indisponíveis. |
-| `/conversations` | Listagem, detalhe, mensagens, marcar leitura, atribuir, liberar, pausar e retomar | Disponível. As quatro últimas ações enviam `expectedVersion` e o backend pode responder `409`. |
-| `/integrations/whatsapp` | `GET /api/whatsapp/integration/status` | Disponível em modo somente leitura, com número mascarado e diagnóstico sanitizado. |
-| `/tenants`, `/users`, onboarding | — | Bloqueado: não existem endpoints administrativos. |
-| `/audit` | — | Bloqueado: não existe endpoint de auditoria. |
+| Clínica e catálogo | Clínica atual, unidades, especialidades e profissionais | Policies de catálogo `View` e `Manage` |
+| Pacientes | Listagem, busca, detalhe, criação e edição | `Patients.View` e `Patients.Manage` |
+| Agenda | Consultas, disponibilidade, confirmação, cancelamento e reagendamento | `ClinicStaff`; alterações administrativas conforme policy de profissional |
+| Conversas | Listagem, detalhe, mensagens, fila humana e operações humanas | Leitura autenticada; operações administrativas com `ClinicAdmin` |
+| WhatsApp | Status sanitizado, configuração Twilio, validação, ativação, teste e templates | `ClinicAdmin` |
+| Auditoria e dashboard | Consulta de auditoria e indicadores do tenant | `ClinicAdmin` e `ClinicStaff`, respectivamente |
+| Plataforma | Tenants, usuários, clínicas e onboarding idempotente | `PlatformAdmin` |
 
-## Matriz permissão x ação
+As mutations concorrentes de agenda e conversa enviam `expectedVersion`. Criação de consulta, mensagem manual, onboarding e teste WhatsApp usam `Idempotency-Key` quando o contrato o exige.
 
-| Ação | Política atual do backend | Interface |
-| --- | --- | --- |
-| Ler cadastros | `ClinicStaff` | Permitida aos usuários autenticados do tenant. |
-| Criar/editar clínica, unidades, pacientes, profissionais e especialidades | `ClinicStaff` | A interface mostra mutations somente para `ClinicAdmin`; o backend ainda deve restringir estas operações se essa for a regra definitiva. |
-| Administrar conversas | `ClinicAdmin` para atribuir, liberar e automação | Fora do escopo desta entrega. |
-| Administração de plataforma | `PlatformAdmin` | Bloqueada, sem endpoint. |
+## Tempo real
 
-## Tempo real e E2E
+O Hub autenticado está em `/hubs/operations`. A conexão é vinculada ao `tenant_id` das claims e o frontend invalida queries HTTP específicas ao receber eventos sanitizados. Consulte [tempo real operacional](realtime.md).
 
-O Hub SignalR autenticado está disponível em `/hubs/operations`, isolado pelo `tenant_id` da sessão. A implementação, eventos publicados e mapeamento de cache estão documentados em [realtime.md](realtime.md). As mutations HTTP continuam invalidando somente sua query de recurso (`patients`, `units`, `specialties`, `professionals` ou `clinic`).
+## Cenários E2E
 
-Os seeds E2E fornecem usuários e cadastros de tenant, mas o manifesto ainda não é exposto como contrato do frontend. Testes E2E de onboarding, troca de tenant, auditoria e realtime continuam bloqueados pelas dependências descritas acima.
+O perfil `e2e` fornece dados determinísticos e cobre login, isolamento de tenant, cadastros, agenda, conversas, Fake WhatsApp, administração de plataforma e atualizações por SignalR. O roteiro e os comandos estão no [guia Playwright](../testing/playwright.md) e no [guia E2E](../testing/e2e-execution-guide.md).
 
-Os testes Playwright consomem o manifesto diretamente para usuários e IDs determinísticos. Veja [e2e-playwright.md](e2e-playwright.md) para execução e limites atuais.
+## Limites intencionais
 
-## Limitações registradas
-
-- Os contratos atuais não expõem `expectedVersion` nos cadastros; não é possível enviar controle de concorrência sem alterar o backend.
-- Os endpoints de cadastro não foram definidos como idempotentes; a interface não adiciona um comportamento que o servidor não garante.
-- A criação de consulta verifica disponibilidade no servidor e responde `409` quando o horário já não está disponível. O frontend preserva a seleção para nova tentativa.
-- A Inbox não oferece transferência, envio manual, encerramento ou reabertura, pois não há endpoints administrativos para essas ações.
-- A administração de WhatsApp não expõe credenciais, templates, sincronização ou alteração de provider; por isso a tela é estritamente informativa.
-- Não são exibidos segredos de integração, payloads de webhook ou conteúdo clínico.
+- O frontend nunca recebe Auth Token Twilio, Account SID completo, destinatário de teste ou payloads sensíveis de webhook.
+- Eventos SignalR não são fonte de dados; as queries HTTP autenticadas continuam sendo a fonte de verdade.
+- A integração Twilio real requer o checklist de [prontidão operacional](../operations/twilio-production-readiness.md).

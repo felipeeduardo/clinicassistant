@@ -1,10 +1,11 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { ProtectedShell } from "@/components/protected-shell";
 import { PatientForm } from "@/features/patients/patient-form";
 import { patientsApi } from "@/lib/api/patients";
+import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import type { Patient, PatientDetail } from "@/lib/api/types";
 import { can } from "@/lib/auth/permissions";
 import { useApi, useAuth } from "@/providers/providers";
@@ -21,7 +22,8 @@ export default function PatientsPage() {
   const api = useApi(); const { user } = useAuth();
   const [search, setSearch] = useState(""); const [consentStatus, setConsentStatus] = useState(""); const [page, setPage] = useState(1);
   const [editing, setEditing] = useState<Patient | null | undefined>(); const [selected, setSelected] = useState<PatientDetail | null>(null);
-  const patients = useQuery({ queryKey: ["patients", page, search, consentStatus], queryFn: () => patientsApi.search(api, { page, pageSize: 20, search, consentStatus }) });
+  const debouncedSearch = useDebouncedValue(search);
+  const patients = useQuery({ placeholderData: keepPreviousData, queryKey: ["patients", page, debouncedSearch, consentStatus], queryFn: () => patientsApi.search(api, { page, pageSize: 20, search: debouncedSearch, consentStatus }) });
   const allowed = user ? can(user, "manageCatalog") : false;
 
   return <ProtectedShell><PageContainer><PageHeader actions={allowed ? <Button onClick={() => setEditing(null)}><Icon name="patients" />Novo paciente</Button> : undefined} description="Gerencie dados administrativos e o histórico de atendimento dos pacientes." pathname="/patients" title="Pacientes" />

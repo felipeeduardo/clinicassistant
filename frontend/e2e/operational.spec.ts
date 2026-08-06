@@ -48,4 +48,9 @@ test("opera a conversa da fila humana definida no manifesto", async ({ authentic
   await expect(page.getByRole("button", { name: "Reabrir" })).toBeVisible();
   await page.getByRole("button", { name: "Reabrir" }).click();
   await expect(page.getByRole("button", { name: "Encerrar" })).toBeVisible();
+
+  const manualMessage = `Mensagem manual E2E ${Date.now()}`;
+  await page.getByLabel("Mensagem manual").fill(manualMessage);
+  await page.getByRole("button", { name: "Enviar" }).click();
+  await expect(page.getByText(manualMessage)).toBeVisible();
 });

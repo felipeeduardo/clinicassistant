@@ -8,10 +8,14 @@ public sealed class PostgreSqlHealthCheck(IConfiguration configuration) : IHealt
 {
     public async Task<HealthCheckResult> CheckHealthAsync(HealthCheckContext context, CancellationToken cancellationToken = default)
     {
-        var connectionString = configuration.GetConnectionString("Default");
-        if (string.IsNullOrWhiteSpace(connectionString))
+        string connectionString;
+        try
         {
-            return HealthCheckResult.Unhealthy("PostgreSQL connection string is not configured.");
+            connectionString = DatabaseConnectionStringResolver.Resolve(configuration);
+        }
+        catch (InvalidOperationException exception)
+        {
+            return HealthCheckResult.Unhealthy("PostgreSQL connection string is not configured.", exception);
         }
 
         var options = new DbContextOptionsBuilder<ClinicAssistantDbContext>()

@@ -1,5 +1,9 @@
 # Etapa 6 — Fundação WhatsApp/Twilio
 
+> Status: Historical
+>
+> Referências atuais: [visão geral](overview.md), [configuração Twilio](twilio-setup.md), [webhooks](twilio-webhooks.md), [segurança](security.md) e [testes](testing.md).
+
 Este documento registra a evolução da Etapa 6: contratos e entidades, gateway simulado, infraestrutura Twilio, webhook, mensageria e processamento de entrada.
 
 ## Configuração local
@@ -8,7 +12,7 @@ O padrão é `WHATSAPP__PROVIDER=Fake`. O gateway falso não chama serviços ext
 
 Para selecionar Twilio, configure `WHATSAPP__PROVIDER=Twilio`, `TWILIO__ACCOUNT_SID`, `TWILIO__AUTH_TOKEN` e `TWILIO__WHATSAPP_FROM`. Credenciais nunca devem ser versionadas ou registradas em logs. Telefones persistidos permanecem em E.164; o prefixo `whatsapp:` é incluído somente no gateway.
 
-## Limites desta entrega
+## Limites históricos da entrega
 
 IA, download/processamento de arquivos de mídia e onboarding de clínicas continuam fora do escopo desta etapa. O RabbitMQ e o Outbox permanecem como mecanismos transacionais para os fluxos de entrada e saída.
 

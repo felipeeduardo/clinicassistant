@@ -29,9 +29,7 @@ public static class DependencyInjection
         var target = configuration["Database:Target"]?.Trim().ToLowerInvariant() ?? "primary";
         var environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT") ?? "Production";
         if (target == "test" && string.Equals(environment, "Production", StringComparison.OrdinalIgnoreCase)) throw new InvalidOperationException("Database target 'test' is blocked in Production.");
-        var connectionName = target switch { "primary" => "Primary", "test" => "Test", _ => throw new InvalidOperationException("Database:Target must be 'primary' or 'test'.") };
-        var connectionString = configuration.GetConnectionString(connectionName) ?? configuration.GetConnectionString("Default")
-            ?? throw new InvalidOperationException($"ConnectionStrings:{connectionName} must be configured.");
+        var connectionString = DatabaseConnectionStringResolver.Resolve(configuration);
 
         services.AddDbContext<ClinicAssistantDbContext>(options => options.UseNpgsql(connectionString));
         var redisHost = configuration["Redis:Host"] ?? "localhost";

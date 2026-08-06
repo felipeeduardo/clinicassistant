@@ -1,8 +1,8 @@
 {
   "info": {
     "_postman_id": "084f5791-8e0d-4d86-a6b5-22eeb6aab1d2",
-    "name": "Clinic AI Assistant",
-    "description": "Collection versionada do Clinic AI Assistant, incluindo os endpoints operacionais e administrativos da Etapa 9.3. O refresh de sessão usa o cookie HttpOnly recebido no login; não armazene refresh tokens em variáveis.",
+    "name": "Clinic Assistant",
+    "description": "Collection versionada para validação manual da API. Abrange saúde, autenticação, catálogo, agenda, conversas, WhatsApp, auditoria, dashboard e plataforma. O refresh de sessão usa o cookie HttpOnly recebido no login; não armazene refresh tokens em variáveis.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -13,6 +13,46 @@
     },
     {
       "key": "accessToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "loginEmail",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "loginPassword",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "onboardingTenantName",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "onboardingTenantSlug",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "onboardingTemporaryPassword",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "tenantId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "clinicId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "userId",
       "value": "",
       "type": "string"
     },
@@ -47,7 +87,47 @@
       "type": "string"
     },
     {
+      "key": "queueItemId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "integrationId",
+      "value": "",
+      "type": "string"
+    },
+    {
       "key": "messageId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "templateId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "targetUserId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "blockId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "vacationId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "slotId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "correlationId",
       "value": "",
       "type": "string"
     },
@@ -55,11 +135,27 @@
       "key": "idempotencyKey",
       "value": "{{$guid}}",
       "type": "string"
+    },
+    {
+      "key": "twilioAccountSid",
+      "value": "ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "type": "string"
+    },
+    {
+      "key": "twilioWhatsAppFrom",
+      "value": "whatsapp:+15550000000",
+      "type": "string"
+    },
+    {
+      "key": "twilioTestRecipient",
+      "value": "whatsapp:+15550000001",
+      "type": "string"
     }
   ],
   "item": [
     {
-      "name": "Etapa 1 - Fundação",
+      "name": "00 — Health",
+      "description": "Liveness e readiness da plataforma.",
       "item": [
         {
           "name": "Health - Live",
@@ -80,7 +176,8 @@
       ]
     },
     {
-      "name": "Etapa 2 - Identidade e tenants",
+      "name": "01 — Authentication",
+      "description": "Registro inicial, login, sessão, renovação e logout.",
       "item": [
         {
           "name": "Registrar clínica e administrador",
@@ -91,7 +188,12 @@
                 "type": "text/javascript",
                 "exec": [
                   "const response = pm.response.json();",
-                  "pm.collectionVariables.set('accessToken', response.accessToken);"
+                  "pm.test('Registro retorna sucesso e JSON', () => { pm.expect(pm.response.code).to.eql(200); pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'); });",
+                  "pm.test('Registro retorna token e perfil', () => { pm.expect(response.accessToken).to.be.a('string').and.not.empty; pm.expect(response.user).to.have.property('tenantId'); });",
+                  "pm.collectionVariables.set('accessToken', response.accessToken);",
+                  "pm.environment.set('accessToken', response.accessToken);",
+                  "pm.collectionVariables.set('tenantId', response.user.tenantId);",
+                  "pm.collectionVariables.set('userId', response.user.id);"
                 ]
               }
             }
@@ -106,7 +208,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"tenantName\": \"Clínica Exemplo\",\n  \"tenantSlug\": \"clinica-exemplo\",\n  \"name\": \"Ana Administradora\",\n  \"email\": \"ana@clinica-exemplo.test\",\n  \"password\": \"UmaSenhaSegura123!\"\n}"
+              "raw": "{\n  \"tenantName\": \"Clínica Exemplo\",\n  \"tenantSlug\": \"clinica-exemplo\",\n  \"name\": \"Administrador de Exemplo\",\n  \"email\": \"{{loginEmail}}\",\n  \"password\": \"{{loginPassword}}\"\n}"
             },
             "url": "{{baseUrl}}/api/auth/register"
           }
@@ -120,7 +222,12 @@
                 "type": "text/javascript",
                 "exec": [
                   "const response = pm.response.json();",
-                  "pm.collectionVariables.set('accessToken', response.accessToken);"
+                  "pm.test('Login retorna sucesso e JSON', () => { pm.expect(pm.response.code).to.eql(200); pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'); });",
+                  "pm.test('Login retorna token e perfil', () => { pm.expect(response.accessToken).to.be.a('string').and.not.empty; pm.expect(response.user).to.have.property('tenantId'); });",
+                  "pm.collectionVariables.set('accessToken', response.accessToken);",
+                  "pm.environment.set('accessToken', response.accessToken);",
+                  "pm.collectionVariables.set('tenantId', response.user.tenantId);",
+                  "pm.collectionVariables.set('userId', response.user.id);"
                 ]
               }
             }
@@ -135,7 +242,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"email\": \"ana@clinica-exemplo.test\",\n  \"password\": \"UmaSenhaSegura123!\"\n}"
+              "raw": "{\n  \"email\": \"{{loginEmail}}\",\n  \"password\": \"{{loginPassword}}\"\n}"
             },
             "url": "{{baseUrl}}/api/auth/login"
           }
@@ -184,53 +291,184 @@
       ]
     },
     {
-      "name": "Etapa 3 - Cadastro da clínica",
+      "name": "02 — Tenants",
+      "description": "Operações de plataforma executadas por PlatformAdmin. O onboarding é transacional e exige valores fictícios únicos.",
       "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}" }] },
       "item": [
-        { "name": "Obter clínica atual", "request": { "method": "GET", "url": "{{baseUrl}}/api/clinics/current" } },
-        { "name": "Criar ou atualizar clínica", "request": { "method": "PUT", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"legalName\": \"Clínica Exemplo LTDA\",\n  \"tradeName\": \"Clínica Exemplo\",\n  \"document\": \"12345678000190\",\n  \"email\": \"contato@clinica-exemplo.test\",\n  \"phone\": \"+5581999999999\",\n  \"timeZone\": \"America/Recife\"\n}" }, "url": "{{baseUrl}}/api/clinics/current" } },
-        { "name": "Listar unidades", "request": { "method": "GET", "url": "{{baseUrl}}/api/units" } },
-        { "name": "Criar unidade", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"name\": \"Unidade Centro\",\n  \"address\": \"Rua Exemplo, 100\",\n  \"phone\": \"+5581999999999\"\n}" }, "url": "{{baseUrl}}/api/units" } },
-        { "name": "Obter unidade", "request": { "method": "GET", "url": "{{baseUrl}}/api/units/{{unitId}}" } },
-        { "name": "Atualizar unidade", "request": { "method": "PUT", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"name\": \"Unidade Centro Atualizada\",\n  \"address\": \"Rua Exemplo, 101\",\n  \"phone\": \"+5581999999999\"\n}" }, "url": "{{baseUrl}}/api/units/{{unitId}}" } },
-        { "name": "Excluir unidade", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/units/{{unitId}}" } },
-        { "name": "Listar especialidades", "request": { "method": "GET", "url": "{{baseUrl}}/api/specialties" } },
-        { "name": "Criar especialidade", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"name\": \"Cardiologia\",\n  \"description\": \"Atendimento cardiológico\"\n}" }, "url": "{{baseUrl}}/api/specialties" } },
-        { "name": "Atualizar especialidade", "request": { "method": "PUT", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"name\": \"Cardiologia Clínica\",\n  \"description\": \"Atendimento cardiológico ambulatorial\"\n}" }, "url": "{{baseUrl}}/api/specialties/{{specialtyId}}" } },
-        { "name": "Excluir especialidade", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/specialties/{{specialtyId}}" } },
-        { "name": "Listar profissionais", "request": { "method": "GET", "url": "{{baseUrl}}/api/professionals" } },
-        { "name": "Criar profissional", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"clinicUnitId\": \"{{unitId}}\",\n  \"name\": \"Dra. Marina Silva\",\n  \"email\": \"marina@clinica-exemplo.test\",\n  \"phone\": \"+5581988888888\",\n  \"registrationNumber\": \"CRM-PE 12345\",\n  \"specialtyIds\": [\"{{specialtyId}}\"]\n}" }, "url": "{{baseUrl}}/api/professionals" } },
-        { "name": "Obter profissional", "request": { "method": "GET", "url": "{{baseUrl}}/api/professionals/{{professionalId}}" } },
-        { "name": "Atualizar profissional", "request": { "method": "PUT", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"clinicUnitId\": \"{{unitId}}\",\n  \"name\": \"Dra. Marina Silva\",\n  \"email\": \"marina@clinica-exemplo.test\",\n  \"phone\": \"+5581988888888\",\n  \"registrationNumber\": \"CRM-PE 12345\",\n  \"specialtyIds\": [\"{{specialtyId}}\"]\n}" }, "url": "{{baseUrl}}/api/professionals/{{professionalId}}" } },
-        { "name": "Excluir profissional", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/professionals/{{professionalId}}" } }
+        {
+          "name": "Listar tenants",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/platform/tenants" }
+        },
+        {
+          "name": "Onboarding de tenant",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const response = pm.response.json();",
+                  "pm.test('Onboarding é criado', () => { pm.expect(pm.response.code).to.eql(201); pm.expect(response.tenantId).to.be.a('string'); });",
+                  "pm.collectionVariables.set('tenantId', response.tenantId);",
+                  "pm.collectionVariables.set('clinicId', response.clinicId);",
+                  "pm.collectionVariables.set('unitId', response.unitId);",
+                  "pm.collectionVariables.set('userId', response.adminUserId);",
+                  "pm.collectionVariables.set('integrationId', response.integrationId);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Idempotency-Key", "value": "{{idempotencyKey}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tenantName\": \"{{onboardingTenantName}}\",\n  \"tenantSlug\": \"{{onboardingTenantSlug}}\",\n  \"clinicLegalName\": \"Clínica Postman LTDA\",\n  \"clinicTradeName\": \"Clínica Postman\",\n  \"clinicDocument\": \"TEST-POSTMAN\",\n  \"clinicEmail\": \"clinica.postman@example.test\",\n  \"clinicPhone\": \"+550000000101\",\n  \"timeZone\": \"America/Recife\",\n  \"unitName\": \"Unidade Postman\",\n  \"unitAddress\": \"Rua de Teste, 100\",\n  \"unitPhone\": \"+550000000102\",\n  \"adminName\": \"Administrador Postman\",\n  \"adminEmail\": \"admin.postman@example.test\",\n  \"temporaryPassword\": \"{{onboardingTemporaryPassword}}\"\n}"
+            },
+            "url": "{{baseUrl}}/api/platform/onboarding"
+          }
+        }
       ]
     },
     {
-      "name": "Etapa 9.3 - Operações administrativas",
+      "name": "03–09 — Clinics and catalog",
+      "description": "Clínica atual, unidades, especialidades e profissionais. Os requests estão ordenados por domínio.",
       "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}" }] },
       "item": [
-        { "name": "Dashboard", "request": { "method": "GET", "url": "{{baseUrl}}/api/dashboard" } },
-        { "name": "Auditoria", "request": { "method": "GET", "url": "{{baseUrl}}/api/audit?page=1&pageSize=25" } },
+        { "name": "03 — Clinics", "item": [
+        { "name": "Obter clínica atual", "request": { "method": "GET", "url": "{{baseUrl}}/api/clinics/current" } },
+        { "name": "Criar ou atualizar clínica", "request": { "method": "PUT", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"legalName\": \"Clínica Exemplo LTDA\",\n  \"tradeName\": \"Clínica Exemplo\",\n  \"document\": \"12345678000190\",\n  \"email\": \"contato@clinica-exemplo.test\",\n  \"phone\": \"+5581999999999\",\n  \"timeZone\": \"America/Recife\"\n}" }, "url": "{{baseUrl}}/api/clinics/current" } }
+        ] },
+        { "name": "04 — Units", "item": [
+        { "name": "Listar unidades", "request": { "method": "GET", "url": "{{baseUrl}}/api/units" } },
+        { "name": "Criar unidade", "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["const response = pm.response.json();", "pm.test('Unidade é criada', () => { pm.expect(pm.response.code).to.eql(201); pm.expect(response.id).to.be.a('string'); });", "pm.collectionVariables.set('unitId', response.id);"] } }], "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"name\": \"Unidade Centro\",\n  \"address\": \"Rua Exemplo, 100\",\n  \"phone\": \"+5581999999999\"\n}" }, "url": "{{baseUrl}}/api/units" } },
+        { "name": "Obter unidade", "request": { "method": "GET", "url": "{{baseUrl}}/api/units/{{unitId}}" } },
+        { "name": "Atualizar unidade", "request": { "method": "PUT", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"name\": \"Unidade Centro Atualizada\",\n  \"address\": \"Rua Exemplo, 101\",\n  \"phone\": \"+5581999999999\"\n}" }, "url": "{{baseUrl}}/api/units/{{unitId}}" } },
+        { "name": "Excluir unidade", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/units/{{unitId}}" } }
+        ] },
+        { "name": "08 — Specialties", "item": [
+        { "name": "Listar especialidades", "request": { "method": "GET", "url": "{{baseUrl}}/api/specialties" } },
+        { "name": "Criar especialidade", "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["const response = pm.response.json();", "pm.test('Especialidade é criada', () => { pm.expect(pm.response.code).to.eql(201); pm.expect(response.id).to.be.a('string'); });", "pm.collectionVariables.set('specialtyId', response.id);"] } }], "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"name\": \"Cardiologia\",\n  \"description\": \"Atendimento cardiológico\"\n}" }, "url": "{{baseUrl}}/api/specialties" } },
+        { "name": "Atualizar especialidade", "request": { "method": "PUT", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"name\": \"Cardiologia Clínica\",\n  \"description\": \"Atendimento cardiológico ambulatorial\"\n}" }, "url": "{{baseUrl}}/api/specialties/{{specialtyId}}" } },
+        { "name": "Excluir especialidade", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/specialties/{{specialtyId}}" } }
+        ] },
+        { "name": "07 — Professionals", "item": [
+        { "name": "Listar profissionais", "request": { "method": "GET", "url": "{{baseUrl}}/api/professionals" } },
+        { "name": "Criar profissional", "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["const response = pm.response.json();", "pm.test('Profissional é criado', () => { pm.expect(pm.response.code).to.eql(201); pm.expect(response.id).to.be.a('string'); });", "pm.collectionVariables.set('professionalId', response.id);"] } }], "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"clinicUnitId\": \"{{unitId}}\",\n  \"name\": \"Dra. Marina Silva\",\n  \"email\": \"marina@clinica-exemplo.test\",\n  \"phone\": \"+5581988888888\",\n  \"registrationNumber\": \"CRM-PE 12345\",\n  \"specialtyIds\": [\"{{specialtyId}}\"]\n}" }, "url": "{{baseUrl}}/api/professionals" } },
+        { "name": "Obter profissional", "request": { "method": "GET", "url": "{{baseUrl}}/api/professionals/{{professionalId}}" } },
+        { "name": "Atualizar profissional", "request": { "method": "PUT", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"clinicUnitId\": \"{{unitId}}\",\n  \"name\": \"Dra. Marina Silva\",\n  \"email\": \"marina@clinica-exemplo.test\",\n  \"phone\": \"+5581988888888\",\n  \"registrationNumber\": \"CRM-PE 12345\",\n  \"specialtyIds\": [\"{{specialtyId}}\"]\n}" }, "url": "{{baseUrl}}/api/professionals/{{professionalId}}" } },
+        { "name": "Excluir profissional", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/professionals/{{professionalId}}" } }
+        ] }
+      ]
+    },
+    {
+      "name": "06, 10–12, 15–16 — Operational APIs",
+      "description": "Pacientes, agenda, conversas, fila humana, dashboard, auditoria e endpoints de plataforma auxiliares.",
+      "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}" }] },
+      "item": [
+        { "name": "15 — Dashboard", "item": [
+        { "name": "Dashboard", "request": { "method": "GET", "url": "{{baseUrl}}/api/dashboard" } }
+        ] },
+        { "name": "16 — Audit", "item": [
+        { "name": "Auditoria", "request": { "method": "GET", "url": "{{baseUrl}}/api/audit?page=1&pageSize=25" } }
+        ] },
+        { "name": "06 — Patients", "item": [
         { "name": "Listar pacientes", "request": { "method": "GET", "url": "{{baseUrl}}/api/patients" } },
-        { "name": "Buscar pacientes", "request": { "method": "GET", "url": "{{baseUrl}}/api/patients/search?term=Ana&page=1&pageSize=25" } },
-        { "name": "Criar paciente", "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.collectionVariables.set('patientId', pm.response.json().id);"] } }], "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"name\": \"Paciente Postman\",\n  \"phone\": \"+5581999999999\",\n  \"email\": \"paciente.postman@example.test\",\n  \"birthDate\": \"1990-01-01\",\n  \"consentStatus\": \"Granted\"\n}" }, "url": "{{baseUrl}}/api/patients" } },
-        { "name": "Detalhar paciente", "request": { "method": "GET", "url": "{{baseUrl}}/api/patients/{{patientId}}" } },
+        { "name": "Buscar pacientes", "request": { "method": "GET", "url": "{{baseUrl}}/api/patients/search?search=Ana&page=1&pageSize=25" } },
+        { "name": "Criar paciente", "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["const response = pm.response.json();", "pm.test('Paciente é criado', () => { pm.expect(pm.response.code).to.eql(201); pm.expect(response.id).to.be.a('string'); });", "pm.collectionVariables.set('patientId', response.id);"] } }], "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"name\": \"Paciente Postman\",\n  \"phone\": \"+5581999999999\",\n  \"email\": \"paciente.postman@example.test\",\n  \"birthDate\": \"1990-01-01\",\n  \"consentStatus\": \"Granted\"\n}" }, "url": "{{baseUrl}}/api/patients" } },
+        { "name": "Detalhar paciente", "request": { "method": "GET", "url": "{{baseUrl}}/api/patients/{{patientId}}" } }
+        ] },
+        { "name": "10 — Appointments", "item": [
         { "name": "Buscar agenda", "request": { "method": "GET", "url": "{{baseUrl}}/api/appointments/search?page=1&pageSize=25" } },
-        { "name": "Criar agendamento", "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.collectionVariables.set('appointmentId', pm.response.json().id);"] } }], "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Idempotency-Key", "value": "{{idempotencyKey}}" }], "body": { "mode": "raw", "raw": "{\n  \"clinicUnitId\": \"{{unitId}}\",\n  \"professionalId\": \"{{professionalId}}\",\n  \"specialtyId\": \"{{specialtyId}}\",\n  \"patientId\": \"{{patientId}}\",\n  \"startsAt\": \"2026-08-10T12:00:00-03:00\",\n  \"endsAt\": \"2026-08-10T12:30:00-03:00\",\n  \"source\": \"Postman\",\n  \"notes\": \"Fluxo operacional de teste\"\n}" }, "url": "{{baseUrl}}/api/appointments" } },
+        { "name": "Criar agendamento", "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["const response = pm.response.json();", "pm.test('Agendamento é criado', () => { pm.expect(pm.response.code).to.eql(201); pm.expect(response.id).to.be.a('string'); });", "pm.collectionVariables.set('appointmentId', response.id);"] } }], "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Idempotency-Key", "value": "{{idempotencyKey}}" }], "body": { "mode": "raw", "raw": "{\n  \"clinicUnitId\": \"{{unitId}}\",\n  \"professionalId\": \"{{professionalId}}\",\n  \"specialtyId\": \"{{specialtyId}}\",\n  \"patientId\": \"{{patientId}}\",\n  \"startsAt\": \"2026-08-10T12:00:00-03:00\",\n  \"endsAt\": \"2026-08-10T12:30:00-03:00\",\n  \"source\": \"Postman\",\n  \"notes\": \"Fluxo operacional de teste\"\n}" }, "url": "{{baseUrl}}/api/appointments" } },
         { "name": "Detalhar agendamento", "request": { "method": "GET", "url": "{{baseUrl}}/api/appointments/{{appointmentId}}" } },
-        { "name": "Confirmar agendamento", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Idempotency-Key", "value": "{{idempotencyKey}}" }], "body": { "mode": "raw", "raw": "{\n  \"expectedVersion\": 1\n}" }, "url": "{{baseUrl}}/api/appointments/{{appointmentId}}/confirm" } },
+        { "name": "Confirmar agendamento", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Idempotency-Key", "value": "{{idempotencyKey}}" }], "body": { "mode": "raw", "raw": "{\n  \"expectedVersion\": 1\n}" }, "url": "{{baseUrl}}/api/appointments/{{appointmentId}}/confirm" } }
+        ] },
+        { "name": "13 — WhatsApp", "item": [
         { "name": "Integração WhatsApp - status", "request": { "method": "GET", "url": "{{baseUrl}}/api/whatsapp/integration/status" } },
         { "name": "Integração WhatsApp - validar", "request": { "method": "POST", "url": "{{baseUrl}}/api/whatsapp/integration/validate" } },
         { "name": "Integração WhatsApp - habilitar", "request": { "method": "POST", "url": "{{baseUrl}}/api/whatsapp/integration/enable" } },
         { "name": "Integração WhatsApp - desabilitar", "request": { "method": "POST", "url": "{{baseUrl}}/api/whatsapp/integration/disable" } },
-        { "name": "Integração WhatsApp - mensagem de teste", "request": { "method": "POST", "header": [{ "key": "Idempotency-Key", "value": "{{idempotencyKey}}" }], "url": "{{baseUrl}}/api/whatsapp/integration/test-message" } },
+        { "name": "Integração WhatsApp - mensagem de teste", "request": { "method": "POST", "header": [{ "key": "Idempotency-Key", "value": "{{idempotencyKey}}" }], "url": "{{baseUrl}}/api/whatsapp/integration/test-message" } }
+        ] },
+        { "name": "11–12 — Conversations and human queue", "item": [
         { "name": "Fila humana", "request": { "method": "GET", "url": "{{baseUrl}}/api/conversation-queue?page=1&pageSize=25" } },
         { "name": "Listar conversas", "request": { "method": "GET", "url": "{{baseUrl}}/api/conversations?page=1&pageSize=25" } },
         { "name": "Detalhar conversa", "request": { "method": "GET", "url": "{{baseUrl}}/api/conversations/{{conversationId}}" } },
-        { "name": "Enviar mensagem humana", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Idempotency-Key", "value": "{{idempotencyKey}}" }], "body": { "mode": "raw", "raw": "{\n  \"content\": \"Mensagem de teste do Postman\",\n  \"expectedVersion\": 1\n}" }, "url": "{{baseUrl}}/api/conversations/{{conversationId}}/messages" } },
-        { "name": "Listar tenants (plataforma)", "request": { "method": "GET", "url": "{{baseUrl}}/api/platform/tenants" } },
+        { "name": "Enviar mensagem humana", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Idempotency-Key", "value": "{{idempotencyKey}}" }], "body": { "mode": "raw", "raw": "{\n  \"content\": \"Mensagem de teste do Postman\",\n  \"expectedVersion\": 1\n}" }, "url": "{{baseUrl}}/api/conversations/{{conversationId}}/messages" } }
+        ] },
+        { "name": "02 — Tenant support", "item": [
+        { "name": "Listar tenants (plataforma)", "request": { "method": "GET", "url": "{{baseUrl}}/api/platform/tenants" } }
+        ] },
+        { "name": "17 — API contracts", "item": [
         { "name": "Swagger UI", "request": { "method": "GET", "url": "{{baseUrl}}/swagger/index.html" } },
         { "name": "OpenAPI JSON", "request": { "method": "GET", "url": "{{baseUrl}}/swagger/v1/swagger.json" } }
+        ] }
+      ]
+    },
+    {
+      "name": "09, 10–14 — Scheduling, conversations and WhatsApp",
+      "description": "Disponibilidade, bloqueios, férias, reagendamento, templates e operações detalhadas de conversa.",
+      "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}" }] },
+      "item": [
+        { "name": "04 — Units", "item": [
+        { "name": "Detalhar unidade", "request": { "method": "GET", "url": "{{baseUrl}}/api/units/{{unitId}}/details" } },
+        { "name": "Alterar status da unidade", "request": { "method": "POST", "url": "{{baseUrl}}/api/units/{{unitId}}/status/Inactive" } },
+        { "name": "Atualizar horários da unidade", "request": { "method": "PUT", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "[\n  { \"dayOfWeek\": 1, \"opensAt\": \"08:00:00\", \"closesAt\": \"17:00:00\" }\n]" }, "url": "{{baseUrl}}/api/units/{{unitId}}/business-hours" } }
+        ] },
+        { "name": "08 — Specialties", "item": [
+        { "name": "Dependências da especialidade", "request": { "method": "GET", "url": "{{baseUrl}}/api/specialties/{{specialtyId}}/dependencies" } },
+        { "name": "Alterar status da especialidade", "request": { "method": "POST", "url": "{{baseUrl}}/api/specialties/{{specialtyId}}/status/Inactive" } }
+        ] },
+        { "name": "09 — Availability", "item": [
+        { "name": "Disponibilidade por data", "request": { "method": "GET", "url": "{{baseUrl}}/api/professionals/{{professionalId}}/availability?date=2026-08-10" } },
+        { "name": "Listar regras de disponibilidade", "request": { "method": "GET", "url": "{{baseUrl}}/api/professionals/{{professionalId}}/availability/rules" } },
+        { "name": "Adicionar regra de disponibilidade", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"dayOfWeek\": 1,\n  \"startTime\": \"08:00:00\",\n  \"endTime\": \"17:00:00\",\n  \"slotDurationMinutes\": 30,\n  \"active\": true\n}" }, "url": "{{baseUrl}}/api/professionals/{{professionalId}}/availability" } },
+        { "name": "Substituir regras de disponibilidade", "request": { "method": "PUT", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "[\n  { \"dayOfWeek\": 1, \"startTime\": \"08:00:00\", \"endTime\": \"17:00:00\", \"slotDurationMinutes\": 30, \"active\": true }\n]" }, "url": "{{baseUrl}}/api/professionals/{{professionalId}}/availability/rules" } },
+        { "name": "Listar bloqueios", "request": { "method": "GET", "url": "{{baseUrl}}/api/professionals/{{professionalId}}/blocks" } },
+        { "name": "Criar bloqueio", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"startsAt\": \"2026-08-10T12:00:00-03:00\",\n  \"endsAt\": \"2026-08-10T13:00:00-03:00\",\n  \"reason\": \"Bloqueio operacional Postman\"\n}" }, "url": "{{baseUrl}}/api/professionals/{{professionalId}}/blocks" } },
+        { "name": "Excluir bloqueio", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/professionals/{{professionalId}}/blocks/{{blockId}}" } },
+        { "name": "Listar férias", "request": { "method": "GET", "url": "{{baseUrl}}/api/professionals/{{professionalId}}/vacations" } },
+        { "name": "Criar férias", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"startsAt\": \"2026-09-01T08:00:00-03:00\",\n  \"endsAt\": \"2026-09-05T17:00:00-03:00\",\n  \"reason\": \"Férias Postman\"\n}" }, "url": "{{baseUrl}}/api/professionals/{{professionalId}}/vacations" } },
+        { "name": "Excluir férias", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/professionals/{{professionalId}}/vacations/{{vacationId}}" } },
+        { "name": "Agenda do profissional", "request": { "method": "GET", "url": "{{baseUrl}}/api/professionals/{{professionalId}}/schedule?startsAt=2026-08-10T00:00:00Z&endsAt=2026-08-17T00:00:00Z" } }
+        ] },
+        { "name": "10 — Appointment operations", "item": [
+        { "name": "Cancelar agendamento", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Idempotency-Key", "value": "{{idempotencyKey}}" }], "body": { "mode": "raw", "raw": "{\n  \"expectedVersion\": 1,\n  \"reason\": \"Cancelamento administrativo Postman\"\n}" }, "url": "{{baseUrl}}/api/appointments/{{appointmentId}}/cancel" } },
+        { "name": "Reagendar agendamento", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Idempotency-Key", "value": "{{idempotencyKey}}" }], "body": { "mode": "raw", "raw": "{\n  \"expectedVersion\": 1,\n  \"startsAt\": \"2026-08-11T12:00:00-03:00\",\n  \"endsAt\": \"2026-08-11T12:30:00-03:00\",\n  \"notes\": \"Reagendamento Postman\"\n}" }, "url": "{{baseUrl}}/api/appointments/{{appointmentId}}/reschedule" } }
+        ] },
+        { "name": "13–14 — WhatsApp integration and templates", "item": [
+        { "name": "Configuração Twilio sanitizada", "request": { "method": "GET", "url": "{{baseUrl}}/api/whatsapp/integration/twilio/configuration" } },
+        { "name": "Listar templates WhatsApp", "request": { "method": "GET", "url": "{{baseUrl}}/api/whatsapp/templates?page=1&pageSize=25" } },
+        { "name": "Detalhar template WhatsApp", "request": { "method": "GET", "url": "{{baseUrl}}/api/whatsapp/templates/{{templateId}}" } },
+        { "name": "Criar template WhatsApp", "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["const response = pm.response.json();", "pm.test('Template é criado', () => { pm.expect(pm.response.code).to.eql(201); pm.expect(response.id).to.be.a('string'); });", "pm.collectionVariables.set('templateId', response.id);"] } }], "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"contentSid\": \"HX00000000000000000000000000000000\",\n  \"name\": \"lembrete_consulta_postman\",\n  \"languageCode\": \"pt_BR\",\n  \"category\": \"UTILITY\",\n  \"variables\": [\"patientName\"]\n}" }, "url": "{{baseUrl}}/api/whatsapp/templates" } },
+        { "name": "Atualizar template WhatsApp", "request": { "method": "PUT", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"contentSid\": \"HX00000000000000000000000000000000\",\n  \"name\": \"lembrete_consulta_postman\",\n  \"languageCode\": \"pt_BR\",\n  \"category\": \"UTILITY\",\n  \"variables\": [\"patientName\", \"appointmentDate\"]\n}" }, "url": "{{baseUrl}}/api/whatsapp/templates/{{templateId}}" } },
+        { "name": "Ativar template WhatsApp", "request": { "method": "POST", "url": "{{baseUrl}}/api/whatsapp/templates/{{templateId}}/activate" } },
+        { "name": "Desativar template WhatsApp", "request": { "method": "POST", "url": "{{baseUrl}}/api/whatsapp/templates/{{templateId}}/deactivate" } },
+        { "name": "Sincronizar templates WhatsApp", "request": { "method": "POST", "url": "{{baseUrl}}/api/whatsapp/templates/sync" } }
+        ] },
+        { "name": "11 — Conversation operations", "item": [
+        { "name": "Listar mensagens da conversa", "request": { "method": "GET", "url": "{{baseUrl}}/api/conversations/{{conversationId}}/messages?page=1&pageSize=100" } },
+        { "name": "Marcar mensagem como lida", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{ \"expectedVersion\": 1 }" }, "url": "{{baseUrl}}/api/conversations/{{conversationId}}/messages/{{messageId}}/read" } },
+        { "name": "Assumir conversa", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{ \"expectedVersion\": 1 }" }, "url": "{{baseUrl}}/api/conversations/{{conversationId}}/assign" } },
+        { "name": "Liberar conversa", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{ \"expectedVersion\": 1 }" }, "url": "{{baseUrl}}/api/conversations/{{conversationId}}/release" } },
+        { "name": "Transferir conversa", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{ \"expectedVersion\": 1, \"targetUserId\": \"{{targetUserId}}\", \"reason\": \"Transferência Postman\" }" }, "url": "{{baseUrl}}/api/conversations/{{conversationId}}/transfer" } },
+        { "name": "Pausar automação", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{ \"expectedVersion\": 1 }" }, "url": "{{baseUrl}}/api/conversations/{{conversationId}}/automation/pause" } },
+        { "name": "Retomar automação", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{ \"expectedVersion\": 1 }" }, "url": "{{baseUrl}}/api/conversations/{{conversationId}}/automation/resume" } },
+        { "name": "Alterar prioridade da conversa", "request": { "method": "PATCH", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{ \"expectedVersion\": 1, \"priority\": \"High\" }" }, "url": "{{baseUrl}}/api/conversations/{{conversationId}}/priority" } },
+        { "name": "Encerrar conversa", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{ \"expectedVersion\": 1 }" }, "url": "{{baseUrl}}/api/conversations/{{conversationId}}/close" } },
+        { "name": "Reabrir conversa", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{ \"expectedVersion\": 1 }" }, "url": "{{baseUrl}}/api/conversations/{{conversationId}}/reopen" } },
+        { "name": "Usuários atribuíveis da conversa", "request": { "method": "GET", "url": "{{baseUrl}}/api/conversations/operators" } }
+        ] },
+        { "name": "05 — Platform users", "item": [
+        { "name": "Listar usuários da plataforma", "request": { "method": "GET", "url": "{{baseUrl}}/api/platform/users" } }
+        ] },
+        { "name": "03 — Platform clinics", "item": [
+        { "name": "Listar clínicas da plataforma", "request": { "method": "GET", "url": "{{baseUrl}}/api/platform/clinics" } }
+        ] }
       ]
     }
   ]
