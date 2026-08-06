@@ -26,6 +26,7 @@ services:
       Jwt__AccessTokenMinutes: ${JWT_ACCESS_TOKEN_MINUTES:-15}
       Jwt__RefreshTokenDays: ${JWT_REFRESH_TOKEN_DAYS:-14}
       Frontend__AllowedOrigins__0: http://localhost:${FRONTEND_PORT:-3000}
+      Frontend__AllowedOrigins__1: http://127.0.0.1:${FRONTEND_PORT:-3000}
       WhatsApp__Provider: ${WHATSAPP_PROVIDER:-Fake}
       WhatsApp__MaximumRetryAttempts: ${WHATSAPP_MAXIMUM_RETRY_ATTEMPTS:-3}
       WhatsApp__RequestTimeoutSeconds: ${WHATSAPP_REQUEST_TIMEOUT_SECONDS:-15}
