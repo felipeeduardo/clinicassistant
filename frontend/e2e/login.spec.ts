@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+test.skip(process.env.E2E_SKIP === "true", "E2E temporarily disabled by E2E_SKIP.");
 
 test("exibe formulário de login", async ({ page }) =>
 {

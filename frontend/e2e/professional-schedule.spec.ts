@@ -1,4 +1,5 @@
 import { expect, test } from "./fixtures";
+test.skip(process.env.E2E_SKIP === "true", "E2E temporarily disabled by E2E_SKIP.");
 
 test.skip(!process.env.E2E_DEFAULT_PASSWORD, "E2E_DEFAULT_PASSWORD is required for authenticated scenarios.");
 

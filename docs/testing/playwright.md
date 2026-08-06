@@ -2,6 +2,12 @@
 
 Este é o guia canônico dos testes E2E. Os cenários vivem em `frontend/e2e/` e usam o manifesto determinístico em `database/seeds/e2e/manifest.json`.
 
+Por necessidade operacional, todos os cenários podem ser temporariamente pulados com `E2E_SKIP=true`. A flag é opt-in e não altera a execução padrão; deve ser removida assim que a infraestrutura E2E estiver disponível novamente.
+
+```bash
+E2E_SKIP=true npm run e2e
+```
+
 1. Prepare o banco de teste conforme o [guia E2E](e2e-execution-guide.md).
 2. Inicie API, Worker, dependências e frontend.
 3. Execute no diretório `frontend`:
