@@ -16,7 +16,7 @@ const groups: NavigationGroup[] = [
   { label: "Atendimento", items: [{ href: "/conversations", label: "Conversas e fila", icon: "messages" }, { href: "/patients", label: "Pacientes", icon: "patients" }] },
   { label: "Agenda", items: [{ href: "/appointments", label: "Agenda", icon: "calendar" }, { href: "/professionals", label: "Profissionais", icon: "professionals" }, { href: "/specialties", label: "Especialidades", icon: "specialties" }, { href: "/units", label: "Unidades", icon: "units" }] },
   { label: "Administração", items: [{ href: "/clinics", label: "Clínica", icon: "clinic", roles: ["ClinicAdmin"] }, { href: "/platform", label: "Plataforma", icon: "platform", roles: ["PlatformAdmin"] }] },
-  { label: "Integrações", items: [{ href: "/integrations/whatsapp", label: "WhatsApp", icon: "whatsapp", roles: ["ClinicAdmin"] }, { href: "/integrations/whatsapp/templates", label: "Templates", icon: "messages", roles: ["ClinicAdmin"] }, { href: "/settings/integrations/twilio", label: "Configuração Twilio", icon: "whatsapp", roles: ["ClinicAdmin"] }] },
+  { label: "Integrações", items: [{ href: "/integrations/whatsapp", label: "WhatsApp", icon: "whatsapp", roles: ["ClinicAdmin"] }, { href: "/integrations/whatsapp/templates", label: "Templates", icon: "messages", roles: ["ClinicAdmin"] }, { href: "/settings/integrations/twilio", label: "Configuração Twilio", icon: "whatsapp", roles: ["ClinicAdmin"] }, { href: "/settings/development", label: "Diagnóstico local", icon: "signal", roles: ["ClinicAdmin"] }] },
   { label: "Governança", items: [{ href: "/audit", label: "Auditoria", icon: "audit", roles: ["ClinicAdmin"] }] },
 ];
 

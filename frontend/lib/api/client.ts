@@ -1,5 +1,5 @@
 export class ApiError extends Error {
-  constructor(public readonly status: number, message: string) {
+  constructor(public readonly status: number, message: string, public readonly code?: string, public readonly traceId?: string) {
     super(message);
     this.name = "ApiError";
   }
@@ -33,17 +33,31 @@ export class ApiClient {
 
     if (!response.ok) {
       const body = await response.json().catch(() => ({}));
-      throw new ApiError(response.status, readErrorMessage(body));
+      throw new ApiError(response.status, readErrorMessage(body), readProblemField(body, "code"), readProblemField(body, "traceId"));
     }
 
     return response.status === 204 ? (undefined as T) : (response.json() as Promise<T>);
   }
 }
 
+function readProblemField(body: unknown, key: string) {
+  if (body && typeof body === "object") { const value = (body as Record<string, unknown>)[key]; return typeof value === "string" ? value : undefined; }
+  return undefined;
+}
+
 function readErrorMessage(body: unknown) {
   if (body && typeof body === "object") {
-    const candidate = body as { title?: unknown; detail?: unknown };
-    if (typeof candidate.title === "string") return candidate.title;
+    const code = readProblemField(body, "code");
+    const safeMessages: Record<string, string> = {
+      scheduling_conflict: "O horário não está mais disponível. Atualize a agenda e escolha outro slot.",
+      unauthorized: "Seu usuário não tem permissão para realizar esta operação.",
+      resource_not_found: "O recurso solicitado não foi encontrado.",
+      invalid_operation: "A operação não pode ser concluída com o estado atual.",
+      unexpected_error: "Não foi possível concluir a solicitação.",
+    };
+    if (code && safeMessages[code]) return safeMessages[code];
+    const title = (body as { title?: unknown }).title;
+    if (typeof title === "string" && title.trim()) return title;
   }
 
   return "Não foi possível concluir a solicitação.";

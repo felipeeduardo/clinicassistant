@@ -1,0 +1,19 @@
+services:
+  api:
+    profiles: [twilio-smoke]
+  worker:
+    profiles: [twilio-smoke]
+  frontend:
+    profiles: [twilio-smoke]
+  ngrok:
+    image: ngrok/ngrok:alpine
+    profiles: [twilio-smoke]
+    command: http api:8080 --log=stdout
+    environment:
+      NGROK_AUTHTOKEN: ${NGROK_AUTHTOKEN:-}
+    ports:
+      - "4040:4040"
+    depends_on:
+      api:
+        condition: service_started
+    networks: [clinic-assistant]

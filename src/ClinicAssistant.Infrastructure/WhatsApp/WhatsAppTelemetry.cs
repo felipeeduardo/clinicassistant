@@ -18,6 +18,11 @@ public static class WhatsAppTelemetry
     public static readonly Counter<long> StatusUpdates = Meter.CreateCounter<long>("whatsapp_status_updates_total");
     public static readonly Counter<long> TemplateSynchronizations = Meter.CreateCounter<long>("whatsapp_template_synchronizations_total");
     public static readonly Counter<long> TemplatesSynchronized = Meter.CreateCounter<long>("whatsapp_templates_synchronized_total");
+    public static readonly Counter<long> TestMessagesRequested = Meter.CreateCounter<long>("whatsapp_test_messages_requested_total");
+    public static readonly Counter<long> TestMessagesQueued = Meter.CreateCounter<long>("whatsapp_test_messages_queued_total");
+    public static readonly Counter<long> TestMessagesSent = Meter.CreateCounter<long>("whatsapp_test_messages_sent_total");
+    public static readonly Counter<long> TestMessagesFailed = Meter.CreateCounter<long>("whatsapp_test_messages_failed_total");
+    public static readonly Histogram<double> TestMessageDuration = Meter.CreateHistogram<double>("whatsapp_test_message_duration", unit: "ms");
 
     public static void RecordWebhook(string webhookType, TimeSpan duration)
     {

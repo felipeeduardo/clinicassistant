@@ -161,7 +161,17 @@ try
             InvalidOperationException => StatusCodes.Status400BadRequest,
             _ => StatusCodes.Status500InternalServerError
         };
-        await Results.Problem(statusCode: statusCode, title: statusCode == 500 ? "Unexpected error" : exception?.Message).ExecuteAsync(context);
+        var traceId = Activity.Current?.TraceId.ToString() ?? context.TraceIdentifier;
+        var code = exception switch
+        {
+            SchedulingConflictException => "scheduling_conflict",
+            UnauthorizedAccessException => "unauthorized",
+            KeyNotFoundException => "resource_not_found",
+            InvalidOperationException => "invalid_operation",
+            _ => "unexpected_error"
+        };
+        await Results.Problem(statusCode: statusCode, title: statusCode == 500 ? "Unexpected error" : exception?.Message,
+            extensions: new Dictionary<string, object?> { ["code"] = code, ["traceId"] = traceId }).ExecuteAsync(context);
     }));
     app.UseHttpsRedirection();
     app.UseCors("Frontend");

@@ -29,6 +29,7 @@ public sealed class WhatsAppOutgoingMessageProcessor(ClinicAssistantDbContext db
             await dbContext.SaveChangesAsync(cancellationToken);
             WhatsAppTelemetry.OutgoingMessages.Add(1);
             WhatsAppTelemetry.SendSuccess.Add(1);
+            if (command.CorrelationId.StartsWith("integration-test:", StringComparison.Ordinal)) WhatsAppTelemetry.TestMessagesSent.Add(1);
             return WhatsAppOutgoingMessageProcessingResult.Sent;
         }
 
@@ -37,6 +38,7 @@ public sealed class WhatsAppOutgoingMessageProcessor(ClinicAssistantDbContext db
         await dbContext.SaveChangesAsync(cancellationToken);
         WhatsAppTelemetry.OutgoingMessages.Add(1);
         WhatsAppTelemetry.SendFailure.Add(1);
+        if (command.CorrelationId.StartsWith("integration-test:", StringComparison.Ordinal)) WhatsAppTelemetry.TestMessagesFailed.Add(1);
         return WhatsAppOutgoingMessageProcessingResult.Failed;
     }
 
