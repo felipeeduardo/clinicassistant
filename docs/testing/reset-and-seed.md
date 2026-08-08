@@ -1,6 +1,6 @@
 # Reset, seed e validação
 
-Pré-requisitos: migrations aplicadas, `psql` no `PATH`, .NET SDK e uma conexão configurada por `DATABASE_*` (ou `POSTGRES_*`). Para o banco padrão de desenvolvimento, informe explicitamente `TEST_DATA_ALLOWED_DATABASES=clinicassistant`.
+Pré-requisitos: migrations aplicadas, `psql` no `PATH`, .NET SDK e uma conexão configurada por `DATABASE_*` (ou `POSTGRES_*`). No macOS, instale somente o cliente PostgreSQL com `brew install libpq` e adicione-o ao `PATH` com `echo 'export PATH="/opt/homebrew/opt/libpq/bin:$PATH"' >> ~/.zshrc && source ~/.zshrc`. Para o banco padrão de desenvolvimento, informe explicitamente `TEST_DATA_ALLOWED_DATABASES=clinicassistant`.
 
 ```bash
 export TEST_DATA_ALLOWED_DATABASES=clinicassistant
@@ -13,4 +13,4 @@ export TEST_DATA_CONFIRM=YES
 
 Também é possível executar `./scripts/test-data/seed.sh minimal` e `./scripts/test-data/reset.sh tenant <tenant-id>`. O reset apaga somente tenants conhecidos de teste (ou o tenant informado), em ordem inversa das dependências, e nunca toca em `__EFMigrationsHistory`.
 
-No Docker: `docker compose --profile e2e run --rm test-data-seeder e2e`. O serviço aguarda a migration `202607300009_HumanQueue`, executa reset, seed e validação.
+No Docker, quando não quiser instalar `psql`: `docker compose --profile e2e run --rm test-data-seeder e2e`. O serviço aguarda a migration `202607300009_HumanQueue`, executa reset, seed e validação. É necessário que o Docker Desktop esteja aberto e que o usuário tenha acesso ao socket do Docker.

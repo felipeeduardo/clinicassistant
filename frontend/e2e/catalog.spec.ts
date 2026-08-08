@@ -24,7 +24,7 @@ test("cria e edita uma especialidade administrativa", async ({ authenticatedPage
   const updatedRow = page.getByRole("row").filter({ hasText: updatedName });
   await updatedRow.getByRole("button", { name: "Dependências" }).click();
   await expect(page.getByText("Pode ser desativada com segurança")).toBeVisible();
-  await page.getByLabel("Fechar painel").click();
+  await page.getByRole("button", { name: "Fechar painel", exact: true }).click();
   await updatedRow.getByRole("button", { name: "Desativar" }).click();
   await expect(updatedRow.getByText("Inativa")).toBeVisible();
 });

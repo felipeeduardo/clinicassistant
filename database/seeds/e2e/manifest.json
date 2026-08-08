@@ -17,6 +17,12 @@
     "assignedOperator": "00000000-0000-0000-0000-000000000402"
   },
   "appointments": {
+    "date": "2026-08-03",
     "reschedulable": "00000000-0000-0000-0000-000000000503"
+  },
+  "whatsapp": {
+    "testRecipientName": "WhatsApp Test Recipient",
+    "testRecipientPhone": "+550000000301",
+    "testInboundMessage": "Test window opened."
   }
 }

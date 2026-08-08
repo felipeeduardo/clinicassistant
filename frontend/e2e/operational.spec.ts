@@ -31,7 +31,7 @@ test("opera a conversa da fila humana definida no manifesto", async ({ authentic
   await expect(page.getByText("Human · automação Human")).toBeVisible();
 
   await page.getByLabel("Prioridade").selectOption("Urgent");
-  await expect(page.getByText("Urgent").last()).toBeVisible();
+  await expect(page.getByLabel("Prioridade")).toHaveValue("Urgent");
 
   await page.getByRole("button", { name: "Pausar" }).click();
   await expect(page.getByRole("button", { name: "Retomar" })).toBeVisible();

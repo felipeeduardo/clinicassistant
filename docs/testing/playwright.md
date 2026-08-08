@@ -13,10 +13,12 @@ E2E_SKIP=true npm run e2e
 3. Execute no diretório `frontend`:
 
 ```bash
-export E2E_DEFAULT_PASSWORD='senha-local-e2e'
+export E2E_DEFAULT_PASSWORD="${E2E_DEFAULT_PASSWORD:-ClinicAssistant-E2E-Only-2026}"
 export NEXT_PUBLIC_API_URL=http://localhost:8080
 npm run test:e2e
 ```
+
+Use exatamente a mesma senha durante o seed e o Playwright. `senha-local-e2e` ou `senha-do-ambiente-e2e` são apenas placeholders e não devem ser copiados literalmente. Para uma senha personalizada, exporte-a antes de executar `./scripts/local/start-e2e.sh` e mantenha o mesmo valor no comando acima.
 
 Sem `E2E_DEFAULT_PASSWORD`, apenas o smoke não autenticado é executado. Os cenários autenticados cobrem catálogo, pacientes, agenda, conversas, Fake WhatsApp, multi-tenancy e SignalR. Traces e screenshots são preservados somente em falhas.
 

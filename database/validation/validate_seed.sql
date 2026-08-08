@@ -1,4 +1,10 @@
 BEGIN;
+DO $$
+BEGIN
+  IF current_setting('test_data.profile', true) = 'e2e' AND NOT EXISTS (SELECT 1 FROM clinic_assistant.users WHERE "Email" = 'platform-admin.e2e@fake.local' AND "Role" = 'PlatformAdmin' AND "Status" = 'Active') THEN
+    RAISE EXCEPTION 'E2E PlatformAdmin fixture is missing or inactive.';
+  END IF;
+END $$;
 DO $$ BEGIN
   IF to_regclass('clinic_assistant.tenants') IS NULL OR to_regclass('clinic_assistant.human_queue_items') IS NULL THEN
     RAISE EXCEPTION 'Expected Clinic Assistant schema is missing.';

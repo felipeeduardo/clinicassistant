@@ -32,7 +32,8 @@ DATABASE_PASSWORD=
 
 - `ALLOW_TEST_DATA_RESET=true` é obrigatório para reset.
 - O nome do banco deve conter `test`, `e2e` ou `dev`. Alternativamente, defina `TEST_DATA_ALLOWED_DATABASES` para um banco local conhecido.
-- Defina `E2E_DEFAULT_PASSWORD` no ambiente; ela nunca é salva em texto puro no banco.
+- Defina `E2E_DEFAULT_PASSWORD` no ambiente; ela nunca é salva em texto puro no banco. Se não houver uma senha personalizada, use `ClinicAssistant-E2E-Only-2026`, que é o padrão do script local. O mesmo valor deve ser usado no seed e no Playwright.
+- Para o smoke Fake WhatsApp local, use o destinatário determinístico do seed: `export WHATSAPP_TEST_RECIPIENT=+550000000301`. Não use o número real do Twilio nesse cenário; ele deve ficar reservado para a configuração de produção.
 - Não adicione segredos, credenciais reais ou telefones reais.
 - Nunca execute reset em produção.
 

@@ -7,7 +7,13 @@ export async function loginAs(page: import("@playwright/test").Page, email: stri
   await page.goto("/login");
   await page.getByLabel("E-mail").fill(email);
   await page.getByLabel("Senha").fill(e2e.password);
+  const loginResponse = page.waitForResponse(response => response.url().includes("/api/auth/login") && response.request().method() === "POST");
   await page.getByRole("button", { name: "Entrar" }).click();
+  const response = await loginResponse;
+  if (!response.ok()) {
+    const body = await response.json().catch(() => ({})) as { title?: string; code?: string; traceId?: string };
+    throw new Error(`E2E login failed for ${email}: HTTP ${response.status()} ${body.code ?? body.title ?? "unknown_error"}${body.traceId ? ` (traceId=${body.traceId})` : ""}`);
+  }
   await expect(page).toHaveURL(/\/dashboard$/);
 }
 export const test = base.extend<{ authenticatedPage: import("@playwright/test").Page }>({

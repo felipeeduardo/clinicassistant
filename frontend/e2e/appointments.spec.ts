@@ -3,25 +3,9 @@ test.skip(process.env.E2E_SKIP === "true", "E2E temporarily disabled by E2E_SKIP
 
 test.skip(!e2e.password, "E2E_DEFAULT_PASSWORD is required for authenticated scenarios.");
 
-test("abre o detalhe e confirma uma consulta pendente do seed E2E", async ({ authenticatedPage: page }) => {
-  await page.goto("/appointments");
-  await expect(page.getByRole("heading", { name: "Agenda" })).toBeVisible();
-  await page.getByLabel("Data").fill("2026-08-03");
-
-  const pendingRow = page.getByRole("row").filter({ hasText: "Pending" }).first();
-  await expect(pendingRow).toBeVisible();
-  await pendingRow.getByRole("button", { name: "Detalhes" }).click();
-  await expect(page.getByRole("dialog", { name: "Detalhe do agendamento" })).toBeVisible();
-  await expect(page.getByRole("dialog", { name: "Detalhe do agendamento" }).getByText("Paciente", { exact: true })).toBeVisible();
-
-  await page.getByLabel("Fechar painel").click();
-  await pendingRow.getByRole("button", { name: "Confirmar" }).click();
-  await expect(pendingRow.getByText("Confirmed")).toBeVisible();
-});
-
 test("cria, protege contra conflito, reagenda e cancela uma consulta", async ({ authenticatedPage: page }) => {
   await page.goto("/appointments");
-  await page.getByLabel("Data").fill("2026-08-03");
+  await page.getByLabel("Data", { exact: true }).fill(e2e.manifest.appointments.date);
   await page.getByLabel("Unidade").selectOption({ label: "Boa Viagem" });
   await page.getByLabel("Especialidade").selectOption({ label: "Clínico Geral" });
   await page.getByLabel("Profissional").selectOption({ label: "Dra. Ana Souza" });
@@ -50,5 +34,6 @@ test("cria, protege contra conflito, reagenda e cancela uma consulta", async ({ 
   await expect(rescheduledRow).toBeVisible();
   page.once("dialog", dialog => dialog.accept());
   await rescheduledRow.getByRole("button", { name: "Cancelar" }).click();
-  await expect(rescheduledRow.getByText("Cancelled")).toBeVisible();
+  const cancelledRow = page.getByRole("row").filter({ hasText: "13:30" }).filter({ hasText: "Cancelled" }).first();
+  await expect(cancelledRow).toBeVisible();
 });

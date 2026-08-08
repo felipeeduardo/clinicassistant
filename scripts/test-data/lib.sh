@@ -21,7 +21,7 @@ E2E_BASE_DATE="${E2E_BASE_DATE:-2026-08-03}"
 fail() { printf '%s\n' "test-data: $*" >&2; exit 1; }
 
 require_psql() {
-  command -v psql >/dev/null 2>&1 || fail "psql is required for local test-data scripts. Install the PostgreSQL client or run: docker compose --profile e2e run --rm test-data-seeder e2e"
+  command -v psql >/dev/null 2>&1 || fail "psql is required for local test-data scripts. macOS: brew install libpq && echo 'export PATH=\"/opt/homebrew/opt/libpq/bin:\$PATH\"' >> ~/.zshrc && source ~/.zshrc. Or run: docker compose --profile e2e run --rm test-data-seeder e2e"
 }
 
 assert_safe_environment() {

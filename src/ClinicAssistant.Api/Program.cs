@@ -22,6 +22,7 @@ using Serilog;
 using System.Globalization;
 using System.Diagnostics;
 using System.Text;
+using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.Extensions.Options;
@@ -106,6 +107,8 @@ try
     builder.Services.AddSignalR();
     builder.Services.AddSingleton<IOperationalEventPublisher, SignalROperationalEventPublisher>();
     builder.Services.AddProblemDetails();
+    builder.Services.ConfigureHttpJsonOptions(options =>
+        options.SerializerOptions.Converters.Add(new JsonStringEnumConverter()));
     builder.Services.AddEndpointsApiExplorer();
     builder.Services.AddSwaggerGen();
     var frontendOrigins = builder.Configuration.GetSection("Frontend:AllowedOrigins").Get<string[]>() ?? ["http://localhost:3000"];
