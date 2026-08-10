@@ -142,6 +142,11 @@
       "type": "string"
     },
     {
+      "key": "twilioIntegrationKey",
+      "value": "twilio-local-main",
+      "type": "string"
+    },
+    {
       "key": "twilioWhatsAppFrom",
       "value": "whatsapp:+15550000000",
       "type": "string"
@@ -468,6 +473,17 @@
         ] },
         { "name": "03 — Platform clinics", "item": [
         { "name": "Listar clínicas da plataforma", "request": { "method": "GET", "url": "{{baseUrl}}/api/platform/clinics" } }
+        ] },
+        { "name": "E2E Flows / Conversational WhatsApp", "item": [
+        { "name": "Main Menu — enviar saudação", "request": { "method": "POST", "body": { "mode": "urlencoded", "urlencoded": [{ "key": "Body", "value": "Olá" }, { "key": "MessageSid", "value": "SM-postman-main-menu" }, { "key": "From", "value": "whatsapp:{{twilioTestRecipient}}" }, { "key": "To", "value": "{{twilioWhatsAppFrom}}" }] }, "url": "{{baseUrl}}/api/webhooks/whatsapp/twilio/{{twilioIntegrationKey}}" } },
+        { "name": "Natural Language — especialidades", "request": { "method": "POST", "body": { "mode": "urlencoded", "urlencoded": [{ "key": "Body", "value": "quais especialidades vocês têm?" }, { "key": "MessageSid", "value": "SM-postman-specialties" }, { "key": "From", "value": "whatsapp:{{twilioTestRecipient}}" }, { "key": "To", "value": "{{twilioWhatsAppFrom}}" }] }, "url": "{{baseUrl}}/api/webhooks/whatsapp/twilio/{{twilioIntegrationKey}}" } },
+        { "name": "Natural Language — disponibilidade", "request": { "method": "POST", "body": { "mode": "urlencoded", "urlencoded": [{ "key": "Body", "value": "tem cardiologista amanhã?" }, { "key": "MessageSid", "value": "SM-postman-availability" }, { "key": "From", "value": "whatsapp:{{twilioTestRecipient}}" }, { "key": "To", "value": "{{twilioWhatsAppFrom}}" }] }, "url": "{{baseUrl}}/api/webhooks/whatsapp/twilio/{{twilioIntegrationKey}}" } },
+        { "name": "Global command — menu", "request": { "method": "POST", "body": { "mode": "urlencoded", "urlencoded": [{ "key": "Body", "value": "menu" }, { "key": "MessageSid", "value": "SM-postman-menu" }, { "key": "From", "value": "whatsapp:{{twilioTestRecipient}}" }, { "key": "To", "value": "{{twilioWhatsAppFrom}}" }] }, "url": "{{baseUrl}}/api/webhooks/whatsapp/twilio/{{twilioIntegrationKey}}" } },
+        { "name": "Global command — handoff", "request": { "method": "POST", "body": { "mode": "urlencoded", "urlencoded": [{ "key": "Body", "value": "quero falar com alguém" }, { "key": "MessageSid", "value": "SM-postman-handoff" }, { "key": "From", "value": "whatsapp:{{twilioTestRecipient}}" }, { "key": "To", "value": "{{twilioWhatsAppFrom}}" }] }, "url": "{{baseUrl}}/api/webhooks/whatsapp/twilio/{{twilioIntegrationKey}}" } },
+        { "name": "Schedule — confirmar consulta", "request": { "method": "POST", "body": { "mode": "urlencoded", "urlencoded": [{ "key": "Body", "value": "sim" }, { "key": "MessageSid", "value": "SM-postman-schedule-confirm" }, { "key": "From", "value": "whatsapp:{{twilioTestRecipient}}" }, { "key": "To", "value": "{{twilioWhatsAppFrom}}" }] }, "url": "{{baseUrl}}/api/webhooks/whatsapp/twilio/{{twilioIntegrationKey}}" } },
+        { "name": "Confirm — confirmar presença", "request": { "method": "POST", "body": { "mode": "urlencoded", "urlencoded": [{ "key": "Body", "value": "vou comparecer" }, { "key": "MessageSid", "value": "SM-postman-confirm" }, { "key": "From", "value": "whatsapp:{{twilioTestRecipient}}" }, { "key": "To", "value": "{{twilioWhatsAppFrom}}" }] }, "url": "{{baseUrl}}/api/webhooks/whatsapp/twilio/{{twilioIntegrationKey}}" } },
+        { "name": "Cancel — cancelar consulta", "request": { "method": "POST", "body": { "mode": "urlencoded", "urlencoded": [{ "key": "Body", "value": "quero cancelar minha consulta" }, { "key": "MessageSid", "value": "SM-postman-cancel" }, { "key": "From", "value": "whatsapp:{{twilioTestRecipient}}" }, { "key": "To", "value": "{{twilioWhatsAppFrom}}" }] }, "url": "{{baseUrl}}/api/webhooks/whatsapp/twilio/{{twilioIntegrationKey}}" } },
+        { "name": "Reschedule — mudar meu horário", "request": { "method": "POST", "body": { "mode": "urlencoded", "urlencoded": [{ "key": "Body", "value": "quero mudar meu horário" }, { "key": "MessageSid", "value": "SM-postman-reschedule" }, { "key": "From", "value": "whatsapp:{{twilioTestRecipient}}" }, { "key": "To", "value": "{{twilioWhatsAppFrom}}" }] }, "url": "{{baseUrl}}/api/webhooks/whatsapp/twilio/{{twilioIntegrationKey}}" } }
         ] }
       ]
     }

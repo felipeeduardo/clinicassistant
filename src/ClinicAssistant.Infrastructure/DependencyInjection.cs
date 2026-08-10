@@ -59,6 +59,7 @@ public static class DependencyInjection
             .Validate(options => options.MaxMessageLength is > 0 and <= 4_000, "Conversation:MaxMessageLength must be between 1 and 4000.")
             .Validate(options => !string.IsNullOrWhiteSpace(options.DefaultLanguage), "Conversation:DefaultLanguage is required.")
             .ValidateOnStart();
+        services.AddSingleton<IConversationIntentResolver, ConversationIntentResolver>();
         services.AddSingleton<IConversationStateMachine, ConversationStateMachine>();
         services.AddSingleton<IConversationResponseComposer, InMemoryConversationResponseComposer>();
         services.AddScoped<IConversationLockManager, RedisConversationLock>();

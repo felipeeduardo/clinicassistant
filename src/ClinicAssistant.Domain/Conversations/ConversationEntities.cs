@@ -10,7 +10,11 @@ public enum ConversationIntent
 {
     Unknown, Greeting, InstitutionalQuestion, ListSpecialties, ListProfessionals,
     CheckAvailability, ScheduleAppointment, RescheduleAppointment, CancelAppointment,
-    ConfirmAppointment, TalkToHuman, Farewell, Unsupported
+    ConfirmAppointment, TalkToHuman, Farewell, Unsupported,
+    MainMenu, GoBack, CancelCurrentFlow, Repeat, Help,
+    ViewSpecialties = ListSpecialties,
+    ViewProfessionals = ListProfessionals,
+    HumanHandoff = TalkToHuman
 }
 public enum ConversationAction { None, ShowMenu, GoBack, CancelFlow, Handoff, CloseConversation, ReopenConversation }
 
@@ -50,6 +54,12 @@ public sealed class ConversationState : Entity, ITenantEntity
         ExpiresAt = expiresAt;
         LastInteractionAt = DateTimeOffset.UtcNow;
         Version++;
+        UpdatedAt = DateTimeOffset.UtcNow;
+    }
+
+    public void UpdateContext(string contextJson)
+    {
+        ContextJson = contextJson;
         UpdatedAt = DateTimeOffset.UtcNow;
     }
 }

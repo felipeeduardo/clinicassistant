@@ -1,4 +1,5 @@
 using ClinicAssistant.Application.Conversations;
+using System.Globalization;
 
 namespace ClinicAssistant.Infrastructure.Conversations;
 
@@ -16,33 +17,28 @@ public sealed class InMemoryConversationResponseComposer : IConversationResponse
         ["human"] = "Falar com atendente"
     };
 
-    private static readonly Dictionary<string, string> Responses = new()
-    {
-        ["conversation.greeting"] = "Olá! Como posso ajudar com o atendimento da clínica?",
-        ["conversation.menu"] = "Escolha uma opção do menu para continuar.",
-        ["conversation.invalid_answer"] = "Não entendi a sua resposta. Escolha uma opção do menu.",
-        ["conversation.expired"] = "Seu atendimento anterior expirou. Vamos recomeçar pelo menu.",
-        ["conversation.cancelled"] = "O fluxo atual foi cancelado. Você pode escolher uma nova opção.",
-        ["conversation.handoff"] = "Vou encaminhar você para o atendimento humano.",
-        ["conversation.closed"] = "Atendimento encerrado. Quando precisar, envie uma nova mensagem.",
-        ["conversation.institutional"] = "Posso ajudar com informações da clínica. Escolha outra opção para continuar.",
-        ["conversation.specialties"] = "Vou consultar as especialidades disponíveis.",
-        ["conversation.professionals"] = "Vou consultar os profissionais disponíveis.",
-        ["conversation.availability"] = "Vou precisar de mais dados para consultar a disponibilidade.",
-        ["conversation.schedule"] = "Vamos reunir os dados necessários para o agendamento.",
-        ["conversation.reschedule"] = "Vamos reunir os dados necessários para o reagendamento.",
-        ["conversation.cancel_appointment"] = "Vamos reunir os dados necessários para o cancelamento.",
-        ["conversation.confirm"] = "Vamos reunir os dados necessários para a confirmação."
-    };
-
     public ConversationResponse Compose(ConversationResponseRequest request)
     {
-        var text = Responses.TryGetValue(request.ResponseKey, out var responseText) ? responseText : Responses["conversation.menu"];
+        var text = request.CustomText ?? (ConversationMessageCatalog.Text.TryGetValue(request.ResponseKey, out var responseText) ? responseText : ConversationMessageCatalog.Text["conversation.menu"]);
         if (request.Options.Count == 0) return new(text, request.Options);
 
         var menu = string.Join(Environment.NewLine, request.Options
             .OrderBy(option => option.DisplayOrder)
-            .Select(option => $"{option.Key} - {OptionLabels.GetValueOrDefault(option.Value, option.Value)}"));
+            .Select(option => $"{option.Key} - {DisplayLabel(option.Value)}"));
         return new($"{text}{Environment.NewLine}{Environment.NewLine}{menu}", request.Options);
+    }
+
+    private static string DisplayLabel(string value)
+    {
+        var parts = value.Split("||", 2, StringSplitOptions.None);
+        if (parts.Length == 2 && !string.IsNullOrWhiteSpace(parts[1])) return parts[1];
+        if (parts[0].StartsWith("slot:", StringComparison.Ordinal))
+        {
+            var slot = parts[0].Split('|', StringSplitOptions.TrimEntries);
+            if (slot.Length >= 3 && DateTimeOffset.TryParse(slot[1], CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var startsAt) && DateTimeOffset.TryParse(slot[2], CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var endsAt))
+                return $"{startsAt:HH\\:mm} às {endsAt:HH\\:mm}";
+            return "Horário disponível";
+        }
+        return OptionLabels.GetValueOrDefault(parts[0], parts[0]);
     }
 }

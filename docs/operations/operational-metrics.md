@@ -9,6 +9,16 @@ As métricas são exportadas via OpenTelemetry/OTLP pela API e pelo Worker. Não
 - `human_queue_transferred_total`: atendimentos transferidos entre operadores.
 - `human_queue_completed_total`: atendimentos concluídos ao encerrar a conversa.
 
+## Conversação
+
+- `conversation_intent_total`: intents detectados, com tags não sensíveis `intent` e `flow`.
+- `conversation_unknown_intent_total`: mensagens sem intent reconhecido.
+- `conversation_invalid_input_total`: entradas inválidas após a normalização.
+- `conversation_flow_started_total`, `conversation_flow_completed_total` e `conversation_flow_abandoned_total`: ciclo do fluxo.
+- `conversation_flow_timeout_total`: fluxos reiniciados após expiração.
+- `conversation_handoff_total`: encaminhamentos para atendimento humano.
+- `conversation_messages_per_flow`: histograma de mensagens processadas por fluxo; pode ser agregado para obter médias operacionais.
+
 ## Outbox
 
 - `outbox_published_total`: mensagens persistidas na Outbox e publicadas com sucesso no RabbitMQ.
