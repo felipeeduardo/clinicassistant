@@ -20,6 +20,16 @@ public sealed class ConversationStateMachineTests
     }
 
     [Fact]
+    public void GreetingResponseContainsNumberedMenu()
+    {
+        var transition = Machine().Transition(Input("Olá"));
+        var response = new InMemoryConversationResponseComposer().Compose(new(transition.ResponseKey, transition.Options, "pt-BR"));
+
+        Assert.Contains("4 - Agendar consulta", response.Text, StringComparison.Ordinal);
+        Assert.Contains("8 - Falar com atendente", response.Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void NumericMenuOptionIdentifiesSchedulingIntent()
     {
         var result = Machine().Transition(Input("4", ConversationFlowState.Menu));

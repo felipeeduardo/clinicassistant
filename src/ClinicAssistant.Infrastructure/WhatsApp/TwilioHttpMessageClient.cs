@@ -11,27 +11,28 @@ public sealed class TwilioHttpMessageClient(HttpClient httpClient, IOptions<Twil
     private readonly TwilioOptions _options = options.Value;
 
     public Task<TwilioMessageResult> SendTextAsync(TwilioSendTextRequest request, CancellationToken cancellationToken) =>
-        SendAsync(CreateContent(request.To, request.From, request.MessagingServiceSid, [new("Body", request.Body)]), cancellationToken);
+        SendAsync(CreateContent(request.To, request.From, request.MessagingServiceSid, request.StatusCallbackUrl, [new("Body", request.Body)]), cancellationToken);
 
     public Task<TwilioMessageResult> SendTemplateAsync(TwilioSendTemplateRequest request, CancellationToken cancellationToken)
     {
         var variables = JsonSerializer.Serialize(request.Variables);
-        return SendAsync(CreateContent(request.To, request.From, request.MessagingServiceSid, [new("ContentSid", request.ContentSid), new("ContentVariables", variables)]), cancellationToken);
+        return SendAsync(CreateContent(request.To, request.From, request.MessagingServiceSid, request.StatusCallbackUrl, [new("ContentSid", request.ContentSid), new("ContentVariables", variables)]), cancellationToken);
     }
 
     public Task<TwilioMessageResult> SendMediaAsync(TwilioSendMediaRequest request, CancellationToken cancellationToken)
     {
         var fields = new List<KeyValuePair<string, string>> { new("MediaUrl", request.MediaUrl) };
         if (!string.IsNullOrWhiteSpace(request.Caption)) fields.Add(new("Body", request.Caption));
-        return SendAsync(CreateContent(request.To, request.From, request.MessagingServiceSid, fields), cancellationToken);
+        return SendAsync(CreateContent(request.To, request.From, request.MessagingServiceSid, request.StatusCallbackUrl, fields), cancellationToken);
     }
 
-    private static FormUrlEncodedContent CreateContent(string to, string from, string? messagingServiceSid, IEnumerable<KeyValuePair<string, string>> fields)
+    private static FormUrlEncodedContent CreateContent(string to, string from, string? messagingServiceSid, string? statusCallbackUrl, IEnumerable<KeyValuePair<string, string>> fields)
     {
         var values = fields.ToList();
         values.Add(new("To", to));
         if (!string.IsNullOrWhiteSpace(messagingServiceSid)) values.Add(new("MessagingServiceSid", messagingServiceSid));
         else values.Add(new("From", from));
+        if (!string.IsNullOrWhiteSpace(statusCallbackUrl)) values.Add(new("StatusCallback", statusCallbackUrl));
         return new FormUrlEncodedContent(values);
     }
 

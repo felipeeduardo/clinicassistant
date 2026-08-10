@@ -17,6 +17,10 @@ DATABASE_PORT="${DATABASE_PORT:-${POSTGRES_PORT:-5432}}"
 DATABASE_USER="${DATABASE_USER:-${POSTGRES_USER:-clinicassistant}}"
 DATABASE_PASSWORD="${DATABASE_PASSWORD:-${POSTGRES_PASSWORD:-clinicassistant}}"
 E2E_BASE_DATE="${E2E_BASE_DATE:-2026-08-03}"
+WHATSAPP_PROVIDER="${WHATSAPP_PROVIDER:-Fake}"
+TWILIO_INTEGRATION_KEY="${TWILIO_INTEGRATION_KEY:-twilio-local-main}"
+TWILIO_WHATSAPP_FROM="${TWILIO_WHATSAPP_FROM:-whatsapp:+5500000000000}"
+TWILIO_DISPLAY_PHONE_NUMBER="${TWILIO_DISPLAY_PHONE_NUMBER:-${TWILIO_WHATSAPP_FROM#whatsapp:}}"
 
 fail() { printf '%s\n' "test-data: $*" >&2; exit 1; }
 
@@ -41,7 +45,7 @@ psql_args() {
 
 run_sql() {
   file="$1"
-  PGPASSWORD="$DATABASE_PASSWORD" psql $(psql_args) -X -v ON_ERROR_STOP=1 -v password_hash="$PASSWORD_HASH" -v base_date="$E2E_BASE_DATE" -v profile="$PROFILE" -v tenant_id="${TENANT_ID:-00000000-0000-0000-0000-000000000000}" -c "SET test_data.profile TO '$PROFILE';" -f "$file"
+  PGPASSWORD="$DATABASE_PASSWORD" psql $(psql_args) -X -v ON_ERROR_STOP=1 -v password_hash="$PASSWORD_HASH" -v base_date="$E2E_BASE_DATE" -v profile="$PROFILE" -v whatsapp_provider="$WHATSAPP_PROVIDER" -v twilio_integration_key="$TWILIO_INTEGRATION_KEY" -v twilio_whatsapp_from="$TWILIO_WHATSAPP_FROM" -v twilio_display_phone_number="$TWILIO_DISPLAY_PHONE_NUMBER" -v tenant_id="${TENANT_ID:-00000000-0000-0000-0000-000000000000}" -c "SET test_data.profile TO '$PROFILE'; SET test_data.whatsapp_provider TO '$WHATSAPP_PROVIDER';" -f "$file"
 }
 
 migrations_ready() {

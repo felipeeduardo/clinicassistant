@@ -53,6 +53,7 @@ services:
       Twilio__MessagingServiceSid: ${TWILIO_MESSAGING_SERVICE_SID:-}
       Twilio__IncomingWebhookBaseUrl: ${TWILIO_INCOMING_WEBHOOK_BASE_URL:-}
       Twilio__StatusCallbackBaseUrl: ${TWILIO_STATUS_CALLBACK_BASE_URL:-}
+      Twilio__StatusCallbackUrl: ${TWILIO_STATUS_CALLBACK_URL:-}
       Twilio__RequestTimeoutSeconds: ${TWILIO_REQUEST_TIMEOUT_SECONDS:-15}
       OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
     ports:
@@ -85,6 +86,16 @@ services:
       RabbitMq__ConsumerPrefetchCount: ${RABBITMQ_CONSUMER_PREFETCH_COUNT:-20}
       Redis__Host: redis
       Redis__Port: 6379
+      WhatsApp__Provider: ${WHATSAPP_PROVIDER:-Fake}
+      WhatsApp__TestRecipient: ${WHATSAPP_TEST_RECIPIENT:-}
+      Twilio__AccountSid: ${TWILIO_ACCOUNT_SID:-}
+      Twilio__AuthToken: ${TWILIO_AUTH_TOKEN:-}
+      Twilio__WhatsAppFrom: ${TWILIO_WHATSAPP_FROM:-}
+      Twilio__MessagingServiceSid: ${TWILIO_MESSAGING_SERVICE_SID:-}
+      Twilio__IncomingWebhookBaseUrl: ${TWILIO_INCOMING_WEBHOOK_BASE_URL:-}
+      Twilio__StatusCallbackBaseUrl: ${TWILIO_STATUS_CALLBACK_BASE_URL:-}
+      Twilio__StatusCallbackUrl: ${TWILIO_STATUS_CALLBACK_URL:-}
+      Twilio__RequestTimeoutSeconds: ${TWILIO_REQUEST_TIMEOUT_SECONDS:-15}
       Jwt__Issuer: ${JWT_ISSUER:-ClinicAssistant}
       Jwt__Audience: ${JWT_AUDIENCE:-ClinicAssistant.Web}
       Jwt__Secret: ${JWT_SECRET:-development-only-secret-change-before-production-2026}
@@ -144,6 +155,10 @@ services:
       CI: "true"
       E2E_DEFAULT_PASSWORD: ${E2E_DEFAULT_PASSWORD:-ClinicAssistant-E2E-Only-2026}
       E2E_BASE_DATE: ${E2E_BASE_DATE:-2026-08-03}
+      WHATSAPP_PROVIDER: ${WHATSAPP_PROVIDER:-Fake}
+      TWILIO_INTEGRATION_KEY: ${TWILIO_INTEGRATION_KEY:-twilio-local-main}
+      TWILIO_WHATSAPP_FROM: ${TWILIO_WHATSAPP_FROM:-whatsapp:+5500000000000}
+      TWILIO_DISPLAY_PHONE_NUMBER: ${TWILIO_DISPLAY_PHONE_NUMBER:-}
       TEST_DATA_PROJECT_ROOT: /workspace
     depends_on:
       api:

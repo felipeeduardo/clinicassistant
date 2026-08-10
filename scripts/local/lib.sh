@@ -4,6 +4,14 @@ set -eu
 ROOT_DIR="$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd)"
 COMPOSE="docker compose"
 
+# Load the ignored local environment for every local helper. Explicit exports
+# made after this file is sourced still override these defaults.
+if [ -f "$ROOT_DIR/.env" ]; then
+  set -a
+  . "$ROOT_DIR/.env"
+  set +a
+fi
+
 fail() { printf 'local: %s\n' "$*" >&2; exit 1; }
 require_command() { command -v "$1" >/dev/null 2>&1 || fail "required command not found: $1"; }
 require_local_environment() {

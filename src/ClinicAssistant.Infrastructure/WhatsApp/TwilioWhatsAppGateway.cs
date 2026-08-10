@@ -11,21 +11,21 @@ public sealed class TwilioWhatsAppGateway(ITwilioMessageClient client, IWhatsApp
     public async Task<SendWhatsAppMessageResult> SendTextAsync(SendWhatsAppTextRequest request, CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(request.Text)) return Invalid("A text message cannot be empty.");
-        var result = await client.SendTextAsync(new(phoneNumberFormatter.FormatForProvider(request.RecipientPhone), ResolveFrom(), request.Text, _options.MessagingServiceSid), cancellationToken);
+        var result = await client.SendTextAsync(new(phoneNumberFormatter.FormatForProvider(request.RecipientPhone), ResolveFrom(), request.Text, _options.MessagingServiceSid, _options.StatusCallbackUrl), cancellationToken);
         return Map(result);
     }
 
     public async Task<SendWhatsAppMessageResult> SendTemplateAsync(SendWhatsAppTemplateRequest request, CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(request.ContentSid)) return Invalid("A template ContentSid is required.");
-        var result = await client.SendTemplateAsync(new(phoneNumberFormatter.FormatForProvider(request.RecipientPhone), ResolveFrom(), request.ContentSid, request.Variables, _options.MessagingServiceSid), cancellationToken);
+        var result = await client.SendTemplateAsync(new(phoneNumberFormatter.FormatForProvider(request.RecipientPhone), ResolveFrom(), request.ContentSid, request.Variables, _options.MessagingServiceSid, _options.StatusCallbackUrl), cancellationToken);
         return Map(result);
     }
 
     public async Task<SendWhatsAppMessageResult> SendMediaAsync(SendWhatsAppMediaRequest request, CancellationToken cancellationToken)
     {
         if (!Uri.TryCreate(request.MediaUrl, UriKind.Absolute, out _)) return Invalid("A valid media URL is required.");
-        var result = await client.SendMediaAsync(new(phoneNumberFormatter.FormatForProvider(request.RecipientPhone), ResolveFrom(), request.MediaUrl, request.Caption, _options.MessagingServiceSid), cancellationToken);
+        var result = await client.SendMediaAsync(new(phoneNumberFormatter.FormatForProvider(request.RecipientPhone), ResolveFrom(), request.MediaUrl, request.Caption, _options.MessagingServiceSid, _options.StatusCallbackUrl), cancellationToken);
         return Map(result);
     }
 

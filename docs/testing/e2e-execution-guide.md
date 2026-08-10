@@ -113,7 +113,7 @@ docker compose logs -f api worker
 
 ## 4. Comando completo para copiar e executar
 
-Antes de executar, confirme que o `.env` local contém `POSTGRES_DB=clinicassistant_test`. O bloco interrompe na primeira falha.
+O `.env` padrão do projeto aponta para o banco principal `clinicassistant`, usado pelo smoke do Twilio. Para E2E, não altere esse arquivo permanentemente: sobrescreva o destino no próprio comando com `DATABASE_TARGET=test`, `POSTGRES_DB=clinicassistant_test` e `DATABASE_NAME=clinicassistant_test`. O bloco interrompe na primeira falha.
 
 ```bash
 set -e

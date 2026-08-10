@@ -15,8 +15,11 @@ DO $$ BEGIN
   IF EXISTS (SELECT 1 FROM clinic_assistant.patients WHERE "TenantId" IN ('00000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-000000000101','00000000-0000-0000-0000-000000000102') AND left("Phone", 7) <> '+550000') THEN
     RAISE EXCEPTION 'A patient phone is not a reserved fake number.';
   END IF;
-  IF EXISTS (SELECT 1 FROM clinic_assistant.whatsapp_integrations WHERE "TenantId" IN ('00000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-000000000101','00000000-0000-0000-0000-000000000102') AND "Provider" = 'Twilio' AND "Status" <> 'Disabled') THEN
+  IF current_setting('test_data.profile', true) = 'e2e' AND EXISTS (SELECT 1 FROM clinic_assistant.whatsapp_integrations WHERE "TenantId" IN ('00000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-000000000101','00000000-0000-0000-0000-000000000102') AND "Provider" = 'Twilio' AND "Status" <> 'Disabled') THEN
     RAISE EXCEPTION 'A Twilio integration is enabled in test data.';
+  END IF;
+  IF current_setting('test_data.profile', true) = 'minimal' AND EXISTS (SELECT 1 FROM clinic_assistant.whatsapp_integrations WHERE "TenantId" = '00000000-0000-0000-0000-000000000001' AND ("Provider"::text <> current_setting('test_data.whatsapp_provider', true) OR "Status" <> 'Connected')) THEN
+    RAISE EXCEPTION 'The minimal WhatsApp integration does not match WHATSAPP_PROVIDER.';
   END IF;
 END $$;
 COMMIT;

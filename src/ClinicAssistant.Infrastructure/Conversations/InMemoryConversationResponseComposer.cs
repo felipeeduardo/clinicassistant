@@ -4,6 +4,18 @@ namespace ClinicAssistant.Infrastructure.Conversations;
 
 public sealed class InMemoryConversationResponseComposer : IConversationResponseComposer
 {
+    private static readonly IReadOnlyDictionary<string, string> OptionLabels = new Dictionary<string, string>(StringComparer.Ordinal)
+    {
+        ["specialties"] = "Ver especialidades",
+        ["professionals"] = "Ver profissionais",
+        ["availability"] = "Consultar disponibilidade",
+        ["schedule"] = "Agendar consulta",
+        ["reschedule"] = "Reagendar consulta",
+        ["cancel_appointment"] = "Cancelar consulta",
+        ["confirm"] = "Confirmar consulta",
+        ["human"] = "Falar com atendente"
+    };
+
     private static readonly Dictionary<string, string> Responses = new()
     {
         ["conversation.greeting"] = "Olá! Como posso ajudar com o atendimento da clínica?",
@@ -23,6 +35,14 @@ public sealed class InMemoryConversationResponseComposer : IConversationResponse
         ["conversation.confirm"] = "Vamos reunir os dados necessários para a confirmação."
     };
 
-    public ConversationResponse Compose(ConversationResponseRequest request) =>
-        new(Responses.TryGetValue(request.ResponseKey, out var text) ? text : Responses["conversation.menu"], request.Options);
+    public ConversationResponse Compose(ConversationResponseRequest request)
+    {
+        var text = Responses.TryGetValue(request.ResponseKey, out var responseText) ? responseText : Responses["conversation.menu"];
+        if (request.Options.Count == 0) return new(text, request.Options);
+
+        var menu = string.Join(Environment.NewLine, request.Options
+            .OrderBy(option => option.DisplayOrder)
+            .Select(option => $"{option.Key} - {OptionLabels.GetValueOrDefault(option.Value, option.Value)}"));
+        return new($"{text}{Environment.NewLine}{Environment.NewLine}{menu}", request.Options);
+    }
 }
