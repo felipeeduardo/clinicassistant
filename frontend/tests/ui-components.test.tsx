@@ -1,7 +1,7 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { Button } from "@/components/ui/button";
-import { FormErrorSummary, FormField, Input } from "@/components/ui/form";
+import { FormErrorSummary, FormField, Input, Select, Textarea } from "@/components/ui/form";
 import { Drawer } from "@/components/ui/drawer";
 import { EmptyState, Skeleton } from "@/components/ui/states";
 import { StatusBadge } from "@/components/ui/surfaces";
@@ -20,6 +20,13 @@ describe("design system foundation", () => {
     expect(screen.getByRole("textbox")).toHaveAttribute("aria-describedby", "name-hint name-error");
     expect(screen.getByRole("textbox")).toHaveAttribute("aria-invalid", "true");
     expect(screen.getAllByRole("alert")).toHaveLength(2);
+  });
+
+  it("applies consistent control sizes", () => {
+    render(<><Input aria-label="Pequeno" size="sm" /><Select aria-label="Grande" size="lg"><option>Opção</option></Select><Textarea aria-label="Médio" /></>);
+    expect(screen.getByRole("textbox", { name: "Pequeno" })).toHaveClass("h-9");
+    expect(screen.getByRole("combobox", { name: "Grande" })).toHaveClass("h-11");
+    expect(screen.getByRole("textbox", { name: "Médio" })).toHaveClass("h-10");
   });
 
   it("closes a drawer with Escape", () => {

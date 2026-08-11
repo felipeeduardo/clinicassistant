@@ -258,7 +258,7 @@ try
     clinic.MapPost("/whatsapp/templates/{templateId:guid}/deactivate", async (Guid templateId, IWhatsAppTemplateAdministrationService service, CancellationToken ct) => await service.DeactivateAsync(templateId, ct) ? Results.NoContent() : Results.NotFound()).RequireAuthorization("ClinicAdmin");
     clinic.MapPost("/whatsapp/templates/sync", async (IWhatsAppTemplateAdministrationService service, CancellationToken ct) => { await service.QueueSyncAsync(ct); return Results.Accepted(); }).RequireAuthorization("ClinicAdmin");
     clinic.MapGet("/audit", async ([AsParameters] AuditQuery query, IAuditQueryService service, CancellationToken ct) => Results.Ok(await service.SearchAsync(query, ct))).RequireAuthorization("ClinicAdmin");
-    clinic.MapGet("/dashboard", async (IDashboardService service, CancellationToken ct) => Results.Ok(await service.GetAsync(ct))).RequireAuthorization("ClinicStaff");
+    clinic.MapGet("/dashboard", async (DateTimeOffset? from, DateTimeOffset? to, IDashboardService service, CancellationToken ct) => Results.Ok(await service.GetAsync(from, to, ct))).RequireAuthorization("ClinicStaff");
     var conversations = app.MapGroup("/api/conversations").RequireAuthorization("ClinicStaff").WithTags("Conversations");
     conversations.MapGet("/", async ([AsParameters] ConversationListQuery query, IConversationAdministrationService service, CancellationToken ct) => Results.Ok(await service.ListAsync(query, ct)));
     conversations.MapGet("/{id:guid}", async (Guid id, IConversationAdministrationService service, CancellationToken ct) => (await service.GetAsync(id, ct)) is { } item ? Results.Ok(item) : Results.NotFound());

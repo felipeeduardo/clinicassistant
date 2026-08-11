@@ -2,10 +2,22 @@ import { cloneElement, forwardRef, isValidElement, useId } from "react";
 import type { InputHTMLAttributes, SelectHTMLAttributes, TextareaHTMLAttributes } from "react";
 import { cn } from "./utils";
 
-const control = "w-full rounded-control border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm transition-colors placeholder:text-slate-400 hover:border-slate-400 disabled:bg-slate-100 disabled:text-slate-500";
-export const Input = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputElement>>(function Input({ className, ...props }, ref) { return <input ref={ref} className={cn(control, className)} {...props} />; });
-export const Select = forwardRef<HTMLSelectElement, SelectHTMLAttributes<HTMLSelectElement>>(function Select({ className, ...props }, ref) { return <select ref={ref} className={cn(control, className)} {...props} />; });
-export const Textarea = forwardRef<HTMLTextAreaElement, TextareaHTMLAttributes<HTMLTextAreaElement>>(function Textarea({ className, ...props }, ref) { return <textarea ref={ref} className={cn(control, "min-h-24 resize-y", className)} {...props} />; });
+export type ControlSize = "sm" | "md" | "lg";
+
+const control = "w-full rounded-control border border-slate-300 bg-white text-slate-900 shadow-sm transition-colors placeholder:text-slate-400 hover:border-slate-400 disabled:bg-slate-100 disabled:text-slate-500";
+const controlSizes: Record<ControlSize, string> = {
+  sm: "h-9 px-3 text-sm",
+  md: "h-10 px-3 text-sm",
+  lg: "h-11 px-4 text-base",
+};
+
+type InputProps = Omit<InputHTMLAttributes<HTMLInputElement>, "size"> & { size?: ControlSize };
+type SelectProps = Omit<SelectHTMLAttributes<HTMLSelectElement>, "size"> & { size?: ControlSize };
+type TextareaProps = TextareaHTMLAttributes<HTMLTextAreaElement> & { size?: ControlSize };
+
+export const Input = forwardRef<HTMLInputElement, InputProps>(function Input({ className, size = "md", ...props }, ref) { return <input ref={ref} className={cn(control, controlSizes[size], className)} {...props} />; });
+export const Select = forwardRef<HTMLSelectElement, SelectProps>(function Select({ className, size = "md", ...props }, ref) { return <select ref={ref} className={cn(control, controlSizes[size], className)} {...props} />; });
+export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(function Textarea({ className, size = "md", ...props }, ref) { return <textarea ref={ref} className={cn(control, controlSizes[size], "min-h-24 resize-y", className)} {...props} />; });
 
 export function FormField({ label, hint, error, required, htmlFor, children }: { label: string; hint?: string; error?: string; required?: boolean; htmlFor?: string; children: React.ReactNode }) {
   const generatedId = useId(); const fieldId = htmlFor ?? generatedId; const hintId = `${fieldId}-hint`; const errorId = `${fieldId}-error`; const describedBy = [hint ? hintId : undefined, error ? errorId : undefined].filter(Boolean).join(" ") || undefined;
