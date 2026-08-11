@@ -50,6 +50,12 @@ function readErrorMessage(body: unknown) {
     const code = readProblemField(body, "code");
     const safeMessages: Record<string, string> = {
       scheduling_conflict: "O horário não está mais disponível. Atualize a agenda e escolha outro slot.",
+      appointment_conflict: "Existe conflito de horário. Atualize a agenda e escolha outro slot.",
+      slot_unavailable: "Este horário deixou de estar disponível. Consulte novos horários.",
+      professional_unavailable: "O profissional não está disponível neste período.",
+      unit_closed: "A unidade está fechada neste período.",
+      version_conflict: "A consulta foi alterada por outro usuário. Atualize os dados antes de tentar novamente.",
+      appointment_invalid_status: "A consulta não permite esta operação no status atual.",
       unauthorized: "Seu usuário não tem permissão para realizar esta operação.",
       resource_not_found: "O recurso solicitado não foi encontrado.",
       invalid_operation: "A operação não pode ser concluída com o estado atual.",

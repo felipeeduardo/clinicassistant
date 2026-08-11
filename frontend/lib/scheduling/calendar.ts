@@ -1,5 +1,14 @@
 export type CalendarView = "day" | "week" | "month" | "list";
 
+export type CalendarFilterState = {
+  professionalId?: string;
+  specialtyId?: string;
+  unitId?: string;
+  status?: string;
+  source?: string;
+  search?: string;
+};
+
 export function shiftCalendarDate(value: string, days: number) {
   const date = new Date(`${value}T12:00:00`);
   date.setDate(date.getDate() + days);

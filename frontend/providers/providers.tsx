@@ -29,7 +29,14 @@ function RealtimeBridge({ token, queryClient, setStatus }: { token: string | nul
     connection.on("conversation.updated", (event: RealtimeEvent) => invalidate(event, [["conversations"], ["conversation"], ["conversation-messages"]]));
     connection.on("appointment.created", (event: RealtimeEvent) => invalidate(event, [["appointments"], ["availability"]]));
     connection.on("appointment.updated", (event: RealtimeEvent) => invalidate(event, [["appointments"], ["availability"]]));
+    connection.on("appointment.confirmed", (event: RealtimeEvent) => invalidate(event, [["appointments"], ["availability"], ["dashboard"]]));
+    connection.on("appointment.rescheduled", (event: RealtimeEvent) => invalidate(event, [["appointments"], ["availability"], ["dashboard"]]));
     connection.on("appointment.cancelled", (event: RealtimeEvent) => invalidate(event, [["appointments"], ["availability"]]));
+    connection.on("availability.updated", (event: RealtimeEvent) => invalidate(event, [["appointments"], ["availability"]]));
+    connection.on("professional.block.created", (event: RealtimeEvent) => invalidate(event, [["professional-schedule"], ["professional-blocks"], ["appointments"], ["availability"]]));
+    connection.on("professional.block.deleted", (event: RealtimeEvent) => invalidate(event, [["professional-schedule"], ["professional-blocks"], ["appointments"], ["availability"]]));
+    connection.on("professional.vacation.created", (event: RealtimeEvent) => invalidate(event, [["professional-schedule"], ["professional-vacations"], ["appointments"], ["availability"]]));
+    connection.on("professional.vacation.deleted", (event: RealtimeEvent) => invalidate(event, [["professional-schedule"], ["professional-vacations"], ["appointments"], ["availability"]]));
     connection.on("whatsapp.integration.updated", (event: RealtimeEvent) => invalidate(event, [["integration-status"]]));
     connection.on("whatsapp.inbound.received", (event: RealtimeEvent) => invalidate(event, [["conversations"], ["conversation"], ["conversation-messages"], ["dashboard"]]));
     connection.on("whatsapp.message.status.changed", (event: RealtimeEvent) => invalidate(event, [["conversations"], ["conversation"], ["conversation-messages"]]));
