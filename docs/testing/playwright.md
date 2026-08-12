@@ -1,5 +1,7 @@
 # Execução Playwright
 
+> Status temporário: os testes E2E permanecem disponíveis para retomada, mas estão fora da pipeline e não fazem parte da validação padrão atual. Use o [roteiro de QA manual](manual-qa-login.md) para a página de login.
+
 Este é o guia canônico dos testes E2E. Os cenários vivem em `frontend/e2e/` e usam o manifesto determinístico em `database/seeds/e2e/manifest.json`.
 
 Por necessidade operacional, todos os cenários podem ser temporariamente pulados com `E2E_SKIP=true`. A flag é opt-in e não altera a execução padrão; deve ser removida assim que a infraestrutura E2E estiver disponível novamente.

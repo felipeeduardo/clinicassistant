@@ -5,16 +5,8 @@ O workflow [ci.yml](../../.github/workflows/ci.yml) executa em pull requests e n
 - restore, build e testes .NET em Release;
 - `typecheck`, lint, testes unitários e build do frontend.
 
-Os cenários Playwright dependem do banco determinístico e da API em execução; por isso são executados separadamente no ambiente de integração:
+Os cenários Playwright dependem do banco determinístico e da API em execução. Neste momento, a execução E2E está temporariamente fora do workflow de CI para permitir validação funcional manual por um usuário QA. O job pode ser reintroduzido quando a infraestrutura E2E for retomada.
 
-```bash
-export E2E_DEFAULT_PASSWORD="${E2E_DEFAULT_PASSWORD:-ClinicAssistant-E2E-Only-2026}"
-./scripts/test-data/reset.sh e2e
-docker compose up -d --build
-cd frontend
-npm run test:e2e
-```
+Os cenários permanecem versionados em `frontend/e2e/`, mas não são executados automaticamente pela pipeline.
 
-Não use placeholders literalmente: a senha deve ser a mesma utilizada pelo seed e pelo Playwright.
-
-Não configure a senha E2E nem destinatários de teste no repositório ou no workflow.
+Não configure senha E2E nem destinatários de teste no repositório ou no workflow. Para o ciclo atual, use o [roteiro de QA manual](manual-qa-login.md) e os fluxos funcionais documentados em [execução local](e2e-execution-guide.md).
