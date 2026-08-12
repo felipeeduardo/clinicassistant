@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Clinic Assistant">
+  <rect width="64" height="64" rx="16" fill="#1d4ed8"/>
+  <path d="M18 19h28a5 5 0 0 1 5 5v16a5 5 0 0 1-5 5H33l-9 7v-7h-6a5 5 0 0 1-5-5V24a5 5 0 0 1 5-5Z" fill="#fff"/>
+  <path d="M23 32h18M32 23v18" stroke="#1d4ed8" stroke-width="4" stroke-linecap="round"/>
+</svg>
