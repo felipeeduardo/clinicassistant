@@ -1,7 +1,7 @@
 import type { ReactNode, SVGProps } from "react";
 import { cn } from "./utils";
 
-export type IconName = "dashboard" | "messages" | "patients" | "calendar" | "professionals" | "specialties" | "units" | "clinic" | "whatsapp" | "audit" | "platform" | "menu" | "close" | "collapse" | "logout" | "chevronRight" | "signal";
+export type IconName = "dashboard" | "messages" | "patients" | "calendar" | "professionals" | "specialties" | "units" | "clinic" | "whatsapp" | "audit" | "platform" | "menu" | "close" | "collapse" | "logout" | "chevronRight" | "chevronDown" | "chevronUp" | "shield" | "building" | "userCheck" | "history" | "arrowRight" | "signal";
 export function Icon({ name, className, ...props }: SVGProps<SVGSVGElement> & { name: IconName }) {
   const common = { className: cn("size-5 shrink-0", className), fill: "none", stroke: "currentColor", strokeWidth: 1.8, strokeLinecap: "round" as const, strokeLinejoin: "round" as const, viewBox: "0 0 24 24", "aria-hidden": true };
   const paths: Record<IconName, ReactNode> = {
@@ -21,6 +21,13 @@ export function Icon({ name, className, ...props }: SVGProps<SVGSVGElement> & { 
     collapse: <path d="m14 6-6 6 6 6" />,
     logout: <><path d="M10 5H5v14h5" /><path d="m14 8 4 4-4 4M18 12H9" /></>,
     chevronRight: <path d="m9 18 6-6-6-6" />,
+    chevronDown: <path d="m6 9 6 6 6-6" />,
+    chevronUp: <path d="m6 15 6-6 6 6" />,
+    shield: <><path d="M12 3 20 6v5c0 5-3.4 8.4-8 10-4.6-1.6-8-5-8-10V6z" /><path d="m8.5 12 2.2 2.2 4.8-4.8" /></>,
+    building: <><path d="M4 21V5l8-3 8 3v16" /><path d="M8 9h.01M12 9h.01M16 9h.01M8 13h.01M12 13h.01M16 13h.01M9 21v-4h6v4" /></>,
+    userCheck: <><circle cx="9" cy="8" r="3" /><path d="M3 21a6 6 0 0 1 12 0" /><path d="m16 12 2 2 4-4" /></>,
+    history: <><path d="M3 12a9 9 0 1 0 3-6.7" /><path d="M3 4v5h5M12 7v5l3 2" /></>,
+    arrowRight: <><path d="M5 12h14" /><path d="m13 6 6 6-6 6" /></>,
     signal: <><path d="M5 19v-2M9 19v-5M13 19v-8M17 19V7" /></>,
   };
   return <svg {...common} {...props}>{paths[name]}</svg>;

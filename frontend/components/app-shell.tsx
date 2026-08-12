@@ -7,6 +7,7 @@ import type { User } from "@/lib/api/types";
 import { Button } from "@/components/ui/button";
 import { Icon, type IconName } from "@/components/ui/icon";
 import { cn } from "@/components/ui/utils";
+import { BrandLockup } from "@/components/brand/brand-lockup";
 
 type NavigationItem = { href: string; label: string; icon: IconName; roles?: string[] };
 type NavigationGroup = { label: string; items: NavigationItem[] };
@@ -50,10 +51,7 @@ function NavLinks({ user, collapsed, onNavigate }: { user: User; collapsed: bool
 }
 
 function Brand({ collapsed = false }: { collapsed?: boolean }) {
-  return <div className={cn("flex items-center gap-3 px-2", collapsed && "justify-center")}>
-    <span className="grid size-9 place-items-center rounded-control bg-brand-600 font-bold">CA</span>
-    <strong className={cn("text-sm", collapsed && "sr-only")}>Clinic Assistant</strong>
-  </div>;
+  return <div className="px-2"><BrandLockup collapsed={collapsed} /></div>;
 }
 
 export function AppShell({ user, realtimeStatus, onLogout, children }: { user: User; realtimeStatus: "offline" | "connecting" | "online"; onLogout: () => void; children: React.ReactNode }) {

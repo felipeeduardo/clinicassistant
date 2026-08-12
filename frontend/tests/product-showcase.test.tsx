@@ -8,7 +8,14 @@ describe("landing product showcase", () => {
     const agendaTab = screen.getByRole("tab", { name: "Agenda" });
     expect(screen.getByRole("tabpanel")).toHaveAttribute("aria-live", "polite");
     fireEvent.click(agendaTab);
-    expect(screen.getByRole("tabpanel")).toHaveTextContent("app.clinicassistant.local / agenda");
+    expect(screen.getByRole("tabpanel")).toHaveTextContent("app.iarecepcao.com.br / agenda");
     expect(agendaTab).toHaveAttribute("aria-selected", "true");
   });
+
+  it("does not expose commercial investment in the public showcase", () => {
+    render(<ProductShowcase />);
+    expect(screen.queryByRole("heading", { name: "Uma proposta comercial transparente." })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Solicitar proposta" })).not.toBeInTheDocument();
+  });
+
 });
