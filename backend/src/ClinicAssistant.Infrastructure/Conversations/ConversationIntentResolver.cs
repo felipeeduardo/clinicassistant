@@ -41,7 +41,7 @@ public sealed class ConversationIntentResolver : IConversationIntentResolver
         "confirm" => ConversationIntent.ConfirmAppointment,
         "human" => ConversationIntent.HumanHandoff,
         _ when value.StartsWith("specialty:", StringComparison.Ordinal) => currentIntent == ConversationIntent.ListSpecialties ? ConversationIntent.ViewProfessionals : currentIntent,
-        _ when value.StartsWith("professional:", StringComparison.Ordinal) => currentIntent == ConversationIntent.ListProfessionals ? ConversationIntent.CheckAvailability : currentIntent,
+        _ when value.StartsWith("professional:", StringComparison.Ordinal) => ConversationIntent.CheckAvailability,
         _ when value.StartsWith("slot:", StringComparison.Ordinal) || value.StartsWith("appointment:", StringComparison.Ordinal) => currentIntent,
         _ => currentIntent
     };
@@ -56,7 +56,8 @@ public sealed class ConversationIntentResolver : IConversationIntentResolver
         "6" when currentIntent == ConversationIntent.Unknown || currentIntent == ConversationIntent.Greeting => ConversationIntent.CancelAppointment,
         "7" when currentIntent == ConversationIntent.Unknown || currentIntent == ConversationIntent.Greeting => ConversationIntent.ConfirmAppointment,
         "8" when currentIntent == ConversationIntent.Unknown || currentIntent == ConversationIntent.Greeting => ConversationIntent.HumanHandoff,
-        _ when ContainsAny(text, "humano", "atendente", "pessoa", "recepcao") => ConversationIntent.HumanHandoff,
+        _ when ContainsAny(text, "humano", "atendente", "pessoa", "recepcao", "falar com alguem", "falar com uma pessoa") => ConversationIntent.HumanHandoff,
+        _ when ContainsAny(text, "diagnostico", "diagnosticar", "estou com dor", "sintoma", "sintomas", "prescricao", "receita medica") => ConversationIntent.HumanHandoff,
         _ when IsGreeting(text) => ConversationIntent.Greeting,
         _ when ContainsAny(text, "disponibilidade", "horario livre", "horarios disponiveis", "tem horario", "tem vaga", "tem cardiologista", "tem dermatologista") => ConversationIntent.CheckAvailability,
         _ when ContainsAny(text, "especialidade", "especialidades") => ConversationIntent.ViewSpecialties,

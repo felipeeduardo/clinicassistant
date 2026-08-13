@@ -23,9 +23,9 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 10.0.x
-      - run: dotnet restore ClinicAssistant.sln
-      - run: dotnet build ClinicAssistant.sln --no-restore --configuration Release
-      - run: dotnet test ClinicAssistant.sln --no-build --no-restore --configuration Release
+      - run: dotnet restore backend/ClinicAssistant.sln
+      - run: dotnet build backend/ClinicAssistant.sln --no-restore --configuration Release
+      - run: dotnet test backend/ClinicAssistant.sln --no-build --no-restore --configuration Release
 
   frontend:
     runs-on: ubuntu-latest

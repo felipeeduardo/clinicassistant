@@ -7,13 +7,13 @@ type ButtonSize = "sm" | "md" | "lg" | "icon";
 export type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & { variant?: ButtonVariant; size?: ButtonSize; loading?: boolean };
 
 const variants: Record<ButtonVariant, string> = {
-  primary: "bg-brand-600 text-white hover:bg-brand-700",
-  secondary: "bg-slate-900 text-white hover:bg-slate-800",
-  outline: "border border-slate-300 bg-white text-slate-800 hover:bg-slate-50",
-  ghost: "text-current hover:bg-slate-100",
+  primary: "bg-brand-primary text-white hover:bg-brand-primary-hover",
+  secondary: "bg-brand-dark text-white hover:bg-brand-dark-surface",
+  outline: "border border-border-system-strong bg-white text-foreground hover:bg-surface-subtle",
+  ghost: "text-current hover:bg-surface-subtle",
   danger: "bg-red-600 text-white hover:bg-red-700",
   success: "bg-emerald-600 text-white hover:bg-emerald-700",
-  link: "text-brand-700 underline-offset-4 hover:underline",
+  link: "text-brand-primary underline-offset-4 hover:underline",
 };
 const sizes: Record<ButtonSize, string> = { sm: "min-h-8 px-3 text-sm", md: "min-h-10 px-4 text-sm", lg: "min-h-11 px-5 text-base", icon: "size-10 p-0" };
 

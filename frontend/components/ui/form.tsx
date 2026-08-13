@@ -4,7 +4,7 @@ import { cn } from "./utils";
 
 export type ControlSize = "sm" | "md" | "lg";
 
-const control = "w-full rounded-control border border-slate-300 bg-white text-slate-900 shadow-sm transition-colors placeholder:text-slate-400 hover:border-slate-400 disabled:bg-slate-100 disabled:text-slate-500";
+const control = "w-full rounded-control border border-border-system-strong bg-surface text-foreground shadow-sm transition-colors placeholder:text-slate-400 hover:border-slate-400 focus:border-brand-primary focus:ring-1 focus:ring-brand-primary disabled:bg-surface-subtle disabled:text-slate-500";
 const controlSizes: Record<ControlSize, string> = {
   sm: "h-9 px-3 text-sm",
   md: "h-10 px-3 text-sm",

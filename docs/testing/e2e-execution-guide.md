@@ -8,7 +8,7 @@
 - Node.js apenas para executar o frontend fora do Docker.
 - Cliente `psql` para usar os scripts locais.
 - PostgreSQL acessível em `localhost:5432` ou pelas variáveis `DATABASE_*`.
-- Migrations disponíveis em `src/ClinicAssistant.Infrastructure/Persistence/Migrations`.
+- Migrations disponíveis em `backend/src/ClinicAssistant.Infrastructure/Persistence/Migrations`.
 - Scripts em `scripts/test-data` e seeds em `database/seeds`.
 
 ## 2. Variáveis obrigatórias
@@ -62,9 +62,9 @@ docker compose up -d postgres redis rabbitmq
 ### 3.2 Restaurar e validar backend
 
 ```bash
-dotnet restore ClinicAssistant.sln
-dotnet build ClinicAssistant.sln --no-restore
-dotnet test ClinicAssistant.sln --no-restore
+dotnet restore backend/ClinicAssistant.sln
+dotnet build backend/ClinicAssistant.sln --no-restore
+dotnet test backend/ClinicAssistant.sln --no-restore
 ```
 
 ### 3.3 Aplicar migrations
@@ -74,8 +74,8 @@ A API aplica migrations automaticamente ao iniciar. Para aplicá-las manualmente
 ```bash
 ConnectionStrings__Default="Host=localhost;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}" \
 dotnet ef database update \
-  --project src/ClinicAssistant.Infrastructure/ClinicAssistant.Infrastructure.csproj \
-  --startup-project src/ClinicAssistant.Api/ClinicAssistant.Api.csproj
+  --project backend/src/ClinicAssistant.Infrastructure/ClinicAssistant.Infrastructure.csproj \
+  --startup-project backend/src/ClinicAssistant.Api/ClinicAssistant.Api.csproj
 ```
 
 Ou suba a API e aguarde sua inicialização:
@@ -150,9 +150,9 @@ until curl --fail --silent http://localhost:${API_PORT:-8080}/health/live >/dev/
   sleep 2
 done
 
-dotnet restore ClinicAssistant.sln
-dotnet build ClinicAssistant.sln --no-restore
-dotnet test ClinicAssistant.sln --no-restore
+dotnet restore backend/ClinicAssistant.sln
+dotnet build backend/ClinicAssistant.sln --no-restore
+dotnet test backend/ClinicAssistant.sln --no-restore
 
 docker compose --profile e2e run --rm --build test-data-seeder e2e
 
@@ -200,10 +200,10 @@ Não use argumentos como `reset e2e` ou `seed e2e`: o entrypoint atual não acei
 Execute quando houver migration, tabela, foreign key ou enum persistido novo:
 
 ```bash
-dotnet build ClinicAssistant.sln
-dotnet test ClinicAssistant.sln
+dotnet build backend/ClinicAssistant.sln
+dotnet test backend/ClinicAssistant.sln
 ConnectionStrings__Default="Host=localhost;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}" \
-dotnet ef database update --project src/ClinicAssistant.Infrastructure/ClinicAssistant.Infrastructure.csproj --startup-project src/ClinicAssistant.Api/ClinicAssistant.Api.csproj
+dotnet ef database update --project backend/src/ClinicAssistant.Infrastructure/ClinicAssistant.Infrastructure.csproj --startup-project backend/src/ClinicAssistant.Api/ClinicAssistant.Api.csproj
 ./scripts/test-data/reset.sh e2e
 ./scripts/test-data/seed.sh e2e
 ./scripts/test-data/validate.sh e2e

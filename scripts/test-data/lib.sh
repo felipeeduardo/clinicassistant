@@ -71,7 +71,7 @@ assert_migrations() {
 generate_password_hash() {
   : "${E2E_DEFAULT_PASSWORD:=ClinicAssistant-E2E-Only-2026}"
   export E2E_DEFAULT_PASSWORD
-  dotnet run --project "$TEST_DATA_PROJECT_ROOT/tools/ClinicAssistant.TestDataHash/ClinicAssistant.TestDataHash.csproj" 2>/dev/null || fail "could not generate the password hash with the application PasswordHasher."
+  dotnet run --project "$TEST_DATA_PROJECT_ROOT/backend/tools/ClinicAssistant.TestDataHash/ClinicAssistant.TestDataHash.csproj" 2>/dev/null || fail "could not generate the password hash with the application PasswordHasher."
 }
 
 confirm_reset() {

@@ -24,9 +24,9 @@ O `.env.example` contém somente valores de desenvolvimento. Não versione `.env
 ## Validar
 
 ```bash
-dotnet restore ClinicAssistant.sln
-dotnet build ClinicAssistant.sln --no-restore
-dotnet test ClinicAssistant.sln --no-build
+dotnet restore backend/ClinicAssistant.sln
+dotnet build backend/ClinicAssistant.sln --no-restore
+dotnet test backend/ClinicAssistant.sln --no-build
 
 cd frontend
 npm ci
@@ -45,15 +45,20 @@ Consulte o [índice da documentação](docs/README.md). Os contratos HTTP são e
 ## Estrutura
 
 ```text
-src/
-  ClinicAssistant.Api            # Host HTTP e SignalR
-  ClinicAssistant.Application    # Casos de uso e portas
-  ClinicAssistant.Contracts      # DTOs e contratos públicos
-  ClinicAssistant.Domain         # Núcleo de domínio
-  ClinicAssistant.Infrastructure # EF Core, PostgreSQL e adaptadores
-  ClinicAssistant.Worker         # Processamento assíncrono
+backend/
+  ClinicAssistant.sln
+  Directory.Build.props
+  Directory.Packages.props
+  src/
+    ClinicAssistant.Api            # Host HTTP e SignalR
+    ClinicAssistant.Application    # Casos de uso e portas
+    ClinicAssistant.Contracts      # DTOs e contratos públicos
+    ClinicAssistant.Domain         # Núcleo de domínio
+    ClinicAssistant.Infrastructure # EF Core, PostgreSQL e adaptadores
+    ClinicAssistant.Worker         # Processamento assíncrono
+  tests/                         # Testes unitários
+  tools/                         # Ferramentas auxiliares
 frontend/                         # Aplicação operacional Next.js
-tests/                            # Testes unitários
 database/                         # Migrations, reset e seeds E2E
 docs/                             # Documentação de produto e operação
 ```
