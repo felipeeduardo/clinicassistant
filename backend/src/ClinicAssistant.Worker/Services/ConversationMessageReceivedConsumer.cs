@@ -8,7 +8,7 @@ using RabbitMQ.Client.Events;
 
 namespace ClinicAssistant.Worker.Services;
 
-public sealed partial class ConversationMessageReceivedConsumer(ILogger<ConversationMessageReceivedConsumer> logger, IServiceScopeFactory scopeFactory, RabbitMqOptions options, RabbitMqPublisher publisher) : BackgroundService
+public sealed partial class ConversationMessageReceivedConsumer(ILogger<ConversationMessageReceivedConsumer> logger, IServiceScopeFactory scopeFactory, RabbitMqOptions options, RabbitMqPublisher publisher, RabbitMqConnectionFactory connectionFactory) : BackgroundService
 {
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -63,7 +63,7 @@ public sealed partial class ConversationMessageReceivedConsumer(ILogger<Conversa
         }
     }
 
-    private Task<IConnection> CreateConnectionAsync(CancellationToken cancellationToken) => new ConnectionFactory { HostName = options.Host, Port = options.Port, UserName = options.Username, Password = options.Password }.CreateConnectionAsync(cancellationToken);
+    private Task<IConnection> CreateConnectionAsync(CancellationToken cancellationToken) => connectionFactory.Create("ClinicAssistant.Worker").CreateConnectionAsync(cancellationToken);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Conversation processing will retry. TenantId: {TenantId}; ConversationId: {ConversationId}; Result: {Result}")]
     private static partial void LogRetrying(ILogger logger, Guid tenantId, Guid conversationId, ConversationOrchestrationResult result);

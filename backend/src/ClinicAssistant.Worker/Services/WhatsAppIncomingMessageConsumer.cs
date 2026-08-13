@@ -7,7 +7,7 @@ using RabbitMQ.Client.Events;
 
 namespace ClinicAssistant.Worker.Services;
 
-public sealed partial class WhatsAppIncomingMessageConsumer(ILogger<WhatsAppIncomingMessageConsumer> logger, IServiceScopeFactory scopeFactory, RabbitMqOptions options, RabbitMqPublisher publisher) : BackgroundService
+public sealed partial class WhatsAppIncomingMessageConsumer(ILogger<WhatsAppIncomingMessageConsumer> logger, IServiceScopeFactory scopeFactory, RabbitMqOptions options, RabbitMqPublisher publisher, RabbitMqConnectionFactory connectionFactory) : BackgroundService
 {
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -56,7 +56,7 @@ public sealed partial class WhatsAppIncomingMessageConsumer(ILogger<WhatsAppInco
         }
     }
 
-    private Task<IConnection> CreateConnectionAsync(CancellationToken cancellationToken) => new ConnectionFactory { HostName = options.Host, Port = options.Port, UserName = options.Username, Password = options.Password }.CreateConnectionAsync(cancellationToken);
+    private Task<IConnection> CreateConnectionAsync(CancellationToken cancellationToken) => connectionFactory.Create("ClinicAssistant.Worker").CreateConnectionAsync(cancellationToken);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "WhatsApp incoming message rejected. TenantId: {TenantId}; IntegrationId: {IntegrationId}; ExternalMessageId: {ExternalMessageId}")]
     private static partial void LogRejectedMessage(ILogger logger, Guid tenantId, Guid integrationId, string externalMessageId);

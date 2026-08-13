@@ -2,10 +2,11 @@ using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
 using RabbitMQ.Client;
+using ClinicAssistant.Infrastructure.Messaging;
 
 namespace ClinicAssistant.Worker.Messaging;
 
-public sealed class RabbitMqPublisher(RabbitMqOptions options)
+public sealed class RabbitMqPublisher(RabbitMqConnectionFactory connectionFactory)
 {
     public const string LegacyExchange = "clinic.events";
     public const string WhatsAppExchange = "clinicassistant.whatsapp";
@@ -106,7 +107,7 @@ public sealed class RabbitMqPublisher(RabbitMqOptions options)
         catch (JsonException) { return (null, Guid.NewGuid().ToString("N")); }
     }
 
-    private Task<IConnection> CreateConnectionAsync(CancellationToken cancellationToken) => new ConnectionFactory { HostName = options.Host, Port = options.Port, UserName = options.Username, Password = options.Password }.CreateConnectionAsync(cancellationToken);
+    private Task<IConnection> CreateConnectionAsync(CancellationToken cancellationToken) => connectionFactory.Create("ClinicAssistant.Worker").CreateConnectionAsync(cancellationToken);
 }
 
 public sealed record OutboxDeadLetterMessage(Guid OriginalMessageId, Guid TenantId, string RoutingKey, int RetryCount, DateTimeOffset? FirstFailureAt, DateTimeOffset LastFailureAt, string SafeError, string CorrelationId, string TraceId);

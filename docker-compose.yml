@@ -12,6 +12,9 @@ services:
       ConnectionStrings__Test: Host=postgres;Port=5432;Database=${DATABASE_NAME:-clinicassistant_test};Username=${DATABASE_USER:-clinicassistant};Password=${DATABASE_PASSWORD:-clinicassistant}
       RabbitMq__Host: rabbitmq
       RabbitMq__Port: 5672
+      RabbitMq__VirtualHost: ${RABBITMQ_VIRTUAL_HOST:-/}
+      RabbitMq__UseTls: ${RABBITMQ_USE_TLS:-false}
+      RabbitMq__ServerName: ${RABBITMQ_SERVER_NAME:-}
       RabbitMq__Username: ${RABBITMQ_USERNAME:-clinicassistant}
       RabbitMq__Password: ${RABBITMQ_PASSWORD:-clinicassistant}
       RabbitMq__OutboxBatchSize: ${RABBITMQ_OUTBOX_BATCH_SIZE:-50}
@@ -78,6 +81,9 @@ services:
       ConnectionStrings__Test: Host=postgres;Port=5432;Database=${DATABASE_NAME:-clinicassistant_test};Username=${DATABASE_USER:-clinicassistant};Password=${DATABASE_PASSWORD:-clinicassistant}
       RabbitMq__Host: rabbitmq
       RabbitMq__Port: 5672
+      RabbitMq__VirtualHost: ${RABBITMQ_VIRTUAL_HOST:-/}
+      RabbitMq__UseTls: ${RABBITMQ_USE_TLS:-false}
+      RabbitMq__ServerName: ${RABBITMQ_SERVER_NAME:-}
       RabbitMq__Username: ${RABBITMQ_USERNAME:-clinicassistant}
       RabbitMq__Password: ${RABBITMQ_PASSWORD:-clinicassistant}
       RabbitMq__OutboxBatchSize: ${RABBITMQ_OUTBOX_BATCH_SIZE:-50}

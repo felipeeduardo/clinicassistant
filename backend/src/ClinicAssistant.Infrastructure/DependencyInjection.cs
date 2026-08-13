@@ -19,6 +19,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using StackExchange.Redis;
+using ClinicAssistant.Infrastructure.Messaging;
+using Microsoft.Extensions.Options;
 
 namespace ClinicAssistant.Infrastructure;
 
@@ -26,8 +28,20 @@ public static class DependencyInjection
 {
     public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
-        var target = configuration["Database:Target"]?.Trim().ToLowerInvariant() ?? "primary";
         var environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT") ?? "Production";
+        services.AddOptions<RabbitMqOptions>()
+            .Bind(configuration.GetSection(RabbitMqOptions.SectionName))
+            .Validate(options =>
+            {
+                options.Validate();
+                if (string.Equals(environment, "Production", StringComparison.OrdinalIgnoreCase) && !options.UseTls)
+                    throw new InvalidOperationException("RabbitMq:UseTls must be true in Production.");
+                return true;
+            })
+            .ValidateOnStart();
+        services.AddSingleton(serviceProvider => serviceProvider.GetRequiredService<IOptions<RabbitMqOptions>>().Value);
+        services.AddSingleton<RabbitMqConnectionFactory>();
+        var target = configuration["Database:Target"]?.Trim().ToLowerInvariant() ?? "primary";
         if (target == "test" && string.Equals(environment, "Production", StringComparison.OrdinalIgnoreCase)) throw new InvalidOperationException("Database target 'test' is blocked in Production.");
         var connectionString = DatabaseConnectionStringResolver.Resolve(configuration);
 

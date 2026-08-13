@@ -24,6 +24,13 @@ manager do respectivo provedor.
 | `Twilio__IncomingWebhookBaseUrl` | Railway API | ngrok | URL Preview HTTPS | API Pilot | `https://api.iarecepcao.com.br` | Runtime |
 | `Twilio__StatusCallbackBaseUrl` | Railway API | ngrok | URL Preview HTTPS | API Pilot | `https://api.iarecepcao.com.br` | Runtime |
 | `OTEL_EXPORTER_OTLP_ENDPOINT` | Railway API/Worker | opcional | observabilidade Preview | collector Pilot | collector Production | Runtime |
+| `RabbitMq__Host` | Railway API/Worker | `rabbitmq` | host Preview | host Pilot | host CloudAMQP | Runtime |
+| `RabbitMq__Port` | Railway API/Worker | `5672` | porta do broker | porta do broker | porta TLS fornecida | Runtime |
+| `RabbitMq__Username` | Railway API/Worker | usuário local | usuário Preview | usuário Pilot | usuário CloudAMQP | Secret |
+| `RabbitMq__Password` | Railway API/Worker | senha local | secret Preview | secret Pilot | secret manager | Secret |
+| `RabbitMq__VirtualHost` | Railway API/Worker | `/` | vhost Preview | vhost Pilot | vhost CloudAMQP | Runtime |
+| `RabbitMq__UseTls` | Railway API/Worker | `false` | conforme broker | conforme broker | `true` | Runtime |
+| `RabbitMq__ServerName` | Railway API/Worker | vazio | hostname TLS, se usado | hostname TLS | hostname/SNI CloudAMQP | Runtime |
 
 ## Regras
 

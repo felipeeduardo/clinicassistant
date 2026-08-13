@@ -8,6 +8,7 @@ using OpenTelemetry.Resources;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Trace;
 using Serilog;
+using ClinicAssistant.Infrastructure.Messaging;
 
 var builder = Host.CreateApplicationBuilder(args);
 builder.Services.AddApplication();
@@ -17,8 +18,6 @@ builder.Services.AddHostedService<WhatsAppIncomingMessageConsumer>();
 builder.Services.AddHostedService<SendWhatsAppMessageConsumer>();
 builder.Services.AddHostedService<ConversationMessageReceivedConsumer>();
 builder.Services.AddHostedService<WhatsAppTemplateSyncConsumer>();
-var rabbitOptions = builder.Configuration.GetSection(RabbitMqOptions.SectionName).Get<RabbitMqOptions>() ?? new RabbitMqOptions();
-builder.Services.AddSingleton(rabbitOptions);
 builder.Services.AddSingleton<RabbitMqPublisher>();
 builder.Services.AddOpenTelemetry()
     .ConfigureResource(resource => resource.AddService("ClinicAssistant.Worker"))

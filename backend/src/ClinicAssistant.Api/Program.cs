@@ -34,6 +34,7 @@ using ClinicAssistant.Application.Platform;
 using ClinicAssistant.Contracts.Platform;
 using ClinicAssistant.Api.Authorization;
 using ClinicAssistant.Application.Operations;
+using ClinicAssistant.Infrastructure.Messaging;
 
 Log.Logger = new LoggerConfiguration()
     .WriteTo.Console(formatProvider: CultureInfo.InvariantCulture)
@@ -119,7 +120,7 @@ try
         .AllowCredentials()));
     builder.Services.AddHealthChecks()
         .AddCheck("postgresql", new PostgreSqlHealthCheck(builder.Configuration), tags: ["ready"])
-        .AddCheck("rabbitmq", new TcpHealthCheck(builder.Configuration, "RabbitMq", 5672), tags: ["ready"])
+        .AddCheck<RabbitMqHealthCheck>("rabbitmq", tags: ["ready"])
         .AddCheck("redis", new TcpHealthCheck(builder.Configuration, "Redis", 6379), tags: ["ready"]);
 
     builder.Services.AddOpenTelemetry()
