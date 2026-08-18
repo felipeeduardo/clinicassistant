@@ -26,3 +26,14 @@ ambiente. O Worker não deve ser omitido: ele processa Outbox e entrega assíncr
 4. Validar readiness, logs e reinício do Worker.
 5. Executar smoke sem Twilio real.
 6. Solicitar Gate B antes de domínio/API Production.
+
+## Recuperação de senha
+
+Antes de liberar a recuperação de senha em Production, configure no serviço
+**API** as variáveis `PasswordRecovery__Provider`, `PasswordRecovery__From`,
+`PasswordRecovery__SmtpHost`, `PasswordRecovery__SmtpPort`,
+`PasswordRecovery__SmtpUser`, `PasswordRecovery__SmtpPassword`,
+`PasswordRecovery__EnableSsl` e `PasswordRecovery__FrontendBaseUrl`.
+
+As credenciais devem ser adicionadas pelo painel **Variables/Secrets** do
+Railway, nunca no Dockerfile, no repositório ou em variáveis `NEXT_PUBLIC_*`.

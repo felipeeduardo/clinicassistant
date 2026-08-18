@@ -1,0 +1,14 @@
+{
+  "info": { "name": "IA Recepção — Etapa 9.8.6", "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json" },
+  "variable": [{ "key": "baseUrl", "value": "http://localhost:8080" }, { "key": "accessToken", "value": "" }, { "key": "leadId", "value": "" }, { "key": "resetToken", "value": "" }],
+  "item": [
+    { "name": "Solicitar demonstração (público)", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"fullName\": \"Pessoa Responsável\",\n  \"companyOrClinicName\": \"Clínica Exemplo\",\n  \"email\": \"contato@example.com\",\n  \"phone\": \"+5581999999999\",\n  \"description\": \"Quero conhecer a operação.\",\n  \"website\": \"\"\n}" }, "url": "{{baseUrl}}/api/leads/demo-requests" } },
+    { "name": "Esqueci minha senha (público)", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{ \"email\": \"contato@example.com\" }" }, "url": "{{baseUrl}}/api/auth/forgot-password" } },
+    { "name": "Redefinir senha", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{ \"token\": \"{{resetToken}}\", \"newPassword\": \"NovaSenhaSegura#2026\" }" }, "url": "{{baseUrl}}/api/auth/reset-password" } },
+    { "name": "PlatformAdmin — resumo de leads", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }], "url": "{{baseUrl}}/api/platform/leads/summary" } },
+    { "name": "PlatformAdmin — listar leads", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }], "url": "{{baseUrl}}/api/platform/leads?page=1&pageSize=25" } },
+    { "name": "PlatformAdmin — detalhe do lead", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }], "url": "{{baseUrl}}/api/platform/leads/{{leadId}}" } },
+    { "name": "PlatformAdmin — atualizar status", "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{ \"status\": \"Contacted\" }" }, "url": "{{baseUrl}}/api/platform/leads/{{leadId}}/status" } },
+    { "name": "PlatformAdmin — registrar observação", "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{ \"note\": \"Contato realizado por e-mail.\" }" }, "url": "{{baseUrl}}/api/platform/leads/{{leadId}}/notes" } }
+  ]
+}

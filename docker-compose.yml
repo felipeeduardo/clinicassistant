@@ -28,6 +28,15 @@ services:
       Jwt__Secret: ${JWT_SECRET:-development-only-secret-change-before-production-2026}
       Jwt__AccessTokenMinutes: ${JWT_ACCESS_TOKEN_MINUTES:-15}
       Jwt__RefreshTokenDays: ${JWT_REFRESH_TOKEN_DAYS:-14}
+      PasswordRecovery__Provider: ${PASSWORD_RECOVERY_PROVIDER:-Disabled}
+      PasswordRecovery__TokenExpirationMinutes: ${PASSWORD_RECOVERY_TOKEN_EXPIRATION_MINUTES:-30}
+      PasswordRecovery__FrontendBaseUrl: ${PASSWORD_RECOVERY_FRONTEND_BASE_URL:-http://localhost:3000}
+      PasswordRecovery__From: ${PASSWORD_RECOVERY_FROM:-}
+      PasswordRecovery__SmtpHost: ${PASSWORD_RECOVERY_SMTP_HOST:-}
+      PasswordRecovery__SmtpPort: ${PASSWORD_RECOVERY_SMTP_PORT:-587}
+      PasswordRecovery__SmtpUser: ${PASSWORD_RECOVERY_SMTP_USER:-}
+      PasswordRecovery__SmtpPassword: ${PASSWORD_RECOVERY_SMTP_PASSWORD:-}
+      PasswordRecovery__EnableSsl: ${PASSWORD_RECOVERY_SMTP_ENABLE_SSL:-true}
       PlatformBootstrap__Enabled: ${PLATFORM_BOOTSTRAP__ENABLED:-${PLATFORM_BOOTSTRAP_ENABLED:-false}}
       PlatformBootstrap__Admins__0__Email: ${PLATFORM_BOOTSTRAP__ADMINS__0__EMAIL:-${PLATFORM_BOOTSTRAP_ADMINS_0_EMAIL:-}}
       PlatformBootstrap__Admins__0__Password: ${PLATFORM_BOOTSTRAP__ADMINS__0__PASSWORD:-${PLATFORM_BOOTSTRAP_ADMINS_0_PASSWORD:-}}

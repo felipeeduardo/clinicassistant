@@ -48,3 +48,7 @@ export type PlatformUser = { id: string; tenantId: string; name: string; email: 
 export type PlatformClinic = { id: string; tenantId: string; tradeName: string; legalName: string; status: string };
 export type OnboardTenantRequest = { tenantName: string; tenantSlug: string; clinicLegalName: string; clinicTradeName: string; clinicDocument: string; clinicEmail: string; clinicPhone: string; timeZone: string; unitName: string; unitAddress: string; unitPhone: string; adminName: string; adminEmail: string; temporaryPassword: string };
 export type OnboardTenantResponse = { tenantId: string; clinicId: string; unitId: string; adminUserId: string; integrationId: string; replayed: boolean };
+export type DemoLead = { id: string; fullName: string; companyOrClinicName: string; email: string; phone: string; status: string; source: string; assignedToUserId?: string | null; createdAt: string; lastContactAt?: string | null };
+export type DemoLeadPage = PagedResult<DemoLead>;
+export type DemoLeadSummary = { new: number; contacted: number; qualified: number; demoScheduled: number; won: number; lost: number; archived: number; total: number };
+export type DemoLeadDetail = { lead: DemoLead; description?: string | null; notes: { createdAt: string; actorUserId?: string | null; actorName?: string | null; note: string }[]; history: { createdAt: string; actorUserId?: string | null; actorName?: string | null; note: string }[] };

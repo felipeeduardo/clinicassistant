@@ -6,6 +6,7 @@ using ClinicAssistant.Domain.Messaging;
 using ClinicAssistant.Domain.WhatsApp;
 using ClinicAssistant.Domain.Conversations;
 using ClinicAssistant.Domain.Operations;
+using ClinicAssistant.Domain.Platform;
 using Microsoft.EntityFrameworkCore;
 
 namespace ClinicAssistant.Infrastructure.Persistence;
@@ -17,6 +18,7 @@ public sealed class ClinicAssistantDbContext(DbContextOptions<ClinicAssistantDbC
     public DbSet<Tenant> Tenants => Set<Tenant>();
     public DbSet<User> Users => Set<User>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
+    public DbSet<PasswordResetToken> PasswordResetTokens => Set<PasswordResetToken>();
     public DbSet<Clinic> Clinics => Set<Clinic>();
     public DbSet<ClinicUnit> ClinicUnits => Set<ClinicUnit>();
     public DbSet<UnitBusinessHour> UnitBusinessHours => Set<UnitBusinessHour>();
@@ -41,6 +43,7 @@ public sealed class ClinicAssistantDbContext(DbContextOptions<ClinicAssistantDbC
     public DbSet<HumanQueueItem> HumanQueueItems => Set<HumanQueueItem>();
     public DbSet<IdempotencyRecord> IdempotencyRecords => Set<IdempotencyRecord>();
     public DbSet<AuditRecord> AuditRecords => Set<AuditRecord>();
+    public DbSet<DemoLead> DemoLeads => Set<DemoLead>();
 
     public Guid? CurrentTenantId => _tenantContext.TenantId;
     public bool IsPlatformAdmin => _tenantContext.IsPlatformAdmin;
@@ -86,6 +89,10 @@ public sealed class ClinicAssistantDbContext(DbContextOptions<ClinicAssistantDbC
             entity.HasIndex(token => token.TenantId);
             entity.HasOne(token => token.User).WithMany(user => user.RefreshTokens).HasForeignKey(token => token.UserId).OnDelete(DeleteBehavior.Cascade);
             entity.HasQueryFilter(token => IsPlatformAdmin || (CurrentTenantId.HasValue && token.TenantId == CurrentTenantId.Value));
+        });
+        modelBuilder.Entity<PasswordResetToken>(entity =>
+        {
+            entity.ToTable("password_reset_tokens"); entity.HasKey(x => x.Id); entity.Property(x => x.TokenHash).HasMaxLength(64).IsRequired(); entity.HasIndex(x => x.TokenHash).IsUnique(); entity.HasIndex(x => new { x.UserId, x.ExpiresAt }); entity.HasOne(x => x.User).WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
         });
         modelBuilder.Entity<Clinic>(entity =>
         {
@@ -156,6 +163,22 @@ public sealed class ClinicAssistantDbContext(DbContextOptions<ClinicAssistantDbC
         modelBuilder.Entity<HumanQueueItem>(entity => { entity.ToTable("human_queue_items"); entity.Property(x => x.Status).HasConversion<string>().HasMaxLength(32); entity.Property(x => x.Priority).HasConversion<string>().HasMaxLength(32); entity.Property(x => x.Reason).HasMaxLength(500); entity.Property(x => x.Version).IsConcurrencyToken(); entity.HasIndex(x => x.ConversationId).IsUnique(); entity.HasIndex(x => new { x.TenantId, x.Status, x.CreatedAt }); entity.HasQueryFilter(x => IsPlatformAdmin || (CurrentTenantId.HasValue && x.TenantId == CurrentTenantId.Value)); });
         modelBuilder.Entity<IdempotencyRecord>(entity => { entity.ToTable("idempotency_records"); entity.Property(x => x.Scope).HasMaxLength(120); entity.Property(x => x.Key).HasMaxLength(200); entity.Property(x => x.ResponseJson).HasMaxLength(8000); entity.HasIndex(x => new { x.Scope, x.Key }).IsUnique(); });
         modelBuilder.Entity<AuditRecord>(entity => { entity.ToTable("audit_records"); entity.Property(x => x.Action).HasMaxLength(120); entity.Property(x => x.ResourceType).HasMaxLength(120); entity.Property(x => x.Result).HasMaxLength(32); entity.Property(x => x.Details).HasMaxLength(2000); entity.HasIndex(x => new { x.TenantId, x.CreatedAt }); });
+        modelBuilder.Entity<DemoLead>(entity =>
+        {
+            entity.ToTable("demo_leads");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.FullName).HasMaxLength(200).IsRequired();
+            entity.Property(x => x.CompanyOrClinicName).HasMaxLength(200).IsRequired();
+            entity.Property(x => x.Email).HasMaxLength(320).IsRequired();
+            entity.Property(x => x.Phone).HasMaxLength(40).IsRequired();
+            entity.Property(x => x.Description).HasMaxLength(2000);
+            entity.Property(x => x.Source).HasMaxLength(80).IsRequired();
+            entity.Property(x => x.Status).HasConversion<string>().HasMaxLength(32).IsRequired();
+            entity.Property(x => x.Version).IsConcurrencyToken();
+            entity.HasIndex(x => new { x.Status, x.CreatedAt });
+            entity.HasIndex(x => x.Email);
+            entity.HasIndex(x => x.AssignedToUserId);
+        });
     }
 
     private sealed class EmptyTenantContext : ITenantContext

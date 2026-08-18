@@ -28,6 +28,12 @@ manager do respectivo provedor.
 | `Twilio__WhatsAppFrom` | Railway API/Worker | sender Sandbox | sender Sandbox | sender aprovado | sender aprovado | Runtime |
 | `Twilio__IncomingWebhookBaseUrl` | Railway API | ngrok | URL Preview HTTPS | API Pilot | `https://api.iarecepcao.com.br` | Runtime |
 | `Twilio__StatusCallbackBaseUrl` | Railway API | ngrok | URL Preview HTTPS | API Pilot | `https://api.iarecepcao.com.br` | Runtime |
+| `PasswordRecovery__Provider` | Railway API | `Disabled` ou `Smtp` local | `Smtp` quando validado | `Smtp` | `Smtp` | Runtime |
+| `PasswordRecovery__FrontendBaseUrl` | Railway API | `http://localhost:3000` | URL do app Preview | app Pilot | `https://app.iarecepcao.com.br` | Runtime |
+| `PasswordRecovery__From` | Railway API | remetente local | remetente Preview | remetente aprovado | remetente do domínio | Runtime |
+| `PasswordRecovery__SmtpHost`, `PasswordRecovery__SmtpPort` | Railway API | provedor local | host SMTP Preview | host SMTP Pilot | host SMTP Production | Runtime |
+| `PasswordRecovery__SmtpUser`, `PasswordRecovery__SmtpPassword` | Railway API | secret local | secret Preview | secret Pilot | secret Railway | Secret |
+| `PasswordRecovery__EnableSsl` | Railway API | `true` | `true` | `true` | `true` | Runtime |
 | `OTEL_EXPORTER_OTLP_ENDPOINT` | Railway API/Worker | opcional | observabilidade Preview | collector Pilot | collector Production | Runtime |
 | `RabbitMq__Host` | Railway API/Worker | `rabbitmq` | host Preview | host Pilot | host CloudAMQP | Runtime |
 | `RabbitMq__Port` | Railway API/Worker | `5672` | porta do broker | porta do broker | porta TLS fornecida | Runtime |
@@ -45,3 +51,21 @@ manager do respectivo provedor.
 - A API e o Worker devem receber configurações compatíveis de banco, RabbitMQ,
   Redis, JWT e Twilio.
 - Toda mudança de Production deve registrar responsável, data, motivo e rollback.
+
+## SMTP para recuperação de senha
+
+As variáveis `PasswordRecovery__*` devem ser cadastradas somente no serviço API
+do Railway. O Worker não precisa receber essas credenciais. Use o domínio
+autorizado pelo provedor SMTP e mantenha `PasswordRecovery__EnableSsl=true`.
+
+Procedimento:
+
+1. Cadastrar as variáveis no ambiente Preview/Pilot.
+2. Solicitar uma redefinição com um usuário de teste.
+3. Confirmar o recebimento, expiração e uso único do link.
+4. Promover os mesmos nomes de variáveis para Production, usando secrets
+   diferentes.
+5. Após validar, remover qualquer valor temporário ou senha de teste.
+
+O modo `Disabled` é aceitável apenas em desenvolvimento sem teste de e-mail. Em
+Production, use `Smtp` e não registre tokens, links ou senhas nos logs.

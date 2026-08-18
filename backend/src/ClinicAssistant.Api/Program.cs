@@ -35,6 +35,10 @@ using ClinicAssistant.Contracts.Platform;
 using ClinicAssistant.Api.Authorization;
 using ClinicAssistant.Application.Operations;
 using ClinicAssistant.Infrastructure.Messaging;
+using ClinicAssistant.Application.Leads;
+using ClinicAssistant.Contracts.Leads;
+using Microsoft.AspNetCore.RateLimiting;
+using System.Threading.RateLimiting;
 
 Log.Logger = new LoggerConfiguration()
     .WriteTo.Console(formatProvider: CultureInfo.InvariantCulture)
@@ -118,6 +122,19 @@ try
         .AllowAnyHeader()
         .AllowAnyMethod()
         .AllowCredentials()));
+    builder.Services.AddRateLimiter(options =>
+    {
+        options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+        options.AddPolicy("public-demo-lead", context => RateLimitPartition.GetFixedWindowLimiter(
+            context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 5,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0,
+                AutoReplenishment = true
+            }));
+    });
     builder.Services.AddHealthChecks()
         .AddCheck("postgresql", new PostgreSqlHealthCheck(builder.Configuration), tags: ["ready"])
         .AddCheck<RabbitMqHealthCheck>("rabbitmq", tags: ["ready"])
@@ -183,6 +200,7 @@ try
     app.UseCors("Frontend");
     app.UseAuthentication();
     app.UseAuthorization();
+    app.UseRateLimiter();
     app.UseSwagger();
     app.UseSwaggerUI();
     app.MapHub<OperationsHub>("/hubs/operations");
@@ -211,6 +229,15 @@ try
     auth.MapPost("/logout", async (HttpRequest request, HttpResponse response, IAuthService service, CancellationToken cancellationToken) => { var token = request.Cookies[RefreshCookieName]; if (!string.IsNullOrWhiteSpace(token)) await service.LogoutAsync(new LogoutRequest(token), cancellationToken); response.Cookies.Delete(RefreshCookieName, CookieOptions(request)); return Results.NoContent(); }).AllowAnonymous();
     auth.MapGet("/me", async (IAuthService service, CancellationToken cancellationToken) =>
         Results.Ok(await service.GetCurrentUserAsync(cancellationToken))).RequireAuthorization();
+    auth.MapPost("/forgot-password", async (ForgotPasswordRequest request, IPasswordRecoveryService service, HttpContext context, CancellationToken ct) => { await service.RequestAsync(request.Email, context.Connection.RemoteIpAddress?.ToString(), ct); return Results.Accepted(value: new { message = "Se existir uma conta com esse e-mail, enviaremos instruções para redefinir a senha." }); }).AllowAnonymous().RequireRateLimiting("public-demo-lead");
+    auth.MapPost("/reset-password", async (ResetPasswordRequest request, IPasswordRecoveryService service, CancellationToken ct) => { await service.ResetAsync(request.Token, request.NewPassword, ct); return Results.NoContent(); }).AllowAnonymous().RequireRateLimiting("public-demo-lead");
+    var publicLeads = app.MapGroup("/api/leads").WithTags("Commercial Leads");
+    publicLeads.MapPost("/demo-requests", async (CreateDemoLeadRequest request, HttpRequest httpRequest, IDemoLeadService service, CancellationToken ct) =>
+    {
+        if (httpRequest.ContentLength > 16 * 1024) return Results.BadRequest(new { message = "Payload excede o limite permitido." });
+        await service.CreateAsync(request, ct);
+        return Results.Accepted(value: new { message = "Recebemos seus dados. Nossa equipe entrará em contato em breve." });
+    }).AllowAnonymous().RequireRateLimiting("public-demo-lead");
     var platform = app.MapGroup("/api/platform").RequireAuthorization("PlatformAdmin").WithTags("Platform Administration");
     platform.MapGet("/tenants", async (IPlatformAdministrationService service, CancellationToken ct) => Results.Ok(await service.GetTenantsAsync(ct)));
     platform.MapGet("/users", async (IPlatformAdministrationService service, CancellationToken ct) => Results.Ok(await service.GetUsersAsync(ct)));
@@ -219,6 +246,13 @@ try
     platform.MapPost("/tenants/{tenantId:guid}/clinic-admins", async (Guid tenantId, CreateClinicAdminRequest request, HttpRequest httpRequest, IPlatformAdministrationService service, CancellationToken ct) => Results.Ok(await service.CreateClinicAdminAsync(tenantId, request, httpRequest.Headers["Idempotency-Key"].ToString(), ct)));
     platform.MapPost("/tenants/{id:guid}/{action}", async (Guid id, string action, IPlatformAdministrationService service, CancellationToken ct) => { await service.SetTenantStatusAsync(id, action, ct); return Results.NoContent(); });
     platform.MapPost("/onboarding", async (OnboardTenantRequest request, HttpRequest httpRequest, IPlatformAdministrationService service, CancellationToken ct) => Results.Created("/api/platform/onboarding", await service.OnboardAsync(request, httpRequest.Headers["Idempotency-Key"].ToString(), ct)));
+    var platformLeads = platform.MapGroup("/leads");
+    platformLeads.MapGet("", async ([AsParameters] DemoLeadListQuery query, IDemoLeadService service, CancellationToken ct) => Results.Ok(await service.SearchAsync(query, ct)));
+    platformLeads.MapGet("/summary", async (IDemoLeadService service, CancellationToken ct) => Results.Ok(await service.GetSummaryAsync(ct)));
+    platformLeads.MapGet("/{id:guid}", async (Guid id, IDemoLeadService service, CancellationToken ct) => (await service.GetAsync(id, ct)) is { } lead ? Results.Ok(lead) : Results.NotFound());
+    platformLeads.MapPost("/{id:guid}/status", async (Guid id, UpdateDemoLeadStatusRequest request, IDemoLeadService service, CancellationToken ct) => { await service.UpdateStatusAsync(id, request.Status, ct); return Results.NoContent(); });
+    platformLeads.MapPost("/{id:guid}/assignment", async (Guid id, AssignDemoLeadRequest request, IDemoLeadService service, CancellationToken ct) => { await service.AssignAsync(id, request.UserId, ct); return Results.NoContent(); });
+    platformLeads.MapPost("/{id:guid}/notes", async (Guid id, AddDemoLeadNoteRequest request, IDemoLeadService service, CancellationToken ct) => { await service.AddNoteAsync(id, request.Note, ct); return Results.NoContent(); });
     var clinic = app.MapGroup("/api");
     clinic.MapGet("/clinics/current", async (IClinicCatalogService service, CancellationToken ct) => (await service.GetClinicAsync(ct)) is { } item ? Results.Ok(item) : Results.NotFound()).RequireAuthorization(ClinicPolicies.ClinicsView);
     clinic.MapPut("/clinics/current", async (ClinicRequest request, IClinicCatalogService service, CancellationToken ct) => Results.Ok(await service.UpdateClinicAsync(request, ct))).RequireAuthorization(ClinicPolicies.ClinicsManage);

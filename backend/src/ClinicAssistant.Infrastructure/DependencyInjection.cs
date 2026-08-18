@@ -15,6 +15,8 @@ using ClinicAssistant.Application.Platform;
 using ClinicAssistant.Infrastructure.Platform;
 using ClinicAssistant.Application.Operations;
 using ClinicAssistant.Infrastructure.Operations;
+using ClinicAssistant.Application.Leads;
+using ClinicAssistant.Infrastructure.Leads;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -58,6 +60,9 @@ public static class DependencyInjection
         services.AddScoped<TenantAccessGuard>();
         services.Configure<JwtOptions>(configuration.GetSection(JwtOptions.SectionName));
         services.AddScoped<IAuthService, AuthService>();
+        services.AddOptions<PasswordRecoveryOptions>().Bind(configuration.GetSection(PasswordRecoveryOptions.SectionName));
+        services.AddScoped<IPasswordRecoveryService, PasswordRecoveryService>();
+        services.AddScoped<IPasswordResetEmailSender, PasswordResetEmailSender>();
         services.AddOptions<PlatformBootstrapOptions>()
             .Bind(configuration.GetSection(PlatformBootstrapOptions.SectionName));
         services.AddScoped<IClinicCatalogService, ClinicCatalogService>();
@@ -85,6 +90,7 @@ public static class DependencyInjection
         services.AddScoped<IPlatformBootstrapService, PlatformBootstrapService>();
         services.AddScoped<IAuditQueryService, AuditQueryService>();
         services.AddScoped<IDashboardService, DashboardService>();
+        services.AddScoped<IDemoLeadService, DemoLeadService>();
         services.AddSingleton<IOperationalEventPublisher, NoOpOperationalEventPublisher>();
         services.AddSingleton<IWhatsAppPhoneNumberFormatter, WhatsAppPhoneNumberFormatter>();
         services.AddSingleton<IPhoneMasker, PhoneMasker>();
