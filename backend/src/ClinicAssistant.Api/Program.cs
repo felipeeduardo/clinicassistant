@@ -144,6 +144,8 @@ try
     {
         var dbContext = scope.ServiceProvider.GetRequiredService<ClinicAssistantDbContext>();
         await dbContext.Database.MigrateAsync();
+        var bootstrap = scope.ServiceProvider.GetRequiredService<IPlatformBootstrapService>();
+        await bootstrap.RunAsync(CancellationToken.None);
     }
     var twilioOptions = app.Services.GetRequiredService<IOptions<TwilioOptions>>().Value;
     var forwardedHeadersOptions = new ForwardedHeadersOptions
@@ -189,7 +191,23 @@ try
     var auth = app.MapGroup("/api/auth").WithTags("Authentication");
     auth.MapPost("/register", async (RegisterClinicRequest request, HttpResponse response, IAuthService service, CancellationToken cancellationToken) => { var result = await service.RegisterClinicAsync(request, cancellationToken); SetRefreshCookie(response, result.RefreshToken); return Results.Ok(result); }).AllowAnonymous();
     auth.MapPost("/login", async (LoginRequest request, HttpResponse response, IAuthService service, CancellationToken cancellationToken) => { var result = await service.LoginAsync(request, cancellationToken); SetRefreshCookie(response, result.RefreshToken); return Results.Ok(result); }).AllowAnonymous();
-    auth.MapPost("/refresh", async (HttpRequest request, HttpResponse response, IAuthService service, CancellationToken cancellationToken) => { var token = request.Cookies[RefreshCookieName] ?? throw new UnauthorizedAccessException("Refresh session is unavailable."); var result = await service.RefreshAsync(new RefreshRequest(token), cancellationToken); SetRefreshCookie(response, result.RefreshToken); return Results.Ok(result); }).AllowAnonymous();
+    auth.MapPost("/refresh", async Task<IResult> (HttpRequest request, HttpResponse response, IAuthService service, CancellationToken cancellationToken) =>
+    {
+        if (!request.Cookies.TryGetValue(RefreshCookieName, out var token) || string.IsNullOrWhiteSpace(token))
+            return Results.Unauthorized();
+
+        try
+        {
+            var result = await service.RefreshAsync(new RefreshRequest(token), cancellationToken);
+            SetRefreshCookie(response, result.RefreshToken);
+            return Results.Ok(result);
+        }
+        catch (UnauthorizedAccessException)
+        {
+            response.Cookies.Delete(RefreshCookieName, CookieOptions(request));
+            return Results.Unauthorized();
+        }
+    }).AllowAnonymous();
     auth.MapPost("/logout", async (HttpRequest request, HttpResponse response, IAuthService service, CancellationToken cancellationToken) => { var token = request.Cookies[RefreshCookieName]; if (!string.IsNullOrWhiteSpace(token)) await service.LogoutAsync(new LogoutRequest(token), cancellationToken); response.Cookies.Delete(RefreshCookieName, CookieOptions(request)); return Results.NoContent(); }).AllowAnonymous();
     auth.MapGet("/me", async (IAuthService service, CancellationToken cancellationToken) =>
         Results.Ok(await service.GetCurrentUserAsync(cancellationToken))).RequireAuthorization();
@@ -197,6 +215,8 @@ try
     platform.MapGet("/tenants", async (IPlatformAdministrationService service, CancellationToken ct) => Results.Ok(await service.GetTenantsAsync(ct)));
     platform.MapGet("/users", async (IPlatformAdministrationService service, CancellationToken ct) => Results.Ok(await service.GetUsersAsync(ct)));
     platform.MapGet("/clinics", async (IPlatformAdministrationService service, CancellationToken ct) => Results.Ok(await service.GetClinicsAsync(ct)));
+    platform.MapGet("/onboarding/{tenantId:guid}", async (Guid tenantId, IPlatformAdministrationService service, CancellationToken ct) => Results.Ok(await service.GetOnboardingStatusAsync(tenantId, ct)));
+    platform.MapPost("/tenants/{tenantId:guid}/clinic-admins", async (Guid tenantId, CreateClinicAdminRequest request, HttpRequest httpRequest, IPlatformAdministrationService service, CancellationToken ct) => Results.Ok(await service.CreateClinicAdminAsync(tenantId, request, httpRequest.Headers["Idempotency-Key"].ToString(), ct)));
     platform.MapPost("/tenants/{id:guid}/{action}", async (Guid id, string action, IPlatformAdministrationService service, CancellationToken ct) => { await service.SetTenantStatusAsync(id, action, ct); return Results.NoContent(); });
     platform.MapPost("/onboarding", async (OnboardTenantRequest request, HttpRequest httpRequest, IPlatformAdministrationService service, CancellationToken ct) => Results.Created("/api/platform/onboarding", await service.OnboardAsync(request, httpRequest.Headers["Idempotency-Key"].ToString(), ct)));
     var clinic = app.MapGroup("/api");

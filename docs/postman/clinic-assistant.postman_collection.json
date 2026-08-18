@@ -57,6 +57,11 @@
       "type": "string"
     },
     {
+      "key": "clinicAdminUserId",
+      "value": "",
+      "type": "string"
+    },
+    {
       "key": "unitId",
       "value": "",
       "type": "string"
@@ -334,6 +339,41 @@
               "raw": "{\n  \"tenantName\": \"{{onboardingTenantName}}\",\n  \"tenantSlug\": \"{{onboardingTenantSlug}}\",\n  \"clinicLegalName\": \"Clínica Postman LTDA\",\n  \"clinicTradeName\": \"Clínica Postman\",\n  \"clinicDocument\": \"TEST-POSTMAN\",\n  \"clinicEmail\": \"clinica.postman@example.test\",\n  \"clinicPhone\": \"+550000000101\",\n  \"timeZone\": \"America/Recife\",\n  \"unitName\": \"Unidade Postman\",\n  \"unitAddress\": \"Rua de Teste, 100\",\n  \"unitPhone\": \"+550000000102\",\n  \"adminName\": \"Administrador Postman\",\n  \"adminEmail\": \"admin.postman@example.test\",\n  \"temporaryPassword\": \"{{onboardingTemporaryPassword}}\"\n}"
             },
             "url": "{{baseUrl}}/api/platform/onboarding"
+          }
+        },
+        {
+          "name": "Status do onboarding",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/platform/onboarding/{{tenantId}}"
+          }
+        },
+        {
+          "name": "Criar ClinicAdmin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const response = pm.response.json();",
+                  "pm.test('ClinicAdmin é criado', () => { pm.expect(pm.response.code).to.eql(200); pm.expect(response.role).to.eql('ClinicAdmin'); pm.expect(response.id).to.be.a('string'); });",
+                  "pm.collectionVariables.set('clinicAdminUserId', response.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Idempotency-Key", "value": "{{idempotencyKey}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Clinic Admin Postman\",\n  \"email\": \"clinic-admin.postman@example.test\",\n  \"temporaryPassword\": \"{{onboardingTemporaryPassword}}\"\n}"
+            },
+            "url": "{{baseUrl}}/api/platform/tenants/{{tenantId}}/clinic-admins"
           }
         }
       ]

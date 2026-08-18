@@ -14,6 +14,11 @@ manager do respectivo provedor.
 | `Database__Target` | Railway API/Worker | `primary` ou `test` | `primary` isolado | `primary` | `primary` | Runtime |
 | `Jwt__Issuer`, `Jwt__Audience` | Railway API/Worker | valores locais | valores Preview | valores Pilot | valores Production | Runtime |
 | `Jwt__Secret` | Railway API/Worker | segredo local | secret separado | secret separado | secret forte/rotacionável | Secret/runtime |
+| `PlatformBootstrap__Enabled` | Railway API | `false` | `false` | `false` | `true` somente no bootstrap inicial, depois `false` | Runtime |
+| `PlatformBootstrap__Admins__0__Email` | Railway API | não configurar | não configurar | secret/configuração | secret/configuração | Runtime |
+| `PlatformBootstrap__Admins__0__Password` | Railway API | não configurar | não configurar | secret | secret removido após bootstrap | Secret/runtime |
+| `PlatformBootstrap__Admins__1__Email` | Railway API | não configurar | não configurar | secret/configuração | secret/configuração | Runtime |
+| `PlatformBootstrap__Admins__1__Password` | Railway API | não configurar | não configurar | secret | secret removido após bootstrap | Secret/runtime |
 | `Frontend__AllowedOrigins` | Railway API | localhost | URL Preview aprovada | landing/app Pilot | landing/app Production | Runtime |
 | `RabbitMq__*` | Railway API/Worker | Compose local | broker isolado | broker gerenciado | broker gerenciado | Runtime/secret |
 | `Redis__*` | Railway API/Worker | Compose local | Redis isolado | Redis gerenciado | Redis gerenciado | Runtime/secret |

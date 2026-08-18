@@ -28,6 +28,9 @@ services:
       Jwt__Secret: ${JWT_SECRET:-development-only-secret-change-before-production-2026}
       Jwt__AccessTokenMinutes: ${JWT_ACCESS_TOKEN_MINUTES:-15}
       Jwt__RefreshTokenDays: ${JWT_REFRESH_TOKEN_DAYS:-14}
+      PlatformBootstrap__Enabled: ${PLATFORM_BOOTSTRAP__ENABLED:-${PLATFORM_BOOTSTRAP_ENABLED:-false}}
+      PlatformBootstrap__Admins__0__Email: ${PLATFORM_BOOTSTRAP__ADMINS__0__EMAIL:-${PLATFORM_BOOTSTRAP_ADMINS_0_EMAIL:-}}
+      PlatformBootstrap__Admins__0__Password: ${PLATFORM_BOOTSTRAP__ADMINS__0__PASSWORD:-${PLATFORM_BOOTSTRAP_ADMINS_0_PASSWORD:-}}
       Frontend__AllowedOrigins__0: http://localhost:${FRONTEND_PORT:-3000}
       Frontend__AllowedOrigins__1: http://127.0.0.1:${FRONTEND_PORT:-3000}
       WhatsApp__Provider: ${WHATSAPP_PROVIDER:-Fake}

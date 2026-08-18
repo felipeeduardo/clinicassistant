@@ -22,7 +22,7 @@ A collection guarda os IDs retornados por criação de paciente, consulta e temp
 
 Os requests de registro/login validam resposta JSON, token e perfil, e propagam `accessToken`, `tenantId` e `userId`. As criações de unidade, especialidade, profissional, paciente, consulta e template validam `201` e gravam o ID retornado para o próximo passo.
 
-A pasta **02 — Tenants** contém o onboarding transacional. Antes de enviá-lo, informe valores fictícios únicos em `onboardingTenantName` e `onboardingTenantSlug`, e uma senha temporária apenas na sessão em `onboardingTemporaryPassword`. A resposta propaga tenant, clínica, unidade, administrador e integração.
+A pasta **02 — Tenants** contém o onboarding transacional. Antes de enviá-lo, informe valores fictícios únicos em `onboardingTenantName` e `onboardingTenantSlug`, e uma senha temporária apenas na sessão em `onboardingTemporaryPassword`. A resposta propaga tenant, clínica, unidade, administrador e integração. Em seguida, **Status do onboarding** consulta a prontidão da clínica; **Criar ClinicAdmin** é uma operação de recuperação idempotente para provisionar um administrador quando o onboarding inicial não o criou. Use somente e-mails e senhas de teste na collection.
 
 `{{idempotencyKey}}` usa `{{$guid}}`, compatível com o Postman atual. Para repetir intencionalmente uma operação idempotente, substitua temporariamente a variável por um UUID fixo e reutilize-o apenas nesse teste.
 

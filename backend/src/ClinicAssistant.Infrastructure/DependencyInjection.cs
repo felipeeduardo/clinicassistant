@@ -58,6 +58,8 @@ public static class DependencyInjection
         services.AddScoped<TenantAccessGuard>();
         services.Configure<JwtOptions>(configuration.GetSection(JwtOptions.SectionName));
         services.AddScoped<IAuthService, AuthService>();
+        services.AddOptions<PlatformBootstrapOptions>()
+            .Bind(configuration.GetSection(PlatformBootstrapOptions.SectionName));
         services.AddScoped<IClinicCatalogService, ClinicCatalogService>();
         services.AddScoped<ISchedulingService, SchedulingService>();
         services.Configure<WhatsAppOptions>(configuration.GetSection(WhatsAppOptions.SectionName));
@@ -80,6 +82,7 @@ public static class DependencyInjection
         services.AddScoped<IConversationOrchestrator, ConversationOrchestrator>();
         services.AddScoped<IConversationAdministrationService, ConversationAdministrationService>();
         services.AddScoped<IPlatformAdministrationService, PlatformAdministrationService>();
+        services.AddScoped<IPlatformBootstrapService, PlatformBootstrapService>();
         services.AddScoped<IAuditQueryService, AuditQueryService>();
         services.AddScoped<IDashboardService, DashboardService>();
         services.AddSingleton<IOperationalEventPublisher, NoOpOperationalEventPublisher>();
