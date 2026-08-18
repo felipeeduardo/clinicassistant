@@ -22,7 +22,8 @@ describe("landing closing sections", () => {
   it("offers a clear final conversion and footer navigation", () => {
     render(<><FinalCtaSection /><LandingFooter /></>);
     expect(screen.getByRole("heading", { name: "Veja a IA Recepção funcionando na rotina da sua clínica." })).toBeVisible();
-    expect(screen.getAllByRole("link", { name: /Solicitar demonstração/ })[0]).toHaveAttribute("href", expect.stringContaining("mailto:"));
+    // The primary conversion goes through the validated demo-request form.
+    expect(screen.getAllByRole("link", { name: /Solicitar demonstração/ })[0]).toHaveAttribute("href", "/demonstracao");
     expect(screen.getByRole("link", { name: "Entrar na operação" })).toHaveAttribute("href", "/login");
   });
 });
