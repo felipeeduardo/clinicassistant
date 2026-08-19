@@ -45,8 +45,27 @@ public sealed class PlatformAdministrationService(ClinicAssistantDbContext db, I
             var scope = "platform.onboard"; var replay = await db.IdempotencyRecords.SingleOrDefaultAsync(x => x.Scope == scope && x.Key == key, ct); if (replay is not null) return JsonSerializer.Deserialize<OnboardTenantResponse>(replay.ResponseJson)! with { Replayed = true };
             var slug = r.TenantSlug.Trim().ToLowerInvariant(); var email = r.AdminEmail.Trim().ToLowerInvariant(); if (await db.Tenants.AnyAsync(x => x.Slug == slug, ct)) throw new InvalidOperationException("Tenant slug is already in use."); if (await db.Users.IgnoreQueryFilters().AnyAsync(x => x.Email == email, ct)) throw new InvalidOperationException("Administrator email is already in use.");
             await using var transaction = await db.Database.BeginTransactionAsync(ct);
-            var tenant = new Tenant(r.TenantName.Trim(), slug); var clinic = new Clinic(tenant.Id, r.ClinicLegalName, r.ClinicTradeName, r.ClinicDocument, r.ClinicEmail, r.ClinicPhone, r.TimeZone); var unit = new ClinicUnit(tenant.Id, clinic.Id, r.UnitName, r.UnitAddress, r.UnitPhone); var admin = new User(tenant.Id, r.AdminName, email, PasswordHasher.Hash(r.TemporaryPassword), UserRole.ClinicAdmin); var integration = new WhatsAppIntegration(tenant.Id, WhatsAppProvider.Fake, $"onboarding-{tenant.Id:N}", "disabled"); integration.Disable(); var response = new OnboardTenantResponse(tenant.Id, clinic.Id, unit.Id, admin.Id, integration.Id, false);
-            db.AddRange(tenant, clinic, unit, admin, integration, new AuditRecord(tenant.Id, null, "tenant.onboard", "Tenant", tenant.Id, "Succeeded", "Transactional onboarding"), new IdempotencyRecord(scope, key, JsonSerializer.Serialize(response))); await db.SaveChangesAsync(ct); await transaction.CommitAsync(ct); OperationalTelemetry.PlatformOnboarding.Add(1); await PublishAuditAsync(tenant.Id, "tenant.onboard", tenant.Id, ct); return response;
+            var tenant = new Tenant(r.TenantName.Trim(), slug);
+            var clinic = new Clinic(tenant.Id, r.ClinicLegalName, r.ClinicTradeName, r.ClinicDocument, r.ClinicEmail, r.ClinicPhone, r.TimeZone);
+            var unit = new ClinicUnit(tenant.Id, clinic.Id, r.UnitName, r.UnitAddress, r.UnitPhone);
+            var admin = new User(tenant.Id, r.AdminName, email, PasswordHasher.Hash(r.TemporaryPassword), UserRole.ClinicAdmin);
+            var integration = new WhatsAppIntegration(tenant.Id, WhatsAppProvider.Fake, $"onboarding-{tenant.Id:N}", "disabled");
+            integration.Disable();
+            var response = new OnboardTenantResponse(tenant.Id, clinic.Id, unit.Id, admin.Id, integration.Id, false);
+
+            // The domain entities intentionally carry foreign-key IDs rather than navigation
+            // properties. Persist the principal first so PostgreSQL cannot insert Clinic before
+            // its Tenant when batching unrelated Added entries.
+            db.Tenants.Add(tenant);
+            await db.SaveChangesAsync(ct);
+            db.AddRange(clinic, unit, admin, integration,
+                new AuditRecord(tenant.Id, null, "tenant.onboard", "Tenant", tenant.Id, "Succeeded", "Transactional onboarding"),
+                new IdempotencyRecord(scope, key, JsonSerializer.Serialize(response)));
+            await db.SaveChangesAsync(ct);
+            await transaction.CommitAsync(ct);
+            OperationalTelemetry.PlatformOnboarding.Add(1);
+            await PublishAuditAsync(tenant.Id, "tenant.onboard", tenant.Id, ct);
+            return response;
         }
         catch
         {
