@@ -9,6 +9,12 @@
 3. No Railway, cadastre as variáveis abaixo **na API e no Worker**. Credenciais
    ficam como secrets e nunca no frontend.
 
+> No Railway use exatamente os nomes com `__` abaixo. Os nomes locais como
+> `TWILIO_ACCOUNT_SID` são aliases usados apenas pelo `docker-compose` e não
+> são convertidos automaticamente quando inseridos diretamente no Railway.
+> API e Worker possuem ambientes separados, portanto repita a configuração nos
+> dois serviços.
+
 ```env
 WhatsApp__Provider=Twilio
 WhatsApp__TestRecipient=+<número-único-de-qa>
@@ -30,12 +36,14 @@ Twilio__SignatureValidationEnabled=true
    A URL precisa conter a mesma `IntegrationKey` da integração persistida no
    tenant.
 5. No frontend autenticado, entre como `ClinicAdmin`, abra **Integrações →
-   WhatsApp**, clique em **Validar configuração** e depois em **Habilitar**.
+   WhatsApp**, clique em **Verificar conexão** e depois em **Habilitar**.
    A integração persistida deve estar no tenant correto, com provider `Twilio`
-   e `WhatsAppFrom` igual ao sender aprovado.
-6. Faça um teste controlado para o único `WHATSAPP__TEST_RECIPIENT` permitido.
-   Confirme inbound, Outbox, envio outbound e StatusCallback antes de liberar
-   qualquer uso comercial.
+   e `WhatsAppFrom` igual ao sender aprovado. A tela apresenta o status dos
+   webhooks e callbacks sem expor URLs ou credenciais.
+6. O botão **Enviar teste** não é exibido nem aceito em produção. Valide o
+   fluxo produtivo com uma mensagem real autorizada, respeitando opt-in e as
+   regras de templates da Meta/Twilio; o destinatário de QA é reservado para
+   Development/Test/Pilot.
 
 O cadastro do sender e a associação Meta são etapas externas: a aplicação não
  cria nem aprova números no Twilio.

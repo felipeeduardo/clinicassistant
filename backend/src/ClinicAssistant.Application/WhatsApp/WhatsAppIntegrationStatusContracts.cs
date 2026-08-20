@@ -12,6 +12,9 @@ public interface IWhatsAppIntegrationStatusService
 public sealed record WhatsAppIntegrationOperationalStatus(
     string Status,
     string? DisplayPhoneNumber,
+    bool CanSendTest,
+    bool InboundWebhookConfigured,
+    bool StatusCallbackConfigured,
     DateTimeOffset? LastWebhookAt,
     DateTimeOffset? LastSuccessfulSendAt,
     DateTimeOffset? LastFailureAt,

@@ -14,9 +14,10 @@ using Microsoft.EntityFrameworkCore;
 
 namespace ClinicAssistant.Infrastructure.WhatsApp;
 
-public sealed class WhatsAppIntegrationStatusService(ClinicAssistantDbContext dbContext, ITenantContext tenantContext, IPhoneMasker phoneMasker, IOptions<WhatsAppOptions> options, IOperationalEventPublisher events) : IWhatsAppIntegrationStatusService
+public sealed class WhatsAppIntegrationStatusService(ClinicAssistantDbContext dbContext, ITenantContext tenantContext, IPhoneMasker phoneMasker, IOptions<WhatsAppOptions> options, IOptions<TwilioOptions> twilioOptions, IHostEnvironment hostEnvironment, IOperationalEventPublisher events) : IWhatsAppIntegrationStatusService
 {
     private readonly WhatsAppOptions _options = options.Value;
+    private readonly TwilioOptions _twilioOptions = twilioOptions.Value;
     public async Task<WhatsAppIntegrationOperationalStatus?> GetCurrentAsync(CancellationToken cancellationToken)
     {
         if (!tenantContext.TenantId.HasValue) return null;
@@ -27,6 +28,9 @@ public sealed class WhatsAppIntegrationStatusService(ClinicAssistantDbContext db
         if (integration is null) return null;
 
         return new(ToProductStatus(integration), phoneMasker.Mask(integration.DisplayPhoneNumber ?? integration.WhatsAppFrom),
+            !hostEnvironment.IsProduction(),
+            !string.IsNullOrWhiteSpace(_twilioOptions.IncomingWebhookBaseUrl),
+            !string.IsNullOrWhiteSpace(_twilioOptions.StatusCallbackBaseUrl),
             integration.LastWebhookAt, integration.LastSuccessfulSendAt, integration.LastFailureAt, integration.FailureReason);
     }
     public async Task ValidateCurrentAsync(CancellationToken cancellationToken) { var integration = await CurrentAsync(cancellationToken); if (string.IsNullOrWhiteSpace(integration.WhatsAppFrom) || integration.Provider == WhatsAppProvider.Meta) { OperationalTelemetry.TwilioConfigurationFailures.Add(1); throw new InvalidOperationException("The integration configuration is incomplete."); } integration.MarkValidated(); dbContext.AuditRecords.Add(new AuditRecord(integration.TenantId, tenantContext.UserId, "whatsapp.integration.validated", "WhatsAppIntegration", integration.Id, "Succeeded", "Local configuration validation completed.")); await dbContext.SaveChangesAsync(cancellationToken); OperationalTelemetry.TwilioConfigurationValidations.Add(1); await PublishUpdatedAsync(integration.TenantId, cancellationToken); await PublishAuditAsync(integration.TenantId, "whatsapp.integration.validated", integration.Id, cancellationToken); }
@@ -36,7 +40,10 @@ public sealed class WhatsAppIntegrationStatusService(ClinicAssistantDbContext db
     {
         var stopwatch = System.Diagnostics.Stopwatch.StartNew();
         WhatsAppTelemetry.TestMessagesRequested.Add(1);
-        if (string.IsNullOrWhiteSpace(idempotencyKey) || string.IsNullOrWhiteSpace(_options.TestRecipient)) throw new InvalidOperationException("Idempotency-Key and WhatsApp:TestRecipient are required."); var integration = await CurrentAsync(cancellationToken); if (integration.Status != WhatsAppIntegrationStatus.Connected) throw new InvalidOperationException("Enable the integration before sending a test message."); var scope = $"whatsapp.integration.test:{integration.Id}"; if (await dbContext.IdempotencyRecords.AnyAsync(item => item.Scope == scope && item.Key == idempotencyKey, cancellationToken)) return;
+        if (hostEnvironment.IsProduction()) throw new InvalidOperationException("Test messages are disabled in Production.");
+        if (string.IsNullOrWhiteSpace(idempotencyKey)) throw new InvalidOperationException("Idempotency-Key is required.");
+        if (string.IsNullOrWhiteSpace(_options.TestRecipient)) throw new InvalidOperationException("WhatsApp:TestRecipient is required for the integration test.");
+        var integration = await CurrentAsync(cancellationToken); if (integration.Status != WhatsAppIntegrationStatus.Connected) throw new InvalidOperationException("Enable the integration before sending a test message."); var scope = $"whatsapp.integration.test:{integration.Id}"; if (await dbContext.IdempotencyRecords.AnyAsync(item => item.Scope == scope && item.Key == idempotencyKey, cancellationToken)) return;
         var recipient = _options.TestRecipient.Trim(); var patient = await dbContext.Patients.SingleOrDefaultAsync(item => item.TenantId == integration.TenantId && item.Phone == recipient, cancellationToken); if (patient is null) { patient = new Patient(integration.TenantId, "WhatsApp Test Recipient", recipient, null, null, ConsentStatus.Granted, PatientSource.WhatsApp); dbContext.Patients.Add(patient); }
         var conversation = await dbContext.Conversations.SingleOrDefaultAsync(item => item.TenantId == integration.TenantId && item.IntegrationId == integration.Id && item.PatientId == patient.Id, cancellationToken); if (conversation is null) { conversation = new Conversation(integration.TenantId, patient.Id, integration.Id, recipient); dbContext.Conversations.Add(conversation); }
         var inbound = new ConversationMessage(integration.TenantId, conversation.Id, ConversationMessageType.System, "Test window opened.", integration.Provider, $"test-inbound-{Guid.NewGuid():N}", DateTimeOffset.UtcNow); var outbound = new ConversationMessage(integration.TenantId, conversation.Id, ConversationMessageType.Text, "Clinic Assistant: mensagem de teste da integração WhatsApp.", integration.Provider); var command = new SendWhatsAppMessageCommand(integration.TenantId, integration.Id, conversation.Id, outbound.Id, WhatsAppOutgoingMessageType.Text, recipient, outbound.Content, null, null, null, $"integration-test:{outbound.Id:N}", idempotencyKey);

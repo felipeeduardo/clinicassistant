@@ -1,6 +1,6 @@
 export type User = { id: string; tenantId: string; name: string; email: string; role: string };
 export type AuthResponse = { accessToken: string; accessTokenExpiresAt: string; user: User };
-export type IntegrationStatus = { status: string; displayPhoneNumber?: string | null; lastWebhookAt?: string | null; lastSuccessfulSendAt?: string | null; lastFailureAt?: string | null; failureReason?: string | null };
+export type IntegrationStatus = { status: string; displayPhoneNumber?: string | null; canSendTest: boolean; inboundWebhookConfigured: boolean; statusCallbackConfigured: boolean; lastWebhookAt?: string | null; lastSuccessfulSendAt?: string | null; lastFailureAt?: string | null; failureReason?: string | null };
 export type WhatsAppTemplate = { id: string; name: string; languageCode: string; category?: string | null; status: string; contentSidMasked: string; updatedAt: string };
 export type WhatsAppTemplateDetail = WhatsAppTemplate & { variables: string[]; createdAt: string };
 
