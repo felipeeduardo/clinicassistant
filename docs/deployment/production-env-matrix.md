@@ -21,7 +21,7 @@ manager do respectivo provedor.
 | `PlatformBootstrap__Admins__1__Password` | Railway API | não configurar | não configurar | secret | secret removido após bootstrap | Secret/runtime |
 | `Frontend__AllowedOrigins` | Railway API | localhost | URL Preview aprovada | landing/app Pilot | landing/app Production | Runtime |
 | `RabbitMq__*` | Railway API/Worker | Compose local | broker isolado | broker gerenciado | broker gerenciado | Runtime/secret |
-| `Redis__*` | Railway API/Worker | Compose local | Redis isolado | Redis gerenciado | Redis gerenciado | Runtime/secret |
+| `Redis__ConnectionString` ou `REDIS_URL`/`REDIS_PRIVATE_URL` | Railway API/Worker | Compose local | Redis isolado | Redis gerenciado | Redis gerenciado | Runtime/secret |
 | `WhatsApp__Provider` | Railway API/Worker | `Fake` ou Sandbox | `Fake` | Sandbox controlado | `Twilio` após Gate D | Runtime |
 | `Twilio__AccountSid` | Railway API/Worker | somente Sandbox local | Sandbox isolado | Sandbox/conta aprovada | conta Production | Secret |
 | `Twilio__AuthToken` | Railway API/Worker | secret local | secret Preview | secret Pilot | secret manager | Secret |

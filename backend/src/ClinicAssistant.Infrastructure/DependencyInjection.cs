@@ -48,13 +48,23 @@ public static class DependencyInjection
         var connectionString = DatabaseConnectionStringResolver.Resolve(configuration);
 
         services.AddDbContext<ClinicAssistantDbContext>(options => options.UseNpgsql(connectionString));
-        var redisHost = configuration["Redis:Host"] ?? "localhost";
-        var redisPort = configuration.GetValue<int?>("Redis:Port") ?? 6379;
-        services.AddSingleton<IConnectionMultiplexer>(_ => ConnectionMultiplexer.Connect(new ConfigurationOptions
+        var redisConnectionString = configuration["Redis:ConnectionString"]
+            ?? configuration["REDIS_URL"]
+            ?? configuration["REDIS_PRIVATE_URL"];
+        if (string.Equals(environment, "Production", StringComparison.OrdinalIgnoreCase) && string.IsNullOrWhiteSpace(redisConnectionString) && string.IsNullOrWhiteSpace(configuration["Redis:Host"]))
+            throw new InvalidOperationException("Production Redis connection is required. Configure Redis:ConnectionString or Redis:Host/Redis:Port.");
+        services.AddSingleton<IConnectionMultiplexer>(_ =>
         {
-            EndPoints = { { redisHost, redisPort } },
-            AbortOnConnectFail = false
-        }));
+            if (!string.IsNullOrWhiteSpace(redisConnectionString))
+                return ConnectionMultiplexer.Connect(ParseRedisConfiguration(redisConnectionString));
+            var redisHost = configuration["Redis:Host"] ?? "localhost";
+            var redisPort = configuration.GetValue<int?>("Redis:Port") ?? 6379;
+            return ConnectionMultiplexer.Connect(new ConfigurationOptions
+            {
+                EndPoints = { { redisHost, redisPort } },
+                AbortOnConnectFail = false
+            });
+        });
         services.AddHttpContextAccessor();
         services.AddScoped<ITenantContext, HttpTenantContext>();
         services.AddScoped<TenantAccessGuard>();
@@ -144,5 +154,28 @@ public static class DependencyInjection
             };
         });
         return services;
+    }
+
+    private static ConfigurationOptions ParseRedisConfiguration(string value)
+    {
+        if (!Uri.TryCreate(value, UriKind.Absolute, out var uri) || uri.Scheme is not ("redis" or "rediss"))
+            return ConfigurationOptions.Parse(value);
+
+        var options = new ConfigurationOptions
+        {
+            AbortOnConnectFail = false,
+            Ssl = uri.Scheme == "rediss"
+        };
+        options.EndPoints.Add(uri.Host, uri.IsDefaultPort ? 6379 : uri.Port);
+        if (!string.IsNullOrWhiteSpace(uri.UserInfo))
+        {
+            var credentials = uri.UserInfo.Split(':', 2);
+            options.User = Uri.UnescapeDataString(credentials[0]);
+            if (credentials.Length == 2)
+                options.Password = Uri.UnescapeDataString(credentials[1]);
+        }
+        if (int.TryParse(uri.AbsolutePath.Trim('/'), out var database))
+            options.DefaultDatabase = database;
+        return options;
     }
 }

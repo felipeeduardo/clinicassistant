@@ -3,7 +3,7 @@
 ## Railway (API)
 
 1. Publique o serviço apontando para o Dockerfile da API em `backend/src/ClinicAssistant.Api` conforme a configuração existente do projeto.
-2. Confirme `ConnectionStrings__Default`, `Redis__ConnectionString`, `RabbitMq__Uri` e `Jwt__Secret` no ambiente de produção.
+2. Confirme `ConnectionStrings__Default`, `Redis__ConnectionString` (ou a referência Railway `REDIS_URL`/`REDIS_PRIVATE_URL`), `RabbitMq__Uri` e `Jwt__Secret` no ambiente de produção.
 3. Aguarde `/health/ready` retornar HTTP 200.
 4. Abra `/swagger/v1/swagger.json` e confirme a operação `GET /api/platform/dashboard`.
 5. Verifique no log os checks `worker-outbox` e `signalr` sem expor valores de configuração.
