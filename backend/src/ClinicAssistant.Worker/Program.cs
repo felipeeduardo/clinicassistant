@@ -13,6 +13,11 @@ using ClinicAssistant.Infrastructure.Messaging;
 var builder = Host.CreateApplicationBuilder(args);
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
+// Platform administration is registered by the shared infrastructure module and
+// depends on HealthCheckService for its operational dashboard. The Worker does
+// not expose health endpoints, but it still needs the health-check service in
+// its container so the host can validate the complete dependency graph.
+builder.Services.AddHealthChecks();
 builder.Services.AddHostedService<MessagingWorker>();
 builder.Services.AddHostedService<WhatsAppIncomingMessageConsumer>();
 builder.Services.AddHostedService<SendWhatsAppMessageConsumer>();
