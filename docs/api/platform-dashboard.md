@@ -8,3 +8,4 @@ O retorno contém `summary`, `commercial`, `growth`, `clinics`, `health`, `atten
 
 Perfis ClinicAdmin, Receptionist e usuários não autenticados recebem `403`/`401` conforme a camada de autenticação.
 
+O contrato também aparece automaticamente no Swagger em `/swagger/v1/swagger.json`. Após publicar uma versão, valide o drift com `scripts/postman/check-openapi-drift.sh` apontando para a URL pública da API.

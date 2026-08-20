@@ -69,3 +69,5 @@ Procedimento:
 
 O modo `Disabled` é aceitável apenas em desenvolvimento sem teste de e-mail. Em
 Production, use `Smtp` e não registre tokens, links ou senhas nos logs.
+
+O frontend/Vercel não recebe nenhuma variável de credencial Twilio. Em produção, `WhatsApp__Provider=Twilio` é obrigatório e Fake não pode ser usado como fallback.

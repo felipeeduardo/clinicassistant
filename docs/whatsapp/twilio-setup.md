@@ -7,7 +7,7 @@
 
 ## Administração segura
 
-As credenciais Twilio são de nível de plataforma e devem permanecer somente no secret manager ou em variáveis de ambiente seguras. O Clinic Assistant não persiste `AuthToken` no banco e a interface em `/settings/integrations/twilio` nunca recebe, registra ou exibe esse valor. Ela mostra apenas indicadores mascarados e checks sanitizados para administradores da clínica.
+As credenciais Twilio são de nível de plataforma e devem permanecer somente no secret manager ou em variáveis de ambiente seguras. O Clinic Assistant não persiste `AuthToken` no banco e não existe tela de credenciais para o ClinicAdmin. A rotação ocorre no secret store e a operação é validada pelos health checks e logs internos.
 
 Para rotação, atualize o secret do ambiente, reinicie ou recarregue a aplicação conforme a plataforma e execute **Validar configuração**. Não use o navegador, `localStorage` ou campos administrativos para transportar credenciais.
 

@@ -1,9 +1,8 @@
 import type { ApiClient } from "@/lib/api/client";
-import type { IntegrationStatus, PagedResult, TwilioConfigurationStatus, WhatsAppTemplate, WhatsAppTemplateDetail } from "@/lib/api/types";
+import type { IntegrationStatus, PagedResult, WhatsAppTemplate, WhatsAppTemplateDetail } from "@/lib/api/types";
 
 export const whatsAppApi = {
   status: (api: ApiClient) => api.request<IntegrationStatus>("/api/whatsapp/integration/status"),
-  twilioConfiguration: (api: ApiClient) => api.request<TwilioConfigurationStatus>("/api/whatsapp/integration/twilio/configuration"),
   templates: (api: ApiClient, search = "") => api.request<PagedResult<WhatsAppTemplate>>(`/api/whatsapp/templates?page=1&pageSize=25&search=${encodeURIComponent(search)}`),
   createTemplate: (api: ApiClient, request: { contentSid: string; name: string; languageCode: string; category?: string; variables?: string[] }) => api.request<WhatsAppTemplate>("/api/whatsapp/templates", { method: "POST", body: JSON.stringify(request) }),
   template: (api: ApiClient, id: string) => api.request<WhatsAppTemplateDetail>(`/api/whatsapp/templates/${id}`),

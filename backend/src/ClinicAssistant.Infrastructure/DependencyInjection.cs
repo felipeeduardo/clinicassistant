@@ -67,8 +67,24 @@ public static class DependencyInjection
             .Bind(configuration.GetSection(PlatformBootstrapOptions.SectionName));
         services.AddScoped<IClinicCatalogService, ClinicCatalogService>();
         services.AddScoped<ISchedulingService, SchedulingService>();
-        services.Configure<WhatsAppOptions>(configuration.GetSection(WhatsAppOptions.SectionName));
-        services.Configure<TwilioOptions>(configuration.GetSection(TwilioOptions.SectionName));
+        services.AddOptions<WhatsAppOptions>()
+            .Bind(configuration.GetSection(WhatsAppOptions.SectionName))
+            .Validate(options => !string.Equals(environment, "Production", StringComparison.OrdinalIgnoreCase) || options.Provider == WhatsAppProvider.Twilio, "Production WhatsApp provider must be configured as Twilio.")
+            .ValidateOnStart();
+        services.AddOptions<TwilioOptions>()
+            .Bind(configuration.GetSection(TwilioOptions.SectionName))
+            .Validate(options =>
+            {
+                if (!string.Equals(environment, "Production", StringComparison.OrdinalIgnoreCase)) return true;
+                if (string.IsNullOrWhiteSpace(options.AccountSid) || string.IsNullOrWhiteSpace(options.AuthToken) || string.IsNullOrWhiteSpace(options.WhatsAppFrom))
+                    throw new InvalidOperationException("Production WhatsApp provider must be configured.");
+                if (string.IsNullOrWhiteSpace(options.IncomingWebhookBaseUrl) || string.IsNullOrWhiteSpace(options.StatusCallbackBaseUrl))
+                    throw new InvalidOperationException("Production WhatsApp public webhook URLs must be configured.");
+                if (!Uri.TryCreate(options.IncomingWebhookBaseUrl, UriKind.Absolute, out var inbound) || inbound.Scheme != Uri.UriSchemeHttps || !Uri.TryCreate(options.StatusCallbackBaseUrl, UriKind.Absolute, out var callback) || callback.Scheme != Uri.UriSchemeHttps)
+                    throw new InvalidOperationException("Production WhatsApp public webhook URLs must use HTTPS.");
+                return true;
+            })
+            .ValidateOnStart();
         services.AddOptions<ConversationOptions>()
             .Bind(configuration.GetSection(ConversationOptions.SectionName))
             .Validate(options => options.StateExpirationMinutes is > 0 and <= 1_440, "Conversation:StateExpirationMinutes must be between 1 and 1440.")

@@ -22,9 +22,8 @@ public sealed class WhatsAppTemplateAdministrationService(ClinicAssistantDbConte
         if (!string.IsNullOrWhiteSpace(query.Status) && Enum.TryParse<WhatsAppTemplateStatus>(query.Status, true, out var status)) templates = templates.Where(item => item.Status == status);
         if (!string.IsNullOrWhiteSpace(query.LanguageCode)) templates = templates.Where(item => item.LanguageCode == query.LanguageCode);
         if (!string.IsNullOrWhiteSpace(query.Category)) templates = templates.Where(item => item.Category == query.Category);
-        if (!string.IsNullOrWhiteSpace(query.Provider) && Enum.TryParse<WhatsAppProvider>(query.Provider, true, out var provider)) templates = templates.Where(item => item.Provider == provider);
         var total = await templates.CountAsync(cancellationToken);
-        var items = await templates.OrderByDescending(item => item.UpdatedAt).Skip((page - 1) * pageSize).Take(pageSize).Select(item => new WhatsAppTemplateListItem(item.Id, item.Name, item.Provider.ToString(), item.LanguageCode, item.Category, item.Status.ToString(), MaskContentSid(item.ContentSid), item.UpdatedAt)).ToListAsync(cancellationToken);
+        var items = await templates.OrderByDescending(item => item.UpdatedAt).Skip((page - 1) * pageSize).Take(pageSize).Select(item => new WhatsAppTemplateListItem(item.Id, item.Name, item.LanguageCode, item.Category, item.Status.ToString(), MaskContentSid(item.ContentSid), item.UpdatedAt)).ToListAsync(cancellationToken);
         return new(items, page, pageSize, total);
     }
 
@@ -33,7 +32,7 @@ public sealed class WhatsAppTemplateAdministrationService(ClinicAssistantDbConte
         var tenantId = tenantContext.TenantId ?? throw new UnauthorizedAccessException();
         var item = await dbContext.WhatsAppTemplates.SingleOrDefaultAsync(template => template.Id == templateId && template.TenantId == tenantId, cancellationToken);
         if (item is null) return null;
-        return new(item.Id, item.Name, item.Provider.ToString(), item.LanguageCode, item.Category, item.Status.ToString(), MaskContentSid(item.ContentSid), ReadVariables(item.ParametersSchema), item.CreatedAt, item.UpdatedAt);
+        return new(item.Id, item.Name, item.LanguageCode, item.Category, item.Status.ToString(), MaskContentSid(item.ContentSid), ReadVariables(item.ParametersSchema), item.CreatedAt, item.UpdatedAt);
     }
     public async Task<WhatsAppTemplateDetail> CreateAsync(WhatsAppTemplateRequest request, CancellationToken cancellationToken)
     {
@@ -55,7 +54,7 @@ public sealed class WhatsAppTemplateAdministrationService(ClinicAssistantDbConte
     private async Task<bool> ChangeStatusAsync(Guid templateId, bool active, CancellationToken ct) { var tenantId = tenantContext.TenantId ?? throw new UnauthorizedAccessException(); var template = await dbContext.WhatsAppTemplates.SingleOrDefaultAsync(item => item.Id == templateId && item.TenantId == tenantId, ct); if (template is null) return false; var action = active ? "whatsapp.template.activated" : "whatsapp.template.deactivated"; if (active) template.Activate(); else template.Deactivate(); dbContext.AuditRecords.Add(new AuditRecord(tenantId, tenantContext.UserId, action, "WhatsAppTemplate", template.Id, "Succeeded", "Template status changed.")); await dbContext.SaveChangesAsync(ct); await events.PublishAsync(tenantId, action, new { template.Id, Status = template.Status.ToString() }, ct); await PublishAuditAsync(tenantId, action, "WhatsAppTemplate", template.Id, ct); return true; }
     private static WhatsAppTemplateRequest Normalize(WhatsAppTemplateRequest request) { if (string.IsNullOrWhiteSpace(request.Name) || string.IsNullOrWhiteSpace(request.LanguageCode)) throw new ArgumentException("Name and language are required."); var variables = request.Variables?.Select(item => item.Trim()).Where(item => item.Length > 0).Distinct(StringComparer.Ordinal).ToArray() ?? []; if (variables.Any(item => item.Length > 80)) throw new ArgumentException("Template variables are invalid."); return request with { ContentSid = string.IsNullOrWhiteSpace(request.ContentSid) ? null : request.ContentSid.Trim(), Name = request.Name.Trim(), LanguageCode = request.LanguageCode.Trim(), Category = string.IsNullOrWhiteSpace(request.Category) ? null : request.Category.Trim(), Variables = variables }; }
     private static string? SerializeVariables(IReadOnlyList<string>? variables) => variables is { Count: > 0 } ? JsonSerializer.Serialize(variables) : null;
-    private static WhatsAppTemplateDetail ToDetail(WhatsAppTemplate template) => new(template.Id, template.Name, template.Provider.ToString(), template.LanguageCode, template.Category, template.Status.ToString(), MaskContentSid(template.ContentSid), ReadVariables(template.ParametersSchema), template.CreatedAt, template.UpdatedAt);
+    private static WhatsAppTemplateDetail ToDetail(WhatsAppTemplate template) => new(template.Id, template.Name, template.LanguageCode, template.Category, template.Status.ToString(), MaskContentSid(template.ContentSid), ReadVariables(template.ParametersSchema), template.CreatedAt, template.UpdatedAt);
 
     private static string[] ReadVariables(string? schema) { try { return string.IsNullOrWhiteSpace(schema) ? [] : JsonSerializer.Deserialize<string[]>(schema) ?? []; } catch (JsonException) { return []; } }
     private static string MaskContentSid(string contentSid) => contentSid.Length <= 6 ? "••••••" : $"{contentSid[..2]}••••••{contentSid[^4..]}";

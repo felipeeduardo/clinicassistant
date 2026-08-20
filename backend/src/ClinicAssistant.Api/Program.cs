@@ -26,6 +26,7 @@ using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using System.Net;
 using ClinicAssistant.Api.Realtime;
 using ClinicAssistant.Application.Realtime;
@@ -138,7 +139,9 @@ try
     builder.Services.AddHealthChecks()
         .AddCheck("postgresql", new PostgreSqlHealthCheck(builder.Configuration), tags: ["ready"])
         .AddCheck<RabbitMqHealthCheck>("rabbitmq", tags: ["ready"])
-        .AddCheck("redis", new TcpHealthCheck(builder.Configuration, "Redis", 6379), tags: ["ready"]);
+        .AddCheck("redis", new TcpHealthCheck(builder.Configuration, "Redis", 6379), tags: ["ready"])
+        .AddCheck<OutboxHealthCheck>("worker-outbox", tags: ["ready"])
+        .AddCheck("signalr", () => HealthCheckResult.Healthy("Operations hub is hosted by the API."), tags: ["ready"]);
 
     builder.Services.AddOpenTelemetry()
         .ConfigureResource(resource => resource.AddService("ClinicAssistant.Api"))
@@ -307,7 +310,6 @@ try
     clinic.MapPost("/appointments/{id:guid}/reschedule", async (Guid id, RescheduleAppointmentRequest request, HttpRequest httpRequest, ISchedulingService service, CancellationToken ct) => Results.Ok(await service.RescheduleAsync(id, request, httpRequest.Headers["Idempotency-Key"].ToString(), ct))).RequireAuthorization("ClinicStaff");
     clinic.MapGet("/whatsapp/integration/status", async (IWhatsAppIntegrationStatusService service, CancellationToken ct) =>
         (await service.GetCurrentAsync(ct)) is { } status ? Results.Ok(status) : Results.NotFound()).RequireAuthorization("ClinicStaff");
-    clinic.MapGet("/whatsapp/integration/twilio/configuration", async (IWhatsAppIntegrationStatusService service, CancellationToken ct) => Results.Ok(await service.GetTwilioConfigurationAsync(ct))).RequireAuthorization("ClinicAdmin");
     clinic.MapPost("/whatsapp/integration/validate", async (IWhatsAppIntegrationStatusService service, CancellationToken ct) => { await service.ValidateCurrentAsync(ct); return Results.NoContent(); }).RequireAuthorization("ClinicAdmin");
     clinic.MapPost("/whatsapp/integration/enable", async (IWhatsAppIntegrationStatusService service, CancellationToken ct) => { await service.EnableCurrentAsync(ct); return Results.NoContent(); }).RequireAuthorization("ClinicAdmin");
     clinic.MapPost("/whatsapp/integration/disable", async (IWhatsAppIntegrationStatusService service, CancellationToken ct) => { await service.DisableCurrentAsync(ct); return Results.NoContent(); }).RequireAuthorization("ClinicAdmin");

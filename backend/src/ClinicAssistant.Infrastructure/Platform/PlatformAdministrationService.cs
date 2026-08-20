@@ -189,14 +189,19 @@ public sealed class PlatformAdministrationService(ClinicAssistantDbContext db, I
         var leads = await db.DemoLeads.IgnoreQueryFilters().Where(l => l.CreatedAt >= from && l.CreatedAt < to).Select(l => new { l.Status, l.CreatedAt, l.LastContactAt, l.CompanyOrClinicName }).ToListAsync(ct);
         var admins = await db.Users.IgnoreQueryFilters().Where(u => u.Role == UserRole.ClinicAdmin && u.Status == UserStatus.Active).Select(u => u.TenantId).ToListAsync(ct);
         var provisioning = tenants.Where(t => t.Status == TenantStatus.Provisioning).ToList();
-        var clinics = new List<PlatformDashboardClinic>();
-        foreach (var tenant in provisioning.Take(50))
+        var setupIds = provisioning.Take(50).Select(t => t.Id).ToArray();
+        var clinicTenants = await db.Clinics.IgnoreQueryFilters().Where(x => setupIds.Contains(x.TenantId)).Select(x => x.TenantId).Distinct().ToListAsync(ct);
+        var unitTenants = await db.ClinicUnits.IgnoreQueryFilters().Where(x => setupIds.Contains(x.TenantId)).Select(x => x.TenantId).Distinct().ToListAsync(ct);
+        var specialtyTenants = await db.Specialties.IgnoreQueryFilters().Where(x => setupIds.Contains(x.TenantId)).Select(x => x.TenantId).Distinct().ToListAsync(ct);
+        var professionalTenants = await db.Professionals.IgnoreQueryFilters().Where(x => setupIds.Contains(x.TenantId)).Select(x => x.TenantId).Distinct().ToListAsync(ct);
+        var availabilityTenants = await db.AvailabilityRules.IgnoreQueryFilters().Where(x => setupIds.Contains(x.TenantId)).Select(x => x.TenantId).Distinct().ToListAsync(ct);
+        var whatsappTenants = await db.WhatsAppIntegrations.IgnoreQueryFilters().Where(x => setupIds.Contains(x.TenantId) && x.Status != WhatsAppIntegrationStatus.Disabled).Select(x => x.TenantId).Distinct().ToListAsync(ct);
+        var adminRows = await db.Users.IgnoreQueryFilters().Where(x => setupIds.Contains(x.TenantId) && x.Role == UserRole.ClinicAdmin && x.Status == UserStatus.Active).Select(x => new { x.TenantId, x.Name }).ToListAsync(ct);
+        var clinics = provisioning.Take(50).Select(tenant =>
         {
-            var status = await GetOnboardingStatusAsync(tenant.Id, ct);
-            var completed = new[] { status.ClinicConfigured, status.UnitConfigured, status.SpecialtiesConfigured, status.ProfessionalsConfigured, status.AvailabilityConfigured, status.ClinicAdminConfigured, status.WhatsAppConfigured }.Count(x => x);
-            var adminName = await db.Users.IgnoreQueryFilters().Where(u => u.TenantId == tenant.Id && u.Role == UserRole.ClinicAdmin).Select(u => u.Name).FirstOrDefaultAsync(ct);
-            clinics.Add(new PlatformDashboardClinic(tenant.Id, tenant.Name, tenant.Status.ToString(), completed, 7, adminName, tenant.CreatedAt));
-        }
+            var completed = new[] { clinicTenants.Contains(tenant.Id), unitTenants.Contains(tenant.Id), specialtyTenants.Contains(tenant.Id), professionalTenants.Contains(tenant.Id), availabilityTenants.Contains(tenant.Id), adminRows.Any(x => x.TenantId == tenant.Id), whatsappTenants.Contains(tenant.Id) }.Count(x => x);
+            return new PlatformDashboardClinic(tenant.Id, tenant.Name, tenant.Status.ToString(), completed, 7, adminRows.FirstOrDefault(x => x.TenantId == tenant.Id)?.Name, tenant.CreatedAt);
+        }).ToList();
 
         var statusCounts = tenants.GroupBy(t => t.Status).ToDictionary(g => g.Key, g => g.Count());
         var commercial = new PlatformDashboardCommercial(
@@ -213,7 +218,7 @@ public sealed class PlatformAdministrationService(ClinicAssistantDbContext db, I
         var health = new List<PlatformDashboardHealth> { new("API", "Operacional", "Endpoint do dashboard respondeu.") };
         foreach (var entry in healthReport.Entries)
         {
-            var name = entry.Key switch { "postgresql" => "Banco de dados", "rabbitmq" => "RabbitMQ", "redis" => "Cache/Redis", _ => entry.Key };
+            var name = entry.Key switch { "postgresql" => "Banco de dados", "rabbitmq" => "RabbitMQ", "redis" => "Cache/Redis", "worker-outbox" => "Worker/Outbox", "signalr" => "SignalR", _ => entry.Key };
             health.Add(new PlatformDashboardHealth(name, entry.Value.Status switch { HealthStatus.Healthy => "Operacional", HealthStatus.Degraded => "Atenção", _ => "Indisponível" }, entry.Value.Description));
         }
         var attention = new List<PlatformDashboardAttention>();
