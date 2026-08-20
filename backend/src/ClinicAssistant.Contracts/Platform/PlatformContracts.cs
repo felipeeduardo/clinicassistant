@@ -1,9 +1,20 @@
 namespace ClinicAssistant.Contracts.Platform;
 
-public sealed record PlatformTenantResponse(Guid Id, string Name, string Slug, string Status, Guid? ClinicId, int UserCount);
+public sealed record PlatformTenantResponse(Guid Id, string Name, string Slug, string Status, Guid? ClinicId, int UserCount, string? ClinicAdminName, string? ClinicAdminEmail, string? InitialUnitName, DateTimeOffset CreatedAt);
 public sealed record PlatformUserResponse(Guid Id, Guid TenantId, string Name, string Email, string Role, string Status);
 public sealed record PlatformClinicResponse(Guid Id, Guid TenantId, string TradeName, string LegalName, string Status);
-public sealed record OnboardTenantRequest(string TenantName, string TenantSlug, string ClinicLegalName, string ClinicTradeName, string ClinicDocument, string ClinicEmail, string ClinicPhone, string TimeZone, string UnitName, string UnitAddress, string UnitPhone, string AdminName, string AdminEmail, string TemporaryPassword);
-public sealed record OnboardTenantResponse(Guid TenantId, Guid ClinicId, Guid UnitId, Guid AdminUserId, Guid IntegrationId, bool Replayed);
+public sealed record OnboardTenantRequest(string TenantName, string TenantSlug, string ClinicLegalName, string ClinicTradeName, string ClinicDocument, string ClinicEmail, string ClinicPhone, string TimeZone, string UnitName, string UnitAddress, string UnitPhone, string? AdminName = null, string? AdminEmail = null, string? TemporaryPassword = null);
+public sealed record OnboardTenantResponse(Guid TenantId, Guid ClinicId, Guid UnitId, Guid? AdminUserId, Guid? IntegrationId, bool Replayed);
 public sealed record PlatformOnboardingStatusResponse(Guid TenantId, bool ClinicConfigured, bool UnitConfigured, bool SpecialtiesConfigured, bool ProfessionalsConfigured, bool AvailabilityConfigured, bool ClinicAdminConfigured, bool WhatsAppConfigured, bool CanActivate);
 public sealed record CreateClinicAdminRequest(string Name, string Email, string TemporaryPassword);
+public sealed record PlatformWhatsAppStatusResponse(Guid TenantId, bool Configured, string? Provider, string? Status, string? DisplayPhoneNumber, DateTimeOffset? LastWebhookAt, DateTimeOffset? LastSuccessfulSendAt, DateTimeOffset? LastFailureAt, string? FailureReason);
+public sealed record DeleteTenantRequest(string ClinicAdminEmail, string Confirmation);
+public sealed record PlatformDashboardQuery(string Period = "30d", DateTimeOffset? From = null, DateTimeOffset? To = null);
+public sealed record PlatformDashboardResponse(DateTimeOffset From, DateTimeOffset To, PlatformDashboardSummary Summary, PlatformDashboardCommercial Commercial, IReadOnlyList<PlatformDashboardGrowthPoint> Growth, IReadOnlyList<PlatformDashboardClinic> Clinics, IReadOnlyList<PlatformDashboardHealth> Health, IReadOnlyList<PlatformDashboardAttention> Attention, IReadOnlyList<PlatformDashboardActivity> RecentActivity);
+public sealed record PlatformDashboardSummary(int TotalClinics, int ActiveClinics, int ProvisioningClinics, int SuspendedClinics, int DisabledClinics, int NewClinics, int ActiveClinicAdmins);
+public sealed record PlatformDashboardCommercial(int New, int Contacted, int Qualified, int DemoScheduled, int Won, int AwaitingContact, int TotalInPeriod);
+public sealed record PlatformDashboardGrowthPoint(DateOnly Date, int NewClinics, int NewLeads);
+public sealed record PlatformDashboardClinic(Guid TenantId, string Name, string Status, int SetupCompleted, int SetupTotal, string? ClinicAdminName, DateTimeOffset CreatedAt);
+public sealed record PlatformDashboardHealth(string Service, string Status, string? Message);
+public sealed record PlatformDashboardAttention(string Severity, string Title, string Description, string? ActionUrl);
+public sealed record PlatformDashboardActivity(DateTimeOffset OccurredAt, string Title, string Description, string? ActionUrl);

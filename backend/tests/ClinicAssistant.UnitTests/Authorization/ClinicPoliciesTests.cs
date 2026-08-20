@@ -18,6 +18,7 @@ public sealed class ClinicPoliciesTests
         Assert.False((await authorization.AuthorizeAsync(Principal(UserRole.Receptionist), ClinicPolicies.UnitsManage)).Succeeded);
         Assert.False((await authorization.AuthorizeAsync(Principal(UserRole.Professional), ClinicPolicies.PatientsManage)).Succeeded);
         Assert.False((await authorization.AuthorizeAsync(Principal(UserRole.Viewer), ClinicPolicies.SpecialtiesManage)).Succeeded);
+        Assert.False((await authorization.AuthorizeAsync(Principal(UserRole.PlatformAdmin), ClinicPolicies.UnitsManage)).Succeeded);
     }
 
     [Fact]
@@ -27,6 +28,7 @@ public sealed class ClinicPoliciesTests
         Assert.True((await authorization.AuthorizeAsync(Principal(UserRole.Viewer), ClinicPolicies.ClinicsView)).Succeeded);
         Assert.True((await authorization.AuthorizeAsync(Principal(UserRole.Receptionist), ClinicPolicies.PatientsView)).Succeeded);
         Assert.True((await authorization.AuthorizeAsync(Principal(UserRole.Professional), ClinicPolicies.ProfessionalsView)).Succeeded);
+        Assert.False((await authorization.AuthorizeAsync(Principal(UserRole.PlatformAdmin), ClinicPolicies.ClinicsView)).Succeeded);
     }
 
     private static IAuthorizationService CreateAuthorizationService()

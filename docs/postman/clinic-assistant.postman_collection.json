@@ -375,6 +375,16 @@
             },
             "url": "{{baseUrl}}/api/platform/tenants/{{tenantId}}/clinic-admins"
           }
+        },
+        {
+          "name": "EXCLUSÃO PERMANENTE do tenant",
+          "description": "Use somente em ambiente controlado. Informe o e-mail de um ClinicAdmin ativo e digite exatamente o slug do tenant no campo confirmation.",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"clinicAdminEmail\": \"admin.postman@example.test\",\n  \"confirmation\": \"{{onboardingTenantSlug}}\"\n}" },
+            "url": "{{baseUrl}}/api/platform/tenants/{{tenantId}}/purge"
+          }
         }
       ]
     },
@@ -385,6 +395,7 @@
       "item": [
         { "name": "03 — Clinics", "item": [
         { "name": "Obter clínica atual", "request": { "method": "GET", "url": "{{baseUrl}}/api/clinics/current" } },
+        { "name": "Setup da clínica (ClinicAdmin)", "request": { "method": "GET", "url": "{{baseUrl}}/api/clinics/current/setup" } },
         { "name": "Criar ou atualizar clínica", "request": { "method": "PUT", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"legalName\": \"Clínica Exemplo LTDA\",\n  \"tradeName\": \"Clínica Exemplo\",\n  \"document\": \"12345678000190\",\n  \"email\": \"contato@clinica-exemplo.test\",\n  \"phone\": \"+5581999999999\",\n  \"timeZone\": \"America/Recife\"\n}" }, "url": "{{baseUrl}}/api/clinics/current" } }
         ] },
         { "name": "04 — Units", "item": [
@@ -512,7 +523,10 @@
         { "name": "Listar usuários da plataforma", "request": { "method": "GET", "url": "{{baseUrl}}/api/platform/users" } }
         ] },
         { "name": "03 — Platform clinics", "item": [
-        { "name": "Listar clínicas da plataforma", "request": { "method": "GET", "url": "{{baseUrl}}/api/platform/clinics" } }
+        { "name": "Listar clínicas da plataforma", "request": { "method": "GET", "url": "{{baseUrl}}/api/platform/clinics" } },
+        { "name": "Dashboard da plataforma — 30 dias", "request": { "method": "GET", "url": "{{baseUrl}}/api/platform/dashboard?period=30d" } },
+        { "name": "Dashboard da plataforma — 7 dias", "request": { "method": "GET", "url": "{{baseUrl}}/api/platform/dashboard?period=7d" } },
+        { "name": "Dashboard da plataforma — 90 dias", "request": { "method": "GET", "url": "{{baseUrl}}/api/platform/dashboard?period=90d" } }
         ] },
         { "name": "E2E Flows / Conversational WhatsApp", "item": [
         { "name": "Main Menu — enviar saudação", "request": { "method": "POST", "body": { "mode": "urlencoded", "urlencoded": [{ "key": "Body", "value": "Olá" }, { "key": "MessageSid", "value": "SM-postman-main-menu" }, { "key": "From", "value": "whatsapp:{{twilioTestRecipient}}" }, { "key": "To", "value": "{{twilioWhatsAppFrom}}" }] }, "url": "{{baseUrl}}/api/webhooks/whatsapp/twilio/{{twilioIntegrationKey}}" } },

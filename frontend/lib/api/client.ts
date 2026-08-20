@@ -56,6 +56,7 @@ function readErrorMessage(body: unknown) {
       unit_closed: "A unidade está fechada neste período.",
       version_conflict: "A consulta foi alterada por outro usuário. Atualize os dados antes de tentar novamente.",
       appointment_invalid_status: "A consulta não permite esta operação no status atual.",
+      clinic_not_ready: "A clínica ainda possui etapas obrigatórias pendentes. Revise o checklist antes de ativar.",
       unauthorized: "Seu usuário não tem permissão para realizar esta operação.",
       resource_not_found: "O recurso solicitado não foi encontrado.",
       invalid_operation: "A operação não pode ser concluída com o estado atual.",

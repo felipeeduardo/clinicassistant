@@ -3,6 +3,7 @@ import type { AvailabilityRule, AvailabilityRuleRequest, Clinic, ClinicRequest, 
 
 export const catalogApi = {
   getClinic: (api: ApiClient) => api.request<Clinic>("/api/clinics/current"),
+  getClinicSetup: (api: ApiClient) => api.request<import("@/lib/api/types").PlatformOnboardingStatus>("/api/clinics/current/setup"),
   updateClinic: (api: ApiClient, request: ClinicRequest) => api.request<Clinic>("/api/clinics/current", { method: "PUT", body: JSON.stringify(request) }),
   listUnits: (api: ApiClient) => api.request<Unit[]>("/api/units"),
   getUnitDetail: (api: ApiClient, id: string) => api.request<UnitDetail>(`/api/units/${id}/details`),

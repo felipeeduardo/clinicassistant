@@ -7,7 +7,7 @@ Use este checklist em toda alteração de feature, endpoint, migration ou fluxo 
 - [ ] Documentação da feature atualizada na fonte canônica.
 - [ ] Fluxo E2E manual e automatizado revisado.
 - [ ] `.env.example` revisado, sem segredos.
-- [ ] Policies e permissões documentadas.
+- [x] Policies e permissões documentadas (`docs/testing/role-access-smoke.md` e `docs/security/authorization.md`).
 - [ ] Migration e procedimento de atualização documentados.
 - [ ] Erros esperados e ações de recuperação documentados.
 - [ ] Exemplos sanitizados: sem senhas, tokens, dados reais ou credenciais de provedor.

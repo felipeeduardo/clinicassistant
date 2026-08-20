@@ -180,6 +180,7 @@ try
             UnauthorizedAccessException => StatusCodes.Status401Unauthorized,
             KeyNotFoundException => StatusCodes.Status404NotFound,
             SchedulingConflictException => StatusCodes.Status409Conflict,
+            ClinicNotReadyForActivationException => StatusCodes.Status409Conflict,
             DbUpdateConcurrencyException => StatusCodes.Status409Conflict,
             InvalidOperationException => StatusCodes.Status400BadRequest,
             _ => StatusCodes.Status500InternalServerError
@@ -188,13 +189,15 @@ try
         var code = exception switch
         {
             SchedulingConflictException => "scheduling_conflict",
+            ClinicNotReadyForActivationException => "clinic_not_ready",
             UnauthorizedAccessException => "unauthorized",
             KeyNotFoundException => "resource_not_found",
             InvalidOperationException => "invalid_operation",
             _ => "unexpected_error"
         };
-        await Results.Problem(statusCode: statusCode, title: statusCode == 500 ? "Unexpected error" : exception?.Message,
-            extensions: new Dictionary<string, object?> { ["code"] = code, ["traceId"] = traceId }).ExecuteAsync(context);
+        var extensions = new Dictionary<string, object?> { ["code"] = code, ["traceId"] = traceId };
+        if (exception is ClinicNotReadyForActivationException notReady) extensions["missingSteps"] = notReady.MissingSteps;
+        await Results.Problem(statusCode: statusCode, title: statusCode == 500 ? "Unexpected error" : exception?.Message, extensions: extensions).ExecuteAsync(context);
     }));
     app.UseHttpsRedirection();
     app.UseCors("Frontend");
@@ -242,9 +245,12 @@ try
     platform.MapGet("/tenants", async (IPlatformAdministrationService service, CancellationToken ct) => Results.Ok(await service.GetTenantsAsync(ct)));
     platform.MapGet("/users", async (IPlatformAdministrationService service, CancellationToken ct) => Results.Ok(await service.GetUsersAsync(ct)));
     platform.MapGet("/clinics", async (IPlatformAdministrationService service, CancellationToken ct) => Results.Ok(await service.GetClinicsAsync(ct)));
+    platform.MapGet("/dashboard", async ([AsParameters] PlatformDashboardQuery query, IPlatformAdministrationService service, CancellationToken ct) => Results.Ok(await service.GetDashboardAsync(query, ct)));
     platform.MapGet("/onboarding/{tenantId:guid}", async (Guid tenantId, IPlatformAdministrationService service, CancellationToken ct) => Results.Ok(await service.GetOnboardingStatusAsync(tenantId, ct)));
+    platform.MapGet("/tenants/{tenantId:guid}/whatsapp", async (Guid tenantId, IPlatformAdministrationService service, CancellationToken ct) => Results.Ok(await service.GetWhatsAppStatusAsync(tenantId, ct)));
     platform.MapPost("/tenants/{tenantId:guid}/clinic-admins", async (Guid tenantId, CreateClinicAdminRequest request, HttpRequest httpRequest, IPlatformAdministrationService service, CancellationToken ct) => Results.Ok(await service.CreateClinicAdminAsync(tenantId, request, httpRequest.Headers["Idempotency-Key"].ToString(), ct)));
     platform.MapPost("/tenants/{id:guid}/{action}", async (Guid id, string action, IPlatformAdministrationService service, CancellationToken ct) => { await service.SetTenantStatusAsync(id, action, ct); return Results.NoContent(); });
+    platform.MapPost("/tenants/{tenantId:guid}/purge", async (Guid tenantId, DeleteTenantRequest request, IPlatformAdministrationService service, CancellationToken ct) => { await service.DeleteTenantAsync(tenantId, request, ct); return Results.NoContent(); });
     platform.MapPost("/onboarding", async (OnboardTenantRequest request, HttpRequest httpRequest, IPlatformAdministrationService service, CancellationToken ct) => Results.Created("/api/platform/onboarding", await service.OnboardAsync(request, httpRequest.Headers["Idempotency-Key"].ToString(), ct)));
     var platformLeads = platform.MapGroup("/leads");
     platformLeads.MapGet("", async ([AsParameters] DemoLeadListQuery query, IDemoLeadService service, CancellationToken ct) => Results.Ok(await service.SearchAsync(query, ct)));
@@ -255,6 +261,7 @@ try
     platformLeads.MapPost("/{id:guid}/notes", async (Guid id, AddDemoLeadNoteRequest request, IDemoLeadService service, CancellationToken ct) => { await service.AddNoteAsync(id, request.Note, ct); return Results.NoContent(); });
     var clinic = app.MapGroup("/api");
     clinic.MapGet("/clinics/current", async (IClinicCatalogService service, CancellationToken ct) => (await service.GetClinicAsync(ct)) is { } item ? Results.Ok(item) : Results.NotFound()).RequireAuthorization(ClinicPolicies.ClinicsView);
+    clinic.MapGet("/clinics/current/setup", async (ITenantContext tenantContext, IPlatformAdministrationService service, CancellationToken ct) => tenantContext.TenantId is Guid tenantId ? Results.Ok(await service.GetOnboardingStatusAsync(tenantId, ct)) : Results.Unauthorized()).RequireAuthorization(ClinicPolicies.ClinicsView);
     clinic.MapPut("/clinics/current", async (ClinicRequest request, IClinicCatalogService service, CancellationToken ct) => Results.Ok(await service.UpdateClinicAsync(request, ct))).RequireAuthorization(ClinicPolicies.ClinicsManage);
     clinic.MapGet("/units", async (IClinicCatalogService service, CancellationToken ct) => Results.Ok(await service.GetUnitsAsync(ct))).RequireAuthorization(ClinicPolicies.UnitsView);
     clinic.MapGet("/units/{id:guid}", async (Guid id, IClinicCatalogService service, CancellationToken ct) => (await service.GetUnitAsync(id, ct)) is { } item ? Results.Ok(item) : Results.NotFound()).RequireAuthorization(ClinicPolicies.UnitsView);
