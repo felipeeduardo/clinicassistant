@@ -51,18 +51,33 @@ public static class DependencyInjection
         var redisConnectionString = configuration["Redis:ConnectionString"]
             ?? configuration["REDIS_URL"]
             ?? configuration["REDIS_PRIVATE_URL"];
-        if (string.Equals(environment, "Production", StringComparison.OrdinalIgnoreCase) && string.IsNullOrWhiteSpace(redisConnectionString) && string.IsNullOrWhiteSpace(configuration["Redis:Host"]))
+        var configuredRedisHost = (configuration["Redis:Host"] ?? configuration["REDISHOST"])?.Trim();
+        var hasExplicitRedisHost = !string.IsNullOrWhiteSpace(configuredRedisHost)
+            && !string.Equals(configuredRedisHost, "localhost", StringComparison.OrdinalIgnoreCase)
+            && !string.Equals(configuredRedisHost, "127.0.0.1", StringComparison.OrdinalIgnoreCase)
+            && !string.Equals(configuredRedisHost, "::1", StringComparison.OrdinalIgnoreCase);
+        if (string.Equals(environment, "Production", StringComparison.OrdinalIgnoreCase) && string.IsNullOrWhiteSpace(redisConnectionString) && !hasExplicitRedisHost)
             throw new InvalidOperationException("Production Redis connection is required. Configure Redis:ConnectionString or Redis:Host/Redis:Port.");
         services.AddSingleton<IConnectionMultiplexer>(_ =>
         {
             if (!string.IsNullOrWhiteSpace(redisConnectionString))
                 return ConnectionMultiplexer.Connect(ParseRedisConfiguration(redisConnectionString));
-            var redisHost = configuration["Redis:Host"] ?? "localhost";
-            var redisPort = configuration.GetValue<int?>("Redis:Port") ?? 6379;
+            var redisHost = configuration["Redis:Host"] ?? configuration["REDISHOST"] ?? "localhost";
+            var redisPort = configuration.GetValue<int?>("Redis:Port")
+                ?? configuration.GetValue<int?>("REDISPORT")
+                ?? 6379;
+            var redisUser = configuration["Redis:User"] ?? configuration["REDISUSER"];
+            var redisPassword = configuration["Redis:Password"] ?? configuration["REDISPASSWORD"];
+            var redisSsl = configuration.GetValue<bool?>("Redis:Ssl")
+                ?? configuration.GetValue<bool?>("REDIS_TLS")
+                ?? false;
             return ConnectionMultiplexer.Connect(new ConfigurationOptions
             {
                 EndPoints = { { redisHost, redisPort } },
-                AbortOnConnectFail = false
+                AbortOnConnectFail = false,
+                User = redisUser,
+                Password = redisPassword,
+                Ssl = redisSsl
             });
         });
         services.AddHttpContextAccessor();
