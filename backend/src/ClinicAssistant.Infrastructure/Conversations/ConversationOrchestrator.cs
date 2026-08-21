@@ -103,6 +103,19 @@ public sealed class ConversationOrchestrator(
                 stateContext = stateContext with { AwaitingAvailableDaySelection = false, AwaitingDateSelection = false, SelectedSlotId = null, SelectedSlotStartsAt = null, SelectedSlotEndsAt = null, PendingConfirmation = false };
             else if (selectedOptionValue?.StartsWith("day:", StringComparison.Ordinal) == true && DateOnly.TryParse(selectedOptionValue[4..], CultureInfo.InvariantCulture, DateTimeStyles.None, out var selectedAvailabilityDate))
                 stateContext = stateContext with { SelectedDate = selectedAvailabilityDate, AwaitingAvailableDaySelection = false, AwaitingDateSelection = false, AvailabilityCursor = null };
+            AvailabilityTargetResolution? availabilityTarget = null;
+            if (stateContext.CurrentIntent == ConversationIntent.CheckAvailability
+                && !stateContext.SelectedSpecialtyId.HasValue
+                && !stateContext.SelectedProfessionalId.HasValue
+                && !int.TryParse(incomingMessage.ContentSanitized?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out _)
+                && !string.IsNullOrWhiteSpace(incomingMessage.ContentSanitized))
+            {
+                availabilityTarget = await ResolveAvailabilityTargetAsync(incomingMessage.ContentSanitized!, command.TenantId, cancellationToken);
+                if (availabilityTarget.Kind == AvailabilityTargetKind.Specialty && availabilityTarget.Id.HasValue)
+                    stateContext = stateContext with { SelectedSpecialtyId = availabilityTarget.Id, SelectedSpecialtyName = availabilityTarget.Name, CurrentIntent = ConversationIntent.CheckAvailability, CurrentStep = ConversationFlowState.AwaitingSelection };
+                else if (availabilityTarget.Kind == AvailabilityTargetKind.Professional && availabilityTarget.Id.HasValue)
+                    stateContext = stateContext with { SelectedProfessionalId = availabilityTarget.Id, SelectedProfessionalName = availabilityTarget.Name, CurrentIntent = ConversationIntent.CheckAvailability, CurrentStep = ConversationFlowState.AwaitingSelection, AwaitingAvailableDaySelection = true };
+            }
             if (stateContext.SelectedProfessionalId.HasValue && !stateContext.SelectedDate.HasValue && !stateContext.AwaitingDateSelection && !stateContext.PendingConfirmation && selectedOptionValue is not "more_slots")
                 stateContext = stateContext with { AwaitingAvailableDaySelection = true };
             if (stateContext.SelectedProfessionalId.HasValue && !stateContext.SelectedSpecialtyId.HasValue)
@@ -119,6 +132,11 @@ public sealed class ConversationOrchestrator(
                     };
             }
             var transition = stateMachine.Transition(new(incomingMessage.ContentSanitized, state.FlowState, state.Status, state.Intent, state.InvalidAttempts, state.ExpiresAt, incomingMessage.ReceivedAt ?? DateTimeOffset.UtcNow, existingOptions, stateContext));
+            if (availabilityTarget is { Kind: AvailabilityTargetKind.Specialty or AvailabilityTargetKind.Professional }
+                && transition.Intent is (ConversationIntent.Unknown or ConversationIntent.Unsupported))
+            {
+                transition = new(ConversationFlowState.AwaitingSelection, ConversationStateStatus.Active, ConversationIntent.CheckAvailability, ConversationAction.None, 0, "conversation.availability", []);
+            }
             if (logger is not null) ActionResolutionTrace(logger, incomingMessage.ContentSanitized ?? string.Empty, transition.Intent.ToString(), null);
             if (logger is not null) HandlerTrace(logger, state.FlowState.ToString(), transition.Intent.ToString(), null);
             ConversationTelemetry.RecordIntent(transition.Intent, transition.FlowState);
@@ -129,7 +147,10 @@ public sealed class ConversationOrchestrator(
             if (transition.Action == ConversationAction.CloseConversation) ConversationTelemetry.FlowCompleted.Add(1);
             if (state.FlowState == ConversationFlowState.Initial && transition.FlowState != ConversationFlowState.Initial) ConversationTelemetry.FlowStarted.Add(1);
             var appointmentCreated = false;
-            var (responseOptions, responseText) = await BuildInformationalResponseAsync(transition, stateContext, command.TenantId, patient.Id, cancellationToken);
+            var (responseOptions, responseText) = availabilityTarget is { Kind: AvailabilityTargetKind.NoMatch or AvailabilityTargetKind.Ambiguous }
+                && transition.Action != ConversationAction.Handoff
+                ? BuildAvailabilityTargetFallback(availabilityTarget, state.InvalidAttempts)
+                : await BuildInformationalResponseAsync(transition, stateContext, command.TenantId, patient.Id, cancellationToken);
             if (transition.Intent is (ConversationIntent.ConfirmSelectedSlot or ConversationIntent.ConfirmAppointment) && stateContext.PendingConfirmation && stateContext.CurrentIntent == ConversationIntent.ScheduleAppointment && stateContext.SelectedSlotStartsAt.HasValue)
             {
                 var schedulingResult = await TryCreateScheduledAppointmentAsync(command, patient.Id, stateContext, cancellationToken);
@@ -175,7 +196,8 @@ public sealed class ConversationOrchestrator(
             }
             var optionsAlreadyRendered = responseOptions.Any(option =>
                 option.Value.StartsWith("slot:", StringComparison.Ordinal) ||
-                option.Value.StartsWith("day:", StringComparison.Ordinal));
+                option.Value.StartsWith("day:", StringComparison.Ordinal))
+                || availabilityTarget is { Kind: AvailabilityTargetKind.NoMatch or AvailabilityTargetKind.Ambiguous };
             var response = responseComposer.Compose(new(transition.ResponseKey, responseOptions, _options.DefaultLanguage, responseText, optionsAlreadyRendered));
             if (response.Text.Length > _options.MaxMessageLength) return ConversationOrchestrationResult.Rejected;
 
@@ -595,6 +617,111 @@ public sealed class ConversationOrchestrator(
             .Distinct()
             .ToListAsync(cancellationToken);
         return rows.Select(item => (item.Id, item.Name)).ToList();
+    }
+
+    private async Task<AvailabilityTargetResolution> ResolveAvailabilityTargetAsync(string input, Guid tenantId, CancellationToken cancellationToken)
+    {
+        var normalizedInput = CanonicalTarget(input);
+        if (normalizedInput.Length == 0) return AvailabilityTargetResolution.NoMatch();
+
+        var professionals = await dbContext.Professionals.IgnoreQueryFilters().AsNoTracking()
+            .Where(item => item.TenantId == tenantId && item.Status == CatalogStatus.Active)
+            .OrderBy(item => item.Name)
+            .Select(item => new TargetCandidate(item.Id, item.Name))
+            .ToListAsync(cancellationToken);
+        var specialties = await dbContext.Specialties.IgnoreQueryFilters().AsNoTracking()
+            .Where(item => item.TenantId == tenantId && item.Status == CatalogStatus.Active)
+            .OrderBy(item => item.Name)
+            .Select(item => new TargetCandidate(item.Id, item.Name))
+            .ToListAsync(cancellationToken);
+
+        var professionalMatches = professionals.Where(candidate => IsTargetMatch(normalizedInput, candidate.Name, false)).ToList();
+        if (professionalMatches.Count == 1)
+            return AvailabilityTargetResolution.Professional(professionalMatches[0]);
+        if (professionalMatches.Count > 1)
+            return AvailabilityTargetResolution.Ambiguous(AvailabilityTargetKind.Professional, professionalMatches);
+
+        var specialtyMatches = specialties.Where(candidate => IsTargetMatch(normalizedInput, candidate.Name, true)).ToList();
+        if (specialtyMatches.Count == 1)
+            return AvailabilityTargetResolution.Specialty(specialtyMatches[0]);
+        if (specialtyMatches.Count > 1)
+            return AvailabilityTargetResolution.Ambiguous(AvailabilityTargetKind.Specialty, specialtyMatches);
+
+        return AvailabilityTargetResolution.NoMatch(specialties);
+    }
+
+    private static bool IsTargetMatch(string input, string name, bool specialty)
+    {
+        var normalizedName = CanonicalTarget(name);
+        if (input == normalizedName || normalizedName.StartsWith(input, StringComparison.Ordinal)) return true;
+        if (specialty && SpecialtyAliases.TryGetValue(input, out var alias))
+            return CanonicalTarget(alias) == normalizedName;
+        return !specialty && normalizedName.Split(' ', StringSplitOptions.RemoveEmptyEntries).Contains(input, StringComparer.Ordinal);
+    }
+
+    private static string CanonicalTarget(string? value)
+    {
+        var normalized = ConversationIntentResolver.Normalize(value);
+        var tokens = normalized.Split(' ', StringSplitOptions.RemoveEmptyEntries)
+            .Where(token => token is not "dr" and not "dra" and not "doutor" and not "doutora");
+        return new string(string.Join(' ', tokens).Where(character => char.IsLetterOrDigit(character) || char.IsWhiteSpace(character)).ToArray()).Trim();
+    }
+
+    private static readonly Dictionary<string, string> SpecialtyAliases = new(StringComparer.Ordinal)
+    {
+        ["cardiologista"] = "cardiologia",
+        ["pediatra"] = "pediatria",
+        ["clinico"] = "clinico geral",
+        ["clinica geral"] = "clinico geral",
+        ["ortopedista"] = "ortopedia",
+        ["dermatologista"] = "dermatologia"
+    };
+
+    private static (IReadOnlyCollection<ConversationOptionDefinition> Options, string Text) BuildAvailabilityTargetFallback(AvailabilityTargetResolution resolution, int invalidAttempts)
+    {
+        if (resolution.Kind == AvailabilityTargetKind.Ambiguous)
+        {
+            var options = resolution.Candidates.Select((candidate, index) => new ConversationOptionDefinition(
+                (index + 1).ToString(CultureInfo.InvariantCulture),
+                resolution.CandidateKind == AvailabilityTargetKind.Specialty
+                    ? $"specialty:{candidate.Id}||{candidate.Name}"
+                    : $"professional:{candidate.Id}||{candidate.Name}",
+                index + 1,
+                resolution.CandidateKind == AvailabilityTargetKind.Specialty ? $"specialty:{candidate.Id}" : $"professional:{candidate.Id}"))
+                .ToArray();
+            var subject = resolution.CandidateKind == AvailabilityTargetKind.Specialty ? "especialidades" : "profissionais";
+            return (options, $"Encontrei mais de uma opção em {subject}:\n\n" + string.Join(Environment.NewLine, options.Select(option => $"{option.Key} - {option.Value.Split("||", 2)[1]}")) + "\n\nQual delas você procura?");
+        }
+
+        if (invalidAttempts > 0)
+        {
+            var retryOptions = new[]
+            {
+                new ConversationOptionDefinition("1", "specialties", 1),
+                new ConversationOptionDefinition("2", "professionals", 2),
+                new ConversationOptionDefinition("3", "human", 3)
+            };
+            return (retryOptions, "Ainda não consegui localizar essa opção. Como você prefere consultar?\n\n1 - Por especialidade\n2 - Por profissional\n3 - Falar com atendente");
+        }
+
+        var available = resolution.Candidates.Take(6).Select((candidate, index) => new ConversationOptionDefinition(
+            (index + 1).ToString(CultureInfo.InvariantCulture),
+            $"specialty:{candidate.Id}||{candidate.Name}", index + 1, $"specialty:{candidate.Id}")).ToList();
+        available.Add(new ConversationOptionDefinition((available.Count + 1).ToString(CultureInfo.InvariantCulture), "professionals", available.Count + 1));
+        var text = available.Count == 1
+            ? "Não encontrei essa especialidade ou profissional por aqui. Você pode escrever outro nome ou voltar ao menu."
+            : "Não encontrei essa especialidade ou profissional por aqui.\n\nEstas são algumas opções disponíveis:\n\n" + string.Join(Environment.NewLine, available.Take(available.Count - 1).Select(option => $"{option.Key} - {option.Value.Split("||", 2)[1]}")) + $"\n{available[^1].Key} - Ver profissionais";
+        return (available, text);
+    }
+
+    private enum AvailabilityTargetKind { NoMatch, Specialty, Professional, Ambiguous }
+    private sealed record TargetCandidate(Guid Id, string Name);
+    private sealed record AvailabilityTargetResolution(AvailabilityTargetKind Kind, Guid? Id, string? Name, IReadOnlyList<TargetCandidate> Candidates, AvailabilityTargetKind CandidateKind)
+    {
+        public static AvailabilityTargetResolution Professional(TargetCandidate candidate) => new(AvailabilityTargetKind.Professional, candidate.Id, candidate.Name, [], AvailabilityTargetKind.Professional);
+        public static AvailabilityTargetResolution Specialty(TargetCandidate candidate) => new(AvailabilityTargetKind.Specialty, candidate.Id, candidate.Name, [], AvailabilityTargetKind.Specialty);
+        public static AvailabilityTargetResolution Ambiguous(AvailabilityTargetKind kind, IReadOnlyList<TargetCandidate> candidates) => new(AvailabilityTargetKind.Ambiguous, null, null, candidates, kind);
+        public static AvailabilityTargetResolution NoMatch(IReadOnlyList<TargetCandidate>? candidates = null) => new(AvailabilityTargetKind.NoMatch, null, null, candidates ?? [], AvailabilityTargetKind.NoMatch);
     }
 
     private static List<ConversationOptionDefinition> BuildSlotOptions(IReadOnlyList<(DateTimeOffset StartsAt, DateTimeOffset EndsAt)> slots, Guid professionalId, Guid? unitId, TimeZoneInfo timeZone) =>

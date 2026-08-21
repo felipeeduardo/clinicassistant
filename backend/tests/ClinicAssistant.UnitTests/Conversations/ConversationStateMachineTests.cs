@@ -254,6 +254,24 @@ public sealed class ConversationStateMachineTests
     }
 
     [Fact]
+    public void AvailabilityFallbackTextDoesNotDuplicateRenderedOptions()
+    {
+        var response = new InMemoryConversationResponseComposer().Compose(new(
+            "conversation.availability",
+            [
+                new ConversationOptionDefinition("1", "specialty:00000000-0000-0000-0000-000000000001||Clínico Geral", 1),
+                new ConversationOptionDefinition("2", "specialty:00000000-0000-0000-0000-000000000002||Pediatria", 2),
+                new ConversationOptionDefinition("3", "professionals", 3)
+            ],
+            "pt-BR",
+            "Não encontrei essa especialidade.\n\n1 - Clínico Geral\n2 - Pediatria\n3 - Ver profissionais",
+            OptionsAlreadyRendered: true));
+
+        Assert.Equal(1, response.Text.Split("1 - Clínico Geral", StringSplitOptions.None).Length - 1);
+        Assert.Equal(1, response.Text.Split("2 - Pediatria", StringSplitOptions.None).Length - 1);
+    }
+
+    [Fact]
     public void SelectedSlotConfirmationDoesNotRestartScheduling()
     {
         var context = new ConversationContext(ConversationIntent.ScheduleAppointment, ConversationFlowState.AwaitingSelection,
