@@ -35,4 +35,17 @@ public sealed class TwilioWebhookTests
         Assert.Equal(WhatsAppIncomingMessageType.Media, message.Type);
         Assert.Single(message.Media);
     }
+
+    [Fact]
+    public void ParserNormalizesInteractiveButtonPayloadAsActionId()
+    {
+        var parser = new TwilioWhatsAppWebhookParser(new WhatsAppPhoneNumberFormatter());
+        var webhook = new TwilioIncomingWebhook("SM456", null, "whatsapp:+5581999999999", "whatsapp:+18382501528", null, "Felipe", null, 0, "Confirmar agendamento", "confirm_selected_slot", null, null, null, []);
+
+        var message = parser.Parse(webhook, Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), "correlation-2");
+
+        Assert.Equal(WhatsAppIncomingMessageType.Interactive, message.Type);
+        Assert.Equal("confirm_selected_slot", message.ActionId);
+        Assert.Equal("confirm_selected_slot", message.Text);
+    }
 }

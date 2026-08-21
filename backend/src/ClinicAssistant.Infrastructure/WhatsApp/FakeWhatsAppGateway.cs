@@ -7,11 +7,15 @@ namespace ClinicAssistant.Infrastructure.WhatsApp;
 
 public sealed partial class FakeWhatsAppGateway(IOptions<WhatsAppOptions> options, ILogger<FakeWhatsAppGateway> logger) : IWhatsAppGateway
 {
+    public WhatsAppGatewayCapabilities Capabilities { get; } = new(true, true, true);
     private readonly ConcurrentDictionary<string, SendWhatsAppMessageResult> _results = new(StringComparer.Ordinal);
     private readonly FakeWhatsAppOptions _options = options.Value.Fake;
 
     public Task<SendWhatsAppMessageResult> SendTextAsync(SendWhatsAppTextRequest request, CancellationToken cancellationToken) =>
         SendAsync(request.IdempotencyKey, request.IntegrationId, "text", cancellationToken);
+
+    public Task<SendWhatsAppMessageResult> SendInteractiveAsync(SendWhatsAppInteractiveRequest request, CancellationToken cancellationToken) =>
+        SendAsync(request.IdempotencyKey, request.IntegrationId, $"interactive:{request.Interaction.Type}", cancellationToken);
 
     public Task<SendWhatsAppMessageResult> SendTemplateAsync(SendWhatsAppTemplateRequest request, CancellationToken cancellationToken) =>
         SendAsync(request.IdempotencyKey, request.IntegrationId, "template", cancellationToken);

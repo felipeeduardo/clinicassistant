@@ -5,13 +5,14 @@ namespace ClinicAssistant.Domain.Conversations;
 public enum ConversationAutomationMode { Automated, Paused, Human }
 public enum ConversationPriority { Normal, High, Urgent }
 public enum ConversationStateStatus { Active, Expired, Completed, HandedOff }
-public enum ConversationFlowState { Initial, Menu, AwaitingSelection, Cancelled, HandedOff, Closed }
+public enum ConversationFlowState { Initial, Menu, AwaitingSelection, AwaitingSlotSelection, AwaitingScheduleConfirmation, Cancelled, HandedOff, Closed }
 public enum ConversationIntent
 {
     Unknown, Greeting, InstitutionalQuestion, ListSpecialties, ListProfessionals,
     CheckAvailability, ScheduleAppointment, RescheduleAppointment, CancelAppointment,
     ConfirmAppointment, TalkToHuman, Farewell, Unsupported,
     MainMenu, GoBack, CancelCurrentFlow, Repeat, Help,
+    ConfirmSelectedSlot, ConfirmExistingAppointment,
     ViewSpecialties = ListSpecialties,
     ViewProfessionals = ListProfessionals,
     HumanHandoff = TalkToHuman
@@ -95,7 +96,7 @@ public sealed class ConversationOption : Entity, ITenantEntity
 {
     private ConversationOption() { }
 
-    public ConversationOption(Guid tenantId, Guid conversationStateId, string key, string value, int displayOrder, DateTimeOffset expiresAt)
+    public ConversationOption(Guid tenantId, Guid conversationStateId, string key, string value, int displayOrder, DateTimeOffset expiresAt, string? actionId = null)
     {
         TenantId = tenantId;
         ConversationStateId = conversationStateId;
@@ -103,6 +104,7 @@ public sealed class ConversationOption : Entity, ITenantEntity
         Value = value;
         DisplayOrder = displayOrder;
         ExpiresAt = expiresAt;
+        ActionId = actionId;
     }
 
     public Guid TenantId { get; private set; }
@@ -111,4 +113,5 @@ public sealed class ConversationOption : Entity, ITenantEntity
     public string Value { get; private set; } = null!;
     public int DisplayOrder { get; private set; }
     public DateTimeOffset ExpiresAt { get; private set; }
+    public string? ActionId { get; private set; }
 }

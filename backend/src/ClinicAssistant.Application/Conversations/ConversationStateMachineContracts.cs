@@ -46,7 +46,12 @@ public sealed record ConversationContext(
     DateTimeOffset? LastInteractionAt = null,
     DateTimeOffset? SelectedSlotStartsAt = null,
     DateTimeOffset? SelectedSlotEndsAt = null,
-    int? SelectedAppointmentVersion = null);
+    int? SelectedAppointmentVersion = null,
+    string? SelectedSpecialtyName = null,
+    string? SelectedProfessionalName = null,
+    DateTimeOffset? AvailabilityCursor = null,
+    bool AwaitingDateSelection = false,
+    bool AwaitingAvailableDaySelection = false);
 
 public sealed record ConversationIntentResolution(ConversationIntent Intent, string NormalizedText, bool IsContextualSelection = false);
 
@@ -59,12 +64,16 @@ public sealed record ConversationTransitionResult(
     string ResponseKey,
     IReadOnlyCollection<ConversationOptionDefinition> Options);
 
-public sealed record ConversationOptionDefinition(string Key, string Value, int DisplayOrder);
+public sealed record ConversationOptionDefinition(string Key, string Value, int DisplayOrder, string? ActionId = null);
 
 public sealed record ConversationResponseRequest(
     string ResponseKey,
     IReadOnlyCollection<ConversationOptionDefinition> Options,
     string Language,
-    string? CustomText = null);
+    string? CustomText = null,
+    bool OptionsAlreadyRendered = false);
 
-public sealed record ConversationResponse(string Text, IReadOnlyCollection<ConversationOptionDefinition> Options);
+public sealed record ConversationChoice(string ActionId, string Label, string? Description = null);
+public enum ConversationInteractionType { None = 0, List = 1, ReplyButtons = 2 }
+public sealed record ConversationInteraction(ConversationInteractionType Type, IReadOnlyCollection<ConversationChoice> Choices);
+public sealed record ConversationResponse(string Text, IReadOnlyCollection<ConversationOptionDefinition> Options, ConversationInteraction? Interaction = null);

@@ -17,8 +17,10 @@ public sealed class TwilioWhatsAppWebhookParser(IWhatsAppPhoneNumberFormatter ph
             : !string.IsNullOrWhiteSpace(webhook.Body) ? WhatsAppIncomingMessageType.Text
             : WhatsAppIncomingMessageType.Unknown;
 
-        return new(tenantId, integrationId, inboxMessageId, webhook.MessageSid, senderPhone, recipientPhone, type, webhook.Body,
-            webhook.Media, webhook.ProfileName, DateTimeOffset.UtcNow, correlationId);
+        var actionId = string.IsNullOrWhiteSpace(webhook.ButtonPayload) ? null : webhook.ButtonPayload;
+        var text = actionId ?? webhook.Body ?? webhook.ButtonText;
+        return new(tenantId, integrationId, inboxMessageId, webhook.MessageSid, senderPhone, recipientPhone, type, text,
+            webhook.Media, webhook.ProfileName, actionId, DateTimeOffset.UtcNow, correlationId);
     }
 
     private static string RemoveProviderPrefix(string phoneNumber) => phoneNumber["whatsapp:".Length..];
