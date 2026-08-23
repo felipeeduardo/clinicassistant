@@ -334,11 +334,13 @@ O fluxo valida a versão da consulta e não reinicia toda a conversa quando há 
 ### Handoff humano
 
 ```text
-Tudo bem. Vou encaminhar sua conversa para nossa equipe.
-Assim que alguém assumir, você continuará por aqui.
+Claro! Vou chamar alguém da recepção para você.
+
+Sua conversa foi encaminhada para nossa equipe.
+Aguarde um momento que alguém continuará o atendimento por aqui.
 ```
 
-Depois do handoff, o Worker não envia novos menus automáticos enquanto a conversa estiver em modo `Human`.
+Depois do handoff, o Worker não envia novos menus automáticos enquanto a conversa estiver em modo `Human`. Mensagens do paciente são apenas persistidas e publicadas em tempo real para a equipe.
 
 ## Entradas desconhecidas e loops
 
@@ -381,5 +383,8 @@ O paciente nunca recebe stack trace, código HTTP, erro do banco ou código Twil
 - [ ] cancelamento exige confirmação;
 - [ ] reagendamento valida conflito e versão;
 - [ ] `menu`, `voltar` e `atendente` funcionam em qualquer etapa;
+- [ ] a opção `7` coloca a conversa em `WaitingHuman` e cria/reutiliza a fila;
+- [ ] mensagens recebidas durante `WaitingHuman`/`Human` não acionam o bot;
+- [ ] apenas o operador proprietário envia mensagens manuais pela Outbox;
 - [ ] mensagem duplicada não executa a mutation duas vezes;
 - [ ] respostas são publicadas pela Outbox/Worker.

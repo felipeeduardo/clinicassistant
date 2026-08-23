@@ -60,6 +60,15 @@ public sealed class ConversationOrchestrator(
             {
                 dbContext.ConversationProcessedMessages.Add(new ConversationProcessedMessage(command.TenantId, command.ConversationId, command.ConversationMessageId));
                 await dbContext.SaveChangesAsync(cancellationToken);
+                await events.PublishAsync(command.TenantId, "conversation.updated", new
+                {
+                    ConversationId = command.ConversationId,
+                    MessageId = command.ConversationMessageId,
+                    Status = conversation.Status.ToString(),
+                    AutomationMode = conversation.AutomationMode.ToString(),
+                    conversation.AssignedUserId,
+                    conversation.Version
+                }, cancellationToken);
                 ConversationTelemetry.Processed.Add(1);
                 return ConversationOrchestrationResult.Processed;
             }
@@ -262,6 +271,7 @@ public sealed class ConversationOrchestrator(
                     dbContext.HumanQueueItems.Add(new HumanQueueItem(command.TenantId, command.ConversationId, conversation.Priority, "Patient requested human assistance."));
                     queueItemCreated = true;
                 }
+                dbContext.AuditRecords.Add(new AuditRecord(command.TenantId, null, "conversation.handoff_requested", "Conversation", command.ConversationId, "Succeeded", "Conversation queued for human assistance."));
             }
 
             var optionsToReplace = await dbContext.ConversationOptions.IgnoreQueryFilters().Where(item => item.TenantId == command.TenantId && item.ConversationStateId == state.Id).ToListAsync(cancellationToken);

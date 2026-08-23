@@ -15,7 +15,7 @@ describe("permissions", () => {
   it("keeps operational access restricted to clinic staff", () => {
     expect(can(user("ClinicAdmin"), "manageOperations")).toBe(true);
     expect(can(user("Receptionist"), "manageOperations")).toBe(true);
-    expect(can(user("Professional"), "manageOperations")).toBe(true);
+    expect(can(user("Professional"), "manageOperations")).toBe(false);
     expect(can(user("PlatformAdmin"), "manageOperations")).toBe(false);
     expect(can(user("Viewer"), "manageOperations")).toBe(false);
   });

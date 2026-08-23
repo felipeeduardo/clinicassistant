@@ -20,6 +20,8 @@ public sealed class ConversationIntentResolver : IConversationIntentResolver
         if (text is "repetir" or "repete" or "novamente") return new(ConversationIntent.Repeat, text);
         if (text is "mais horarios" or "mais opcoes" or "ver mais") return new(ConversationIntent.CheckAvailability, text, true);
         if (text is "outros dias" or "outro dia" or "outra data" or "consultar outra data") return new(ConversationIntent.CheckAvailability, text, true);
+        if (context.CurrentStep == ConversationFlowState.Menu && TryResolveMainMenuNumber(text, out var mainMenuIntent))
+            return new(mainMenuIntent, text, true);
         if (context.PendingConfirmation && context.CurrentIntent == ConversationIntent.ScheduleAppointment && (text is "sim" or "confirmar" or "pode" or "ok" or "agendar" or "agendar consulta" or "confirmar agendamento"))
             return new(ConversationIntent.ConfirmSelectedSlot, text, true);
         if (context.PendingConfirmation && context.CurrentIntent == ConversationIntent.RescheduleAppointment && (text is "sim" or "confirmar" or "pode" or "ok" or "reagendar" or "confirmar reagendamento"))
@@ -106,6 +108,22 @@ public sealed class ConversationIntentResolver : IConversationIntentResolver
         _ when ContainsAny(text, "tchau", "adeus", "obrigado", "obrigada") => ConversationIntent.Farewell,
         _ => ConversationIntent.Unknown
     };
+
+    private static bool TryResolveMainMenuNumber(string text, out ConversationIntent intent)
+    {
+        intent = text switch
+        {
+            "1" => ConversationIntent.ViewSpecialties,
+            "2" => ConversationIntent.ViewProfessionals,
+            "3" => ConversationIntent.CheckAvailability,
+            "4" => ConversationIntent.ScheduleAppointment,
+            "5" => ConversationIntent.RescheduleAppointment,
+            "6" => ConversationIntent.CancelAppointment,
+            "7" or "8" => ConversationIntent.HumanHandoff,
+            _ => ConversationIntent.Unknown
+        };
+        return intent != ConversationIntent.Unknown;
+    }
 
     private static bool ContainsAny(string text, params string[] values) => values.Any(text.Contains);
     private static bool IsGreeting(string text) => text is "oi" or "ola" || text.StartsWith("bom dia", StringComparison.Ordinal) || text.StartsWith("boa tarde", StringComparison.Ordinal) || text.StartsWith("boa noite", StringComparison.Ordinal);

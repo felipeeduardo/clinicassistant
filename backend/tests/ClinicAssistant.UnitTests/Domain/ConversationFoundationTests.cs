@@ -27,4 +27,29 @@ public sealed class ConversationFoundationTests
         Assert.Equal(ConversationIntent.Unknown, state.Intent);
         Assert.Equal(expiresAt, state.ExpiresAt);
     }
+
+    [Fact]
+    public void HumanHandoffDisablesAutomationAndClearsOwnership()
+    {
+        var conversation = new Conversation(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), "+5581999999999");
+        conversation.Assign(Guid.NewGuid());
+
+        conversation.RequestHumanHandoff();
+
+        Assert.Equal(ConversationStatus.WaitingHuman, conversation.Status);
+        Assert.Equal(ConversationAutomationMode.Human, conversation.AutomationMode);
+        Assert.Null(conversation.AssignedUserId);
+    }
+
+    [Fact]
+    public void ClosingHumanConversationClearsOwnership()
+    {
+        var conversation = new Conversation(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), "+5581999999999");
+        conversation.Assign(Guid.NewGuid());
+
+        conversation.Close();
+
+        Assert.Equal(ConversationStatus.Closed, conversation.Status);
+        Assert.Null(conversation.AssignedUserId);
+    }
 }

@@ -13,7 +13,7 @@ import { PageContainer, PageHeader } from "@/components/ui/page";
 import { EmptyState, ErrorState, Skeleton } from "@/components/ui/states";
 
 export default function ConversationsPage() {
-  const api = useApi(); const { user } = useAuth(); const client = useQueryClient(); const allowed = can(user, "manageCatalog");
+  const api = useApi(); const { user } = useAuth(); const client = useQueryClient(); const allowed = can(user, "manageOperations");
   const [search, setSearch] = useState(""); const [submittedSearch, setSubmittedSearch] = useState(""); const [selectedId, setSelectedId] = useState<string>();
   const conversations = useQuery({ queryKey: ["conversations", submittedSearch], queryFn: () => conversationsApi.list(api, 1, submittedSearch) }); const queue = useQuery({ enabled: allowed, queryKey: ["conversation-queue"], queryFn: () => conversationsApi.queue(api) });
   const detail = useQuery({ enabled: !!selectedId, queryKey: ["conversation", selectedId], queryFn: () => conversationsApi.detail(api, selectedId!) }); const messages = useQuery({ enabled: !!selectedId, queryKey: ["conversation-messages", selectedId], queryFn: () => conversationsApi.messages(api, selectedId!) }); const linkedAppointments = useQuery({ enabled: !!selectedId, queryKey: ["conversation-appointments", selectedId], queryFn: () => conversationsApi.appointments(api, selectedId!) }); const operators = useQuery({ enabled: allowed, queryKey: ["conversation-operators"], queryFn: () => conversationsApi.operators(api) });

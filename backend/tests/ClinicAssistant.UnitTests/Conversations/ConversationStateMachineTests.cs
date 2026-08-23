@@ -391,6 +391,19 @@ public sealed class ConversationStateMachineTests
     }
 
     [Fact]
+    public void MainMenuOptionSevenIsResolvedEvenWhenPersistedOptionsAreStale()
+    {
+        var context = new ConversationContext(ConversationIntent.MainMenu, ConversationFlowState.Menu, null, 0);
+        var staleOptions = ConversationStateMachine.MenuOptions().Where(option => option.Key != "7").ToArray();
+
+        var result = Machine().Transition(new("7", ConversationFlowState.Menu, ConversationStateStatus.Active,
+            ConversationIntent.MainMenu, 0, null, DateTimeOffset.UtcNow, staleOptions, context));
+
+        Assert.Equal(ConversationIntent.HumanHandoff, result.Intent);
+        Assert.Equal(ConversationAction.Handoff, result.Action);
+    }
+
+    [Fact]
     public void InvalidConfirmationKeepsTheCurrentActionMap()
     {
         var options = new[]

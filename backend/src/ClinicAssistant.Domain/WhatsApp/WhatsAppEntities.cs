@@ -119,7 +119,14 @@ public sealed class Conversation : Entity, ITenantEntity
     public ConversationPriority Priority { get; private set; }
     public int Version { get; private set; }
     public void RegisterMessage(DateTimeOffset occurredAt) { LastMessageAt = occurredAt; UpdatedAt = DateTimeOffset.UtcNow; }
-    public void RequestHumanHandoff() { Status = ConversationStatus.WaitingHuman; UpdatedAt = DateTimeOffset.UtcNow; }
+    public void RequestHumanHandoff()
+    {
+        Status = ConversationStatus.WaitingHuman;
+        AutomationMode = ConversationAutomationMode.Human;
+        AssignedUserId = null;
+        Version++;
+        UpdatedAt = DateTimeOffset.UtcNow;
+    }
     public void ApplyAutomationMode(ConversationAutomationMode automationMode)
     {
         AutomationMode = automationMode;
@@ -132,6 +139,7 @@ public sealed class Conversation : Entity, ITenantEntity
     {
         AutomationMode = ConversationAutomationMode.Paused;
         Status = ConversationStatus.Closed;
+        AssignedUserId = null;
         ClosedAt = DateTimeOffset.UtcNow;
         Version++;
         UpdatedAt = DateTimeOffset.UtcNow;
