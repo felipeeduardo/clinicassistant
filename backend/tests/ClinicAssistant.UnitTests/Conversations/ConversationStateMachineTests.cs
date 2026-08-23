@@ -27,7 +27,8 @@ public sealed class ConversationStateMachineTests
         var response = new InMemoryConversationResponseComposer().Compose(new(transition.ResponseKey, transition.Options, "pt-BR"));
 
         Assert.Contains("4 - Agendar consulta", response.Text, StringComparison.Ordinal);
-        Assert.Contains("8 - Falar com atendente", response.Text, StringComparison.Ordinal);
+        Assert.Contains("7 - Falar com atendente", response.Text, StringComparison.Ordinal);
+        Assert.DoesNotContain("Confirmar consulta", response.Text, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -356,11 +357,12 @@ public sealed class ConversationStateMachineTests
     }
 
     [Fact]
-    public void MainMenuConfirmationRemainsTheExistingAppointmentFlow()
+    public void MainMenuOptionSevenStartsHumanHandoff()
     {
         var result = Machine().Transition(Input("7", ConversationFlowState.Menu));
 
-        Assert.Equal(ConversationIntent.ConfirmExistingAppointment, result.Intent);
+        Assert.Equal(ConversationIntent.HumanHandoff, result.Intent);
+        Assert.Equal(ConversationAction.Handoff, result.Action);
     }
 
     [Fact]
@@ -381,11 +383,11 @@ public sealed class ConversationStateMachineTests
     }
 
     [Fact]
-    public void MainMenuConfirmationUsesExistingAppointmentAction()
+    public void LegacyMainMenuOptionEightFallsBackToHumanHandoff()
     {
-        var result = Machine().Transition(Input("7", ConversationFlowState.Menu));
+        var result = Machine().Transition(Input("8", ConversationFlowState.Menu));
 
-        Assert.Equal(ConversationIntent.ConfirmExistingAppointment, result.Intent);
+        Assert.Equal(ConversationIntent.HumanHandoff, result.Intent);
     }
 
     [Fact]

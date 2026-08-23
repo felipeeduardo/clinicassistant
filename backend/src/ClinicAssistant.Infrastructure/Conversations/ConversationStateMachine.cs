@@ -101,7 +101,7 @@ public sealed class ConversationStateMachine : IConversationStateMachine
     [
         new("1", "specialties", 1), new("2", "professionals", 2), new("3", "availability", 3),
         new("4", "schedule", 4), new("5", "reschedule", 5), new("6", "cancel_appointment", 6),
-        new("7", "confirm", 7), new("8", "human", 8)
+        new("7", "human", 7)
     ];
 
     private static bool IsExpired(ConversationInput input) => input.ExpiresAt.HasValue && input.ExpiresAt.Value <= input.ReceivedAt;

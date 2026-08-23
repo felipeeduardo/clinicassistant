@@ -90,7 +90,8 @@ public sealed class ConversationIntentResolver : IConversationIntentResolver
         "4" when currentIntent == ConversationIntent.Unknown || currentIntent == ConversationIntent.Greeting => ConversationIntent.ScheduleAppointment,
         "5" when currentIntent == ConversationIntent.Unknown || currentIntent == ConversationIntent.Greeting => ConversationIntent.RescheduleAppointment,
         "6" when currentIntent == ConversationIntent.Unknown || currentIntent == ConversationIntent.Greeting => ConversationIntent.CancelAppointment,
-        "7" when currentIntent == ConversationIntent.Unknown || currentIntent == ConversationIntent.Greeting => ConversationIntent.ConfirmExistingAppointment,
+        "7" when currentIntent == ConversationIntent.Unknown || currentIntent == ConversationIntent.Greeting => ConversationIntent.HumanHandoff,
+        // Compatibility alias for users who still have the previous eight-item menu cached.
         "8" when currentIntent == ConversationIntent.Unknown || currentIntent == ConversationIntent.Greeting => ConversationIntent.HumanHandoff,
         _ when ContainsAny(text, "humano", "atendente", "pessoa", "recepcao", "falar com alguem", "falar com uma pessoa") => ConversationIntent.HumanHandoff,
         _ when ContainsAny(text, "diagnostico", "diagnosticar", "estou com dor", "sintoma", "sintomas", "prescricao", "receita medica") => ConversationIntent.HumanHandoff,

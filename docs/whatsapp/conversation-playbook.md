@@ -52,8 +52,7 @@ Como posso ajudar?
 4 - Agendar consulta
 5 - Reagendar consulta
 6 - Cancelar consulta
-7 - Confirmar consulta
-8 - Falar com atendente
+7 - Falar com atendente
 ```
 
 Depois da abertura, a versão curta é usada:
@@ -67,8 +66,7 @@ Como posso ajudar?
 4 - Agendar
 5 - Reagendar
 6 - Cancelar
-7 - Confirmar
-8 - Atendente
+7 - Atendente
 ```
 
 ## Fluxo de especialidades

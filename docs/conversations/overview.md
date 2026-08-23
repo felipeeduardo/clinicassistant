@@ -34,6 +34,7 @@ flowchart TD
   P -->|opção persistida| D[Disponibilidade do profissional]
   D -->|opção persistida| H[Horário selecionado]
   H -->|1 Agendar| A[Fluxo de agendamento]
+  M -->|7| R[Atendimento humano]
 ```
 
 | Estado lógico | Entrada numérica | Próxima ação |
@@ -77,9 +78,10 @@ intervalo, conflitos e unidade, mantendo a idempotência existente.
 
 Na confirmação, as ações internas são separadas das etiquetas exibidas:
 `ConfirmSelectedSlot`, `more_slots` e `mainmenu` são renderizadas como “Confirmar
-agendamento”, “Mais horários” e “Voltar ao menu inicial”. A opção `confirm` do
-menu principal resolve para `ConfirmExistingAppointment`, que é o fluxo de
-consulta já existente. O estado persistido
+agendamento”, “Mais horários” e “Voltar ao menu inicial”. O menu principal não
+expõe uma confirmação genérica: sua opção `7` encaminha para atendimento humano.
+`ConfirmExistingAppointment` permanece disponível para fluxos contextuais ou
+legados fora do menu. O estado persistido
 usa `AwaitingSlotSelection` e `AwaitingScheduleConfirmation`; portanto, o
 comando `1` após a escolha de um slot confirma o slot existente e nunca reinicia
 o fluxo genérico de agendamento.
