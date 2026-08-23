@@ -22,6 +22,8 @@ public sealed class ConversationIntentResolver : IConversationIntentResolver
         if (text is "outros dias" or "outro dia" or "outra data" or "consultar outra data") return new(ConversationIntent.CheckAvailability, text, true);
         if (context.PendingConfirmation && context.CurrentIntent == ConversationIntent.ScheduleAppointment && (text is "sim" or "confirmar" or "pode" or "ok" or "agendar" or "agendar consulta" or "confirmar agendamento"))
             return new(ConversationIntent.ConfirmSelectedSlot, text, true);
+        if (context.PendingConfirmation && context.CurrentIntent == ConversationIntent.RescheduleAppointment && (text is "sim" or "confirmar" or "pode" or "ok" or "reagendar" or "confirmar reagendamento"))
+            return new(ConversationIntent.ConfirmReschedule, text, true);
         if (context.PendingConfirmation && (text is "sim" or "confirmar" or "pode" or "ok"))
             return new(context.CurrentIntent is ConversationIntent.CancelAppointment ? ConversationIntent.CancelAppointment : context.CurrentIntent is ConversationIntent.RescheduleAppointment ? ConversationIntent.RescheduleAppointment : ConversationIntent.ConfirmExistingAppointment, text);
         if ((context.CurrentIntent is ConversationIntent.ScheduleAppointment or ConversationIntent.RescheduleAppointment or ConversationIntent.CheckAvailability) && IsNaturalDate(text))
@@ -54,6 +56,7 @@ public sealed class ConversationIntentResolver : IConversationIntentResolver
         "date_request" => ConversationIntent.CheckAvailability,
         "schedule" => ConversationIntent.ScheduleAppointment,
         "confirm_slot" => ConversationIntent.ConfirmSelectedSlot,
+        "confirm_reschedule" => ConversationIntent.ConfirmReschedule,
         "more_slots" => ConversationIntent.CheckAvailability,
         _ when value.StartsWith("day:", StringComparison.Ordinal) && (currentIntent is ConversationIntent.ScheduleAppointment or ConversationIntent.CheckAvailability) => currentIntent,
         "reschedule" => ConversationIntent.RescheduleAppointment,

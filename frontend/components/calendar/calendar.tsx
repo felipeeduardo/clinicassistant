@@ -3,7 +3,7 @@
 import type { Appointment } from "@/lib/api/types";
 import { DEFAULT_CLINIC_TIME_ZONE, type CalendarView, type CalendarFilterState } from "@/lib/scheduling/calendar";
 import { Button } from "@/components/ui/button";
-import { Card, StatusBadge } from "@/components/ui/surfaces";
+import { Card } from "@/components/ui/surfaces";
 import { FormField, Input, Select } from "@/components/ui/form";
 import { EmptyState, Skeleton } from "@/components/ui/states";
 import { Drawer } from "@/components/ui/drawer";
@@ -35,13 +35,17 @@ type CalendarProps = {
 };
 
 const labels: Record<CalendarView, string> = { day: "Dia", week: "Semana", month: "Mês", list: "Lista" };
-const statusLabels: Record<string, string> = { Pending: "Pendente", Confirmed: "Confirmada", Rescheduled: "Reagendada", Cancelled: "Cancelada", Completed: "Concluída", NoShow: "Não compareceu", Blocked: "Bloqueado", Unavailable: "Indisponível", Conflict: "Conflito" };
+const statusLabels: Record<string, string> = { Pending: "Agendada", Confirmed: "Confirmada", Rescheduled: "Reagendada", Cancelled: "Cancelada", Completed: "Concluída", NoShow: "Não compareceu", Blocked: "Bloqueado", Unavailable: "Indisponível", Conflict: "Conflito" };
 const formatTime = (value: string, timeZone: string) => new Date(value).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", timeZone });
 const formatDate = (value: string, timeZone: string) => new Date(value).toLocaleDateString("pt-BR", { dateStyle: "full", timeZone });
 const dateKey = (value: string, timeZone: string) => new Intl.DateTimeFormat("en-CA", { timeZone, year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date(value));
 
 export function CalendarShell(props: CalendarProps) {
-  return <div className="grid gap-4"><Card className="grid gap-4 p-3"><CalendarToolbar {...props} /><CalendarFilterBar {...props} /></Card>{props.loading ? <CalendarSkeleton view={props.view} /> : props.appointments.length === 0 ? <CalendarEmptyState onCreate={props.onCreate} /> : <CalendarViewContent {...props} />}</div>;
+  return <div className="grid gap-4"><Card className="grid gap-4 p-3"><CalendarToolbar {...props} /><CalendarFilterBar {...props} /><CalendarStatusLegend /></Card>{props.loading ? <CalendarSkeleton view={props.view} /> : props.appointments.length === 0 ? <CalendarEmptyState onCreate={props.onCreate} /> : <CalendarViewContent {...props} />}</div>;
+}
+
+export function CalendarStatusLegend() {
+  return <div aria-label="Legenda de status das consultas" className="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-slate-100 pt-3 text-xs text-slate-600">{["Pending", "Confirmed", "Completed", "Cancelled", "Rescheduled", "NoShow"].map(status => <span className="inline-flex items-center gap-1.5" key={status}><span aria-hidden="true" className={`size-2 rounded-full ${status === "Pending" ? "bg-brand-500" : status === "Confirmed" ? "bg-emerald-500" : status === "Completed" ? "bg-slate-400" : status === "Cancelled" ? "bg-red-500" : status === "Rescheduled" ? "bg-amber-500" : "bg-orange-500"}`} />{statusLabels[status]}</span>)}</div>;
 }
 
 export function CalendarToolbar({ date, view, onDateChange, onViewChange, onPrevious, onNext, onToday, onRefresh, realtimeStatus = "offline", timeZone = DEFAULT_CLINIC_TIME_ZONE }: CalendarProps) {
@@ -74,9 +78,9 @@ function CalendarViewContent(props: CalendarProps) {
 }
 
 export function AppointmentCalendarEvent({ appointment, onOpen, timeZone = DEFAULT_CLINIC_TIME_ZONE }: { appointment: CalendarAppointment; onOpen: () => void; timeZone?: string }) {
-  const tone = appointment.kind === "vacation" ? "neutral" : appointment.kind === "block" ? "danger" : appointment.status === "Confirmed" ? "success" : appointment.status === "Cancelled" ? "danger" : appointment.status === "Pending" ? "warning" : "neutral";
   const label = appointment.kind === "vacation" ? "Férias" : appointment.kind === "block" ? "Bloqueado" : statusLabels[appointment.status] ?? appointment.status;
-  return <button aria-label={`${appointment.patientName}, ${formatTime(appointment.startsAt, timeZone)}, ${label}`} className={`w-full rounded-control border p-2 text-left transition focus:outline-none focus:ring-2 focus:ring-brand-500 ${appointment.kind ? "border-slate-300 bg-slate-100" : "border-brand-100 bg-brand-50 hover:border-brand-300"}`} onClick={onOpen} type="button"><div className="flex items-center justify-between gap-2 text-xs font-semibold text-slate-800"><span>{formatTime(appointment.startsAt, timeZone)}</span><StatusBadge tone={tone}>{label}</StatusBadge></div><p className="mt-1 truncate text-sm font-semibold text-slate-950">{appointment.patientName}</p><p className="truncate text-xs text-slate-600">{appointment.professionalName}{appointment.specialtyName ? ` · ${appointment.specialtyName}` : ""}</p></button>;
+  const statusClass = appointment.kind ? "border-slate-300 bg-slate-100" : appointment.status === "Confirmed" ? "border-l-emerald-500 bg-emerald-50/70" : appointment.status === "Cancelled" ? "border-l-red-500 bg-red-50/70 opacity-75" : appointment.status === "Completed" ? "border-l-slate-400 bg-slate-50" : appointment.status === "Rescheduled" ? "border-l-amber-500 bg-amber-50/70" : appointment.status === "NoShow" ? "border-l-orange-500 bg-orange-50/70" : "border-l-brand-500 bg-brand-50";
+  return <button aria-label={`Consulta ${formatTime(appointment.startsAt, timeZone)} com ${appointment.patientName}, status ${label}`} className={`w-full rounded-control border border-slate-200 border-l-4 px-2 py-1.5 text-left transition hover:border-brand-300 focus:outline-none focus:ring-2 focus:ring-brand-500 ${statusClass}`} onClick={onOpen} title={`${appointment.patientName} · ${appointment.professionalName} · ${label}`} type="button"><span className="block text-[11px] font-semibold tabular-nums text-slate-600">{formatTime(appointment.startsAt, timeZone)}</span><p className="truncate text-xs font-semibold text-slate-950">{appointment.patientName}</p></button>;
 }
 
 export function CalendarDayView({ appointments, onOpen, timeZone = DEFAULT_CLINIC_TIME_ZONE }: CalendarProps) {
@@ -90,7 +94,7 @@ export function CalendarWeekView({ appointments, date, onOpen, onQuickCreate, ti
 
 export function CalendarMonthView({ appointments, date, onOpen, onQuickCreate, timeZone = DEFAULT_CLINIC_TIME_ZONE }: CalendarProps) {
   const anchor = new Date(`${date}T12:00:00`); const start = new Date(anchor.getFullYear(), anchor.getMonth(), 1); const offset = start.getDay(); const days = Array.from({ length: 42 }, (_, index) => { const value = new Date(start); value.setDate(index - offset + 1); return value; });
-  return <Card className="overflow-x-auto p-2"><div className="grid min-w-[720px] grid-cols-7 gap-px overflow-hidden rounded-control bg-slate-200">{days.map(day => { const items = appointments.filter(item => dateKey(item.startsAt, timeZone) === day.toISOString().slice(0, 10)); return <div className={`min-h-28 bg-white p-2 ${day.getMonth() !== anchor.getMonth() ? "bg-slate-50 text-slate-400" : ""}`} key={day.toISOString()}><div className="text-xs font-semibold">{day.getDate()}</div><div className="mt-2 grid gap-1">{items.slice(0, 2).map(item => <button aria-label={`Abrir consulta de ${item.patientName}`} className="truncate rounded bg-brand-50 px-1.5 py-1 text-left text-xs text-brand-900 hover:bg-brand-100" key={item.id} onClick={() => onOpen(item)} type="button">{formatTime(item.startsAt, timeZone)} · {item.patientName}</button>)}{items.length > 2 && <button className="text-left text-xs font-semibold text-brand-700" onClick={() => onOpen(items[2])} type="button">+ {items.length - 2} mais</button>}{onQuickCreate && <button aria-label={`Nova consulta em ${day.toLocaleDateString("pt-BR", { timeZone })}`} className="text-left text-xs text-slate-400 hover:text-brand-700" onClick={() => onQuickCreate(day.toISOString().slice(0, 10))} type="button">+ consulta</button>}</div></div>; })}</div></Card>;
+  return <Card className="overflow-x-auto p-2"><div className="grid min-w-[860px] grid-cols-7 gap-px overflow-hidden rounded-control bg-slate-200">{days.map(day => { const items = appointments.filter(item => dateKey(item.startsAt, timeZone) === day.toISOString().slice(0, 10)).sort((a, b) => a.startsAt.localeCompare(b.startsAt)); const isToday = dateKey(new Date().toISOString(), timeZone) === day.toISOString().slice(0, 10); return <div className={`min-h-48 bg-white p-2 ${day.getMonth() !== anchor.getMonth() ? "bg-slate-50 text-slate-400" : ""}`} key={day.toISOString()}><div className={`flex items-center justify-between text-xs font-semibold ${isToday ? "text-brand-700" : ""}`}><span className={isToday ? "rounded-full bg-brand-100 px-2 py-0.5" : ""}>{day.getDate()}</span>{items.length > 0 && <span className="text-[10px] font-normal text-slate-400">{items.length} {items.length === 1 ? "consulta" : "consultas"}</span>}</div><div className="calendar-day-events mt-2 grid max-h-40 gap-1 overflow-y-auto pr-1">{items.map(item => <AppointmentCalendarEvent appointment={item} key={item.id} onOpen={() => onOpen(item)} timeZone={timeZone} />)}{onQuickCreate && <button aria-label={`Nova consulta em ${day.toLocaleDateString("pt-BR", { timeZone })}`} className="text-left text-xs text-slate-400 hover:text-brand-700" onClick={() => onQuickCreate(day.toISOString().slice(0, 10))} type="button">+ consulta</button>}</div></div>; })}</div></Card>;
 }
 
 export function CalendarListView({ appointments, onOpen, timeZone = DEFAULT_CLINIC_TIME_ZONE }: CalendarProps) {

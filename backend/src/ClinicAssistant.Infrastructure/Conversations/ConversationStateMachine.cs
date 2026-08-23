@@ -49,6 +49,7 @@ public sealed class ConversationStateMachine : IConversationStateMachine
             ConversationIntent.RescheduleAppointment => new(ConversationFlowState.AwaitingSelection, ConversationStateStatus.Active, intent, ConversationAction.None, 0, "conversation.reschedule", []),
             ConversationIntent.CancelAppointment => new(ConversationFlowState.AwaitingSelection, ConversationStateStatus.Active, intent, ConversationAction.None, 0, "conversation.cancel_appointment", []),
             ConversationIntent.ConfirmSelectedSlot => new(ConversationFlowState.AwaitingScheduleConfirmation, ConversationStateStatus.Active, intent, ConversationAction.None, 0, "conversation.confirm_selected_slot", []),
+            ConversationIntent.ConfirmReschedule => new(ConversationFlowState.AwaitingScheduleConfirmation, ConversationStateStatus.Active, intent, ConversationAction.None, 0, "conversation.confirm_selected_slot", []),
             ConversationIntent.ConfirmExistingAppointment => new(ConversationFlowState.AwaitingSelection, ConversationStateStatus.Active, intent, ConversationAction.None, 0, "conversation.confirm", []),
             ConversationIntent.ConfirmAppointment => new(context.PendingConfirmation && context.CurrentIntent == ConversationIntent.ScheduleAppointment ? ConversationFlowState.AwaitingScheduleConfirmation : ConversationFlowState.AwaitingSelection, ConversationStateStatus.Active, intent, ConversationAction.None, 0, "conversation.confirm", []),
             _ => Invalid(input)

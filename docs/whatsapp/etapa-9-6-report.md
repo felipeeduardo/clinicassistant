@@ -15,6 +15,10 @@
 - navegação curta de agendamento: especialidade → profissional → data → horário → confirmação.
 - confirmação de presença, cancelamento e reagendamento com seleção contextual;
 - mutations transacionais protegidas por idempotência, versão e verificação de conflito.
+- reagendamento contextual por telefone/tenant, com seleção persistida da consulta,
+  reaproveitamento de profissional/especialidade/unidade e pipeline de dias/horários;
+- confirmação semântica `confirm_reschedule`, preservando a consulta original em
+  conflitos e exibindo os horários no fuso da clínica.
 
 ## Fora desta entrega
 
@@ -22,4 +26,4 @@ As mutations de agendamento, reagendamento, cancelamento e confirmação agora s
 
 ## Validação
 
-`dotnet build --no-restore` passou sem warnings ou erros e a collection Postman foi validada como JSON. `dotnet restore` não concluiu neste ambiente durante a execução (ficou sem saída e foi cancelado). `dotnet test` compilou os testes, mas o runner foi bloqueado pelo ambiente ao abrir o socket local (`SocketException: Permission denied`); executar diretamente no Terminal do Mac. O smoke Fake WhatsApp permanece como validação operacional manual, sem mensagens reais Twilio.
+`dotnet build --no-restore` passou sem warnings ou erros. `dotnet test --no-build --no-restore` passou com 97 testes. O smoke Fake WhatsApp/Twilio permanece como validação operacional manual.

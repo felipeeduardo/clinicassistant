@@ -64,6 +64,7 @@ public sealed class SchedulingService(ClinicAssistantDbContext db, TenantAccessG
         var page = Math.Max(1, r.Page); var pageSize = Math.Clamp(r.PageSize, 1, 100); var query = db.Appointments.AsNoTracking();
         if (r.ProfessionalId.HasValue) query = query.Where(x => x.ProfessionalId == r.ProfessionalId); if (r.SpecialtyId.HasValue) query = query.Where(x => x.SpecialtyId == r.SpecialtyId); if (r.UnitId.HasValue) query = query.Where(x => x.ClinicUnitId == r.UnitId); if (r.PatientId.HasValue) query = query.Where(x => x.PatientId == r.PatientId);
         if (!string.IsNullOrWhiteSpace(r.Status) && Enum.TryParse<AppointmentStatus>(r.Status, true, out var status)) query = query.Where(x => x.Status == status);
+        else query = query.Where(x => x.Status != AppointmentStatus.Rescheduled);
         if (!string.IsNullOrWhiteSpace(r.Source) && Enum.TryParse<AppointmentSource>(r.Source, true, out var source)) query = query.Where(x => x.Source == source);
         if (r.From.HasValue) query = query.Where(x => x.StartsAt >= r.From.Value.ToUniversalTime()); if (r.To.HasValue) query = query.Where(x => x.StartsAt < r.To.Value.ToUniversalTime());
         var total = await query.CountAsync(ct); var ordered = string.Equals(r.Sort, "startsAt:desc", StringComparison.OrdinalIgnoreCase) ? query.OrderByDescending(x => x.StartsAt) : query.OrderBy(x => x.StartsAt);

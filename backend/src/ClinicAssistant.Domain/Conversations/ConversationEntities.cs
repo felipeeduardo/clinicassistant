@@ -12,7 +12,7 @@ public enum ConversationIntent
     CheckAvailability, ScheduleAppointment, RescheduleAppointment, CancelAppointment,
     ConfirmAppointment, TalkToHuman, Farewell, Unsupported,
     MainMenu, GoBack, CancelCurrentFlow, Repeat, Help,
-    ConfirmSelectedSlot, ConfirmExistingAppointment,
+    ConfirmSelectedSlot, ConfirmExistingAppointment, ConfirmReschedule,
     ViewSpecialties = ListSpecialties,
     ViewProfessionals = ListProfessionals,
     HumanHandoff = TalkToHuman

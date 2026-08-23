@@ -294,15 +294,25 @@ Consulta cancelada ✅
 flowchart LR
     A[Pedido de reagendamento] --> B[Listar consultas futuras]
     B --> C[Selecionar consulta]
-    C --> D[Pedir nova data]
-    D --> E[Listar novos horários]
-    E --> F[Selecionar horário]
-    F --> G[Confirmar mudança]
-    G --> H{Slot disponível e versão atual?}
-    H -- sim --> I[Marcar original como Rescheduled]
-    I --> J[Criar consulta substituta]
-    H -- não --> K[Informar conflito e preservar consulta atual]
+    C --> D[Reutilizar profissional, especialidade e unidade]
+    D --> E[Listar dias disponíveis]
+    E --> F[Listar horários do dia]
+    F --> G[Selecionar horário]
+    G --> H[Confirmar reagendamento]
+    H --> I{Slot disponível e versão atual?}
+    I -- sim --> J[Marcar original como Rescheduled]
+    J --> K[Criar consulta substituta]
+    I -- não --> L[Informar conflito e preservar consulta atual]
 ```
+
+A lista inicial é filtrada por `TenantId`, paciente resolvido a partir do telefone
+normalizado da conversa, data futura e status `Pending`/`Confirmed`. Cada opção
+persiste o vínculo `posição → AppointmentId` no estado da conversa; a posição
+digitada pelo paciente nunca é aplicada sobre uma nova consulta recalculada.
+Depois da seleção, o fluxo mantém o profissional, a especialidade e a unidade da
+consulta original e reutiliza o mesmo pipeline de disponibilidade do agendamento.
+O botão/ação de confirmação é semântico (`confirm_reschedule`) e a mutation só
+ocorre após essa confirmação explícita.
 
 Resposta de conflito:
 

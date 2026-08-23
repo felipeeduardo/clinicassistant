@@ -103,6 +103,8 @@ public sealed class ConversationOrchestrator(
                 stateContext = stateContext with { AwaitingAvailableDaySelection = false, AwaitingDateSelection = false, SelectedSlotId = null, SelectedSlotStartsAt = null, SelectedSlotEndsAt = null, PendingConfirmation = false };
             else if (selectedOptionValue?.StartsWith("day:", StringComparison.Ordinal) == true && DateOnly.TryParse(selectedOptionValue[4..], CultureInfo.InvariantCulture, DateTimeStyles.None, out var selectedAvailabilityDate))
                 stateContext = stateContext with { SelectedDate = selectedAvailabilityDate, AwaitingAvailableDaySelection = false, AwaitingDateSelection = false, AvailabilityCursor = null };
+            if (stateContext.CurrentIntent == ConversationIntent.RescheduleAppointment && stateContext.SelectedAppointmentId.HasValue)
+                stateContext = await EnrichRescheduleContextAsync(stateContext, command.TenantId, patient.Id, cancellationToken);
             AvailabilityTargetResolution? availabilityTarget = null;
             if (stateContext.CurrentIntent == ConversationIntent.CheckAvailability
                 && !stateContext.SelectedSpecialtyId.HasValue
@@ -180,6 +182,13 @@ public sealed class ConversationOrchestrator(
                 responseOptions = retry.Options;
                 responseText = $"Não consegui continuar com esse horário. Vou mostrar as opções novamente.\n\n{retry.Text}";
             }
+            else if (transition.Intent == ConversationIntent.ConfirmReschedule && stateContext.PendingConfirmation && stateContext.CurrentIntent == ConversationIntent.RescheduleAppointment && stateContext.SelectedAppointmentId.HasValue)
+            {
+                var operation = await TryRescheduleAppointmentAsync(command, patient.Id, stateContext, cancellationToken);
+                responseText = operation.Message;
+                if (operation.Success)
+                    stateContext = stateContext with { PendingConfirmation = false, CurrentIntent = ConversationIntent.Unknown, SelectedAppointmentId = null, SelectedDate = null, SelectedSlotStartsAt = null, SelectedSlotEndsAt = null };
+            }
             else if (transition.Intent is (ConversationIntent.CancelAppointment or ConversationIntent.ConfirmExistingAppointment or ConversationIntent.ConfirmAppointment) && stateContext.PendingConfirmation && stateContext.SelectedAppointmentId.HasValue)
             {
                 var operation = transition.Intent == ConversationIntent.CancelAppointment
@@ -187,12 +196,6 @@ public sealed class ConversationOrchestrator(
                     : await TryConfirmAppointmentAsync(command, patient.Id, stateContext.SelectedAppointmentId.Value, cancellationToken);
                 responseText = operation.Message;
                 if (operation.Success) stateContext = stateContext with { PendingConfirmation = false, CurrentIntent = ConversationIntent.Unknown, SelectedAppointmentId = null };
-            }
-            else if (transition.Intent == ConversationIntent.RescheduleAppointment && stateContext.PendingConfirmation && stateContext.SelectedAppointmentId.HasValue)
-            {
-                var operation = await TryRescheduleAppointmentAsync(command, patient.Id, stateContext, cancellationToken);
-                responseText = operation.Message;
-                if (operation.Success) stateContext = stateContext with { PendingConfirmation = false, CurrentIntent = ConversationIntent.Unknown, SelectedAppointmentId = null, SelectedDate = null, SelectedSlotStartsAt = null, SelectedSlotEndsAt = null };
             }
             var optionsAlreadyRendered = responseOptions.Any(option =>
                 option.Value.StartsWith("slot:", StringComparison.Ordinal) ||
@@ -220,7 +223,9 @@ public sealed class ConversationOrchestrator(
                 };
             stateContext = AdvanceAvailabilityCursor(stateContext, responseOptions);
             var persistedIntent = stateContext.PendingConfirmation && stateContext.SelectedSlotStartsAt.HasValue
-                ? ConversationIntent.ScheduleAppointment
+                ? stateContext.CurrentIntent == ConversationIntent.RescheduleAppointment
+                    ? ConversationIntent.RescheduleAppointment
+                    : ConversationIntent.ScheduleAppointment
                 : stateContext.CurrentIntent == ConversationIntent.CheckAvailability
                     ? ConversationIntent.CheckAvailability
                 : appointmentCreated ? ConversationIntent.MainMenu : transition.Intent;
@@ -369,7 +374,7 @@ public sealed class ConversationOrchestrator(
                 return context with { SelectedAppointmentId = appointmentId, SelectedAppointmentVersion = appointmentParts.Length > 1 && int.TryParse(appointmentParts[1], CultureInfo.InvariantCulture, out var version) ? version : null, PendingConfirmation = context.CurrentIntent is ConversationIntent.CancelAppointment or ConversationIntent.ConfirmExistingAppointment or ConversationIntent.ConfirmAppointment };
         }
         if (machineValue.StartsWith("day:", StringComparison.Ordinal) && DateOnly.TryParse(machineValue[4..].Split("||", 2)[0], CultureInfo.InvariantCulture, DateTimeStyles.None, out var selectedDate))
-            return context with { SelectedDate = selectedDate, AwaitingAvailableDaySelection = false, AwaitingDateSelection = false, AvailabilityCursor = null, CurrentIntent = ConversationIntent.ScheduleAppointment, CurrentStep = ConversationFlowState.AwaitingSlotSelection };
+            return context with { SelectedDate = selectedDate, AwaitingAvailableDaySelection = false, AwaitingDateSelection = false, AvailabilityCursor = null, CurrentIntent = context.CurrentIntent == ConversationIntent.RescheduleAppointment ? ConversationIntent.RescheduleAppointment : ConversationIntent.ScheduleAppointment, CurrentStep = ConversationFlowState.AwaitingSlotSelection };
         if (machineValue.StartsWith("slot:", StringComparison.Ordinal))
         {
             var parts = machineValue.Split('|', StringSplitOptions.TrimEntries);
@@ -379,7 +384,7 @@ public sealed class ConversationOrchestrator(
                 && DateTimeOffset.TryParse(parts[startIndex + 1], CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var endsAt))
                 return context with
                 {
-                    CurrentIntent = ConversationIntent.ScheduleAppointment,
+                    CurrentIntent = context.CurrentIntent == ConversationIntent.RescheduleAppointment ? ConversationIntent.RescheduleAppointment : ConversationIntent.ScheduleAppointment,
                     CurrentStep = ConversationFlowState.AwaitingScheduleConfirmation,
                     SelectedProfessionalId = Guid.TryParse(parts[0][5..], out var professionalId) ? professionalId : context.SelectedProfessionalId,
                     SelectedUnitId = startIndex == 2 && Guid.TryParse(parts[1], out var unitId) ? unitId : context.SelectedUnitId,
@@ -473,7 +478,7 @@ public sealed class ConversationOrchestrator(
     {
         if (transition.Intent is (ConversationIntent.ConfirmSelectedSlot or ConversationIntent.ConfirmAppointment) && context.PendingConfirmation && context.CurrentIntent == ConversationIntent.ScheduleAppointment)
             return ([], context.SelectedSlotStartsAt.HasValue ? null : "Não consegui continuar com esse horário. Vou consultar os horários novamente.");
-        if (transition.Intent is (ConversationIntent.CancelAppointment or ConversationIntent.ConfirmExistingAppointment or ConversationIntent.ConfirmAppointment))
+        if (transition.Intent is (ConversationIntent.RescheduleAppointment or ConversationIntent.CancelAppointment or ConversationIntent.ConfirmExistingAppointment or ConversationIntent.ConfirmAppointment))
             return await BuildAppointmentOperationResponseAsync(transition.Intent, context, tenantId, patientId, cancellationToken);
         if (transition.Intent == ConversationIntent.ScheduleAppointment)
         {
@@ -880,31 +885,124 @@ public sealed class ConversationOrchestrator(
     {
         if (context.SelectedAppointmentId.HasValue)
         {
-            var selected = await dbContext.Appointments.IgnoreQueryFilters().Where(item => item.TenantId == tenantId && item.PatientId == patientId && item.Id == context.SelectedAppointmentId.Value).Select(item => new { item.StartsAt, item.Status }).SingleOrDefaultAsync(cancellationToken);
+            var selected = await (from appointment in dbContext.Appointments.IgnoreQueryFilters()
+                                  join professional in dbContext.Professionals.IgnoreQueryFilters() on appointment.ProfessionalId equals professional.Id
+                                  join specialty in dbContext.Specialties.IgnoreQueryFilters() on appointment.SpecialtyId equals specialty.Id
+                                  where appointment.TenantId == tenantId && appointment.PatientId == patientId && appointment.Id == context.SelectedAppointmentId.Value
+                                  select new { appointment.StartsAt, appointment.EndsAt, appointment.Status, appointment.Version, appointment.ProfessionalId, appointment.SpecialtyId, appointment.ClinicUnitId, ProfessionalName = professional.Name, SpecialtyName = specialty.Name })
+                .SingleOrDefaultAsync(cancellationToken);
             if (selected is null) return ([], "Não encontrei essa consulta. Vamos tentar novamente?");
             if (intent == ConversationIntent.RescheduleAppointment)
             {
-                if (!context.SelectedDate.HasValue) return ([], $"Encontrei sua consulta em {selected.StartsAt:dd/MM} às {selected.StartsAt:HH\\:mm}. Qual nova data você prefere?");
+                var timeZone = await GetClinicTimeZoneAsync(selected.ProfessionalId, tenantId, cancellationToken);
+                var currentLocalStart = TimeZoneInfo.ConvertTime(selected.StartsAt, timeZone);
+                if (!context.SelectedDate.HasValue)
+                {
+                    var dayContext = context with
+                    {
+                        SelectedProfessionalId = selected.ProfessionalId,
+                        SelectedProfessionalName = selected.ProfessionalName,
+                        SelectedSpecialtyId = selected.SpecialtyId,
+                        SelectedSpecialtyName = selected.SpecialtyName,
+                        SelectedUnitId = selected.ClinicUnitId,
+                        AwaitingAvailableDaySelection = true,
+                        CurrentIntent = ConversationIntent.RescheduleAppointment
+                    };
+                    var days = await BuildAvailableDayResponseAsync(dayContext, tenantId, cancellationToken);
+                    return days.Options.Count == 0
+                        ? ([], $"Não encontrei novos horários para {selected.ProfessionalName}. Você pode escrever *menu* para voltar ao início.")
+                        : (days.Options, $"Sua consulta atual é em {selected.ProfessionalName}, {currentLocalStart:dd/MM} às {currentLocalStart:HH\\:mm}.\n\n{days.Text}");
+                }
                 if (!context.SelectedSlotStartsAt.HasValue)
                 {
-                    var appointmentProfessional = await dbContext.Appointments.IgnoreQueryFilters().Where(item => item.TenantId == tenantId && item.Id == context.SelectedAppointmentId.Value).Select(item => item.ProfessionalId).SingleAsync(cancellationToken);
-                    var slots = await GetSlotsAsync(appointmentProfessional, context.SelectedDate.Value, tenantId, cancellationToken);
-                    var timeZone = await GetClinicTimeZoneAsync(appointmentProfessional, tenantId, cancellationToken);
-                    var unitId = await GetProfessionalUnitIdAsync(appointmentProfessional, tenantId, cancellationToken);
-                    var rescheduleOptions = BuildSlotOptions(slots.Take(_options.MaxOptionsPerMessage).ToList(), appointmentProfessional, unitId, timeZone);
-                    return (rescheduleOptions, slots.Count == 0 ? "Não encontrei horários nessa data. Você prefere tentar outro dia?" : "Para essa data, encontrei estes horários. Qual você prefere?");
+                    var slots = (await GetSlotsAsync(selected.ProfessionalId, context.SelectedDate.Value, tenantId, cancellationToken))
+                        .Where(slot => slot.StartsAt != selected.StartsAt || slot.EndsAt != selected.EndsAt)
+                        .Take(_options.MaxOptionsPerMessage)
+                        .ToList();
+                    var unitId = context.SelectedUnitId ?? selected.ClinicUnitId;
+                    var rescheduleOptions = BuildSlotOptions(slots, selected.ProfessionalId, unitId, timeZone);
+                    var localDate = context.SelectedDate.Value.ToDateTime(TimeOnly.MinValue);
+                    var dateLabel = FormatLocalDate(DateOnly.FromDateTime(localDate), timeZone);
+                    return (rescheduleOptions, slots.Count == 0 ? "Não encontrei horários nessa data. Você pode escrever *outra data* ou *menu*." : BuildSlotText($"Para {dateLabel}, encontrei estes horários:", slots, rescheduleOptions, timeZone, "Para consultar outra data, escreva *outra data*."));
                 }
-                return ([], $"Deseja mudar sua consulta para {context.SelectedDate:dd/MM} às {context.SelectedSlotStartsAt:HH\\:mm}?");
+                var newLocalStart = TimeZoneInfo.ConvertTime(context.SelectedSlotStartsAt.Value, timeZone);
+                var confirmationOptions = new[] { new ConversationOptionDefinition("1", "confirm_reschedule", 1, "confirm_reschedule"), new ConversationOptionDefinition("2", "more_slots", 2, "more_slots") };
+                return (confirmationOptions, $"Você quer alterar esta consulta?\n\nAtual: {selected.ProfessionalName} · {selected.SpecialtyName}\n{currentLocalStart:dd/MM} às {currentLocalStart:HH\\:mm}\n\nPara: {selected.ProfessionalName}\n{newLocalStart:dd/MM} às {newLocalStart:HH\\:mm}\n\nPosso confirmar o reagendamento?");
             }
             var action = intent == ConversationIntent.CancelAppointment ? "cancelar" : "confirmar sua presença em";
-            return ([], $"Encontrei sua consulta em {selected.StartsAt:dd/MM} às {selected.StartsAt:HH\\:mm}. Deseja {action}?");
+            var selectedTimeZone = await GetClinicTimeZoneAsync(selected.ProfessionalId, tenantId, cancellationToken);
+            var selectedLocal = TimeZoneInfo.ConvertTime(selected.StartsAt, selectedTimeZone);
+            return ([], $"Encontrei sua consulta em {selectedLocal:dd/MM} às {selectedLocal:HH\\:mm}. Deseja {action}?");
         }
 
         var now = DateTimeOffset.UtcNow;
-        var appointments = await dbContext.Appointments.IgnoreQueryFilters().Where(item => item.TenantId == tenantId && item.PatientId == patientId && item.StartsAt >= now && (intent == ConversationIntent.CancelAppointment ? item.Status != AppointmentStatus.Cancelled && item.Status != AppointmentStatus.Completed : item.Status == AppointmentStatus.Pending)).OrderBy(item => item.StartsAt).Take(_options.MaxOptionsPerMessage).ToListAsync(cancellationToken);
-        var options = appointments.Select((item, index) => new ConversationOptionDefinition((index + 1).ToString(CultureInfo.InvariantCulture), $"appointment:{item.Id}|{item.Version}||{item.StartsAt:dd/MM} às {item.StartsAt:HH\\:mm}", index + 1)).ToList();
-        var text = intent switch { ConversationIntent.CancelAppointment => "Encontrei estas consultas. Qual você deseja cancelar?", ConversationIntent.RescheduleAppointment => "Encontrei estas consultas. Qual você deseja reagendar?", _ => "Encontrei estas consultas pendentes. Qual você deseja confirmar?" };
-        return (options, appointments.Count == 0 ? "Não encontrei consultas futuras para essa operação." : text);
+        var appointments = await (from appointment in dbContext.Appointments.IgnoreQueryFilters()
+                                  join professional in dbContext.Professionals.IgnoreQueryFilters() on appointment.ProfessionalId equals professional.Id
+                                  join specialty in dbContext.Specialties.IgnoreQueryFilters() on appointment.SpecialtyId equals specialty.Id
+                                  join unit in dbContext.ClinicUnits.IgnoreQueryFilters() on appointment.ClinicUnitId equals unit.Id
+                                  join clinic in dbContext.Clinics.IgnoreQueryFilters() on unit.ClinicId equals clinic.Id
+                                  where appointment.TenantId == tenantId && appointment.PatientId == patientId && appointment.StartsAt >= now
+                                      && (intent == ConversationIntent.CancelAppointment
+                                          ? appointment.Status == AppointmentStatus.Pending || appointment.Status == AppointmentStatus.Confirmed
+                                          : intent == ConversationIntent.RescheduleAppointment
+                                              ? appointment.Status == AppointmentStatus.Pending || appointment.Status == AppointmentStatus.Confirmed
+                                              : appointment.Status == AppointmentStatus.Pending)
+                                  orderby appointment.StartsAt
+                                  select new { appointment.Id, appointment.Version, appointment.StartsAt, appointment.ProfessionalId, ProfessionalName = professional.Name, SpecialtyName = specialty.Name, TimeZoneId = clinic.TimeZone })
+            .Take(_options.MaxOptionsPerMessage)
+            .ToListAsync(cancellationToken);
+        var options = appointments.Select((item, index) =>
+        {
+            var localStart = TimeZoneInfo.ConvertTime(item.StartsAt, ResolveTimeZone(item.TimeZoneId));
+            return new ConversationOptionDefinition((index + 1).ToString(CultureInfo.InvariantCulture), $"appointment:{item.Id}|{item.Version}||{item.ProfessionalName} · {item.SpecialtyName} · {localStart:dd/MM} às {localStart:HH\\:mm}", index + 1);
+        }).ToList();
+        var text = intent switch { ConversationIntent.CancelAppointment => "Encontrei estas consultas. Qual você deseja cancelar?", ConversationIntent.RescheduleAppointment => "Encontrei estas consultas marcadas para você. Qual deseja reagendar?", _ => "Encontrei estas consultas pendentes. Qual você deseja confirmar?" };
+        return (options, appointments.Count == 0 ? intent == ConversationIntent.RescheduleAppointment ? "Não encontrei consultas futuras para reagendar. Posso ajudar a agendar uma nova consulta ou voltar ao menu." : "Não encontrei consultas futuras para essa operação." : text);
+    }
+
+    private async Task<ConversationContext> EnrichRescheduleContextAsync(ConversationContext context, Guid tenantId, Guid patientId, CancellationToken cancellationToken)
+    {
+        if (!context.SelectedAppointmentId.HasValue)
+            return context;
+
+        var selected = await (from appointment in dbContext.Appointments.IgnoreQueryFilters()
+                              join professional in dbContext.Professionals.IgnoreQueryFilters() on appointment.ProfessionalId equals professional.Id
+                              join specialty in dbContext.Specialties.IgnoreQueryFilters() on appointment.SpecialtyId equals specialty.Id
+                              where appointment.TenantId == tenantId
+                                    && appointment.PatientId == patientId
+                                    && appointment.Id == context.SelectedAppointmentId.Value
+                              select new
+                              {
+                                  appointment.ProfessionalId,
+                                  appointment.SpecialtyId,
+                                  appointment.ClinicUnitId,
+                                  appointment.Version,
+                                  appointment.Status,
+                                  ProfessionalName = professional.Name,
+                                  SpecialtyName = specialty.Name
+                              }).SingleOrDefaultAsync(cancellationToken);
+
+        if (selected is null || (selected.Status != AppointmentStatus.Pending && selected.Status != AppointmentStatus.Confirmed))
+            return context;
+
+        return context with
+        {
+            SelectedProfessionalId = selected.ProfessionalId,
+            SelectedProfessionalName = selected.ProfessionalName,
+            SelectedSpecialtyId = selected.SpecialtyId,
+            SelectedSpecialtyName = selected.SpecialtyName,
+            SelectedUnitId = selected.ClinicUnitId,
+            SelectedAppointmentVersion = selected.Version
+        };
+    }
+
+    private static TimeZoneInfo ResolveTimeZone(string? timeZoneId)
+    {
+        if (string.IsNullOrWhiteSpace(timeZoneId))
+            return TimeZoneInfo.Utc;
+        try { return TimeZoneInfo.FindSystemTimeZoneById(timeZoneId); }
+        catch (TimeZoneNotFoundException) { return TimeZoneInfo.Utc; }
+        catch (InvalidTimeZoneException) { return TimeZoneInfo.Utc; }
     }
 
     private async Task<(IReadOnlyCollection<ConversationOptionDefinition> Options, string? Text)> BuildSpecialtiesAsync(string text, Guid tenantId, CancellationToken cancellationToken)
