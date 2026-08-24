@@ -23,4 +23,8 @@ public static class OperationalTelemetry
     public static readonly Counter<long> WhatsAppTemplateSyncFailures = Meter.CreateCounter<long>("whatsapp_template_sync_failures_total");
     public static readonly Counter<long> TwilioConfigurationValidations = Meter.CreateCounter<long>("twilio_configuration_validations_total");
     public static readonly Counter<long> TwilioConfigurationFailures = Meter.CreateCounter<long>("twilio_configuration_failures_total");
+    public static readonly Counter<long> HumanQueueNotificationsCreated = Meter.CreateCounter<long>("human_queue_notification_created_total");
+    public static readonly Counter<long> HumanQueueNotificationsRead = Meter.CreateCounter<long>("human_queue_notification_read_total");
+    public static readonly Counter<long> HumanQueueReminders = Meter.CreateCounter<long>("human_queue_reminder_triggered_total");
+    public static readonly Counter<long> HumanQueueSlaExceeded = Meter.CreateCounter<long>("human_queue_sla_exceeded_total");
 }

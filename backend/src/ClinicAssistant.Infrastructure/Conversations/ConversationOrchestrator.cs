@@ -3,6 +3,7 @@ using System.Globalization;
 using ClinicAssistant.Application.Conversations;
 using ClinicAssistant.Application.WhatsApp;
 using ClinicAssistant.Application.Realtime;
+using ClinicAssistant.Application.Operations;
 using ClinicAssistant.Domain.Conversations;
 using ClinicAssistant.Domain.Clinics;
 using ClinicAssistant.Contracts.Scheduling;
@@ -24,13 +25,15 @@ public sealed class ConversationOrchestrator(
     IConversationResponseComposer responseComposer,
     IOperationalEventPublisher events,
     Microsoft.Extensions.Options.IOptions<ConversationOptions> options,
-    ILogger<ConversationOrchestrator>? logger = null) : IConversationOrchestrator
+    ILogger<ConversationOrchestrator>? logger = null,
+    IOperationalNotificationService? notifications = null) : IConversationOrchestrator
 {
     private readonly ConversationOptions _options = options.Value;
     private static readonly Action<ILogger, string, bool, int, Exception?> InboundStateTrace = LoggerMessage.Define<string, bool, int>(LogLevel.Debug, new EventId(4201, "ConversationInboundState"), "Conversation inbound state: state={State}, selectedSlot={SelectedSlot}, currentActions={CurrentActions}");
     private static readonly Action<ILogger, string, string, Exception?> ActionResolutionTrace = LoggerMessage.Define<string, string>(LogLevel.Debug, new EventId(4202, "ConversationActionResolution"), "Conversation action resolved: input={Input}, action={Action}");
     private static readonly Action<ILogger, string, string, Exception?> HandlerTrace = LoggerMessage.Define<string, string>(LogLevel.Debug, new EventId(4203, "ConversationHandler"), "Conversation handler: state={State}, handler={Handler}");
     private static readonly Action<ILogger, string, Exception?> NextStateTrace = LoggerMessage.Define<string>(LogLevel.Debug, new EventId(4204, "ConversationNextState"), "Conversation next state: state={State}");
+    private static readonly Action<ILogger, Exception?> NotificationFailureTrace = LoggerMessage.Define(LogLevel.Warning, new EventId(4205, "HumanQueueNotificationFailure"), "Human queue notification could not be persisted; handoff remains successful.");
 
     public async Task<ConversationOrchestrationResult> ProcessAsync(ProcessConversationMessageCommand command, CancellationToken cancellationToken)
     {
@@ -293,6 +296,8 @@ public sealed class ConversationOrchestrator(
             await dbContext.SaveChangesAsync(cancellationToken);
             if (transition.Action == ConversationAction.Handoff)
             {
+                try { if (notifications is not null) await notifications.CreateInitialAsync(command.TenantId, command.ConversationId, command.CorrelationId, cancellationToken); }
+                catch (Exception exception) { if (logger is not null) NotificationFailureTrace(logger, exception); }
                 var eventName = queueItemCreated ? "queue.item.created" : "queue.item.updated";
                 await events.PublishAsync(command.TenantId, eventName, new { ConversationId = conversation.Id, Priority = conversation.Priority.ToString(), conversation.Version }, cancellationToken);
             }

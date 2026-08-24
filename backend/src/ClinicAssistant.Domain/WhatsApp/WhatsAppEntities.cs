@@ -115,6 +115,9 @@ public sealed class Conversation : Entity, ITenantEntity
     public DateTimeOffset StartedAt { get; private set; }
     public DateTimeOffset? LastMessageAt { get; private set; }
     public DateTimeOffset? ClosedAt { get; private set; }
+    public DateTimeOffset? WaitingSince { get; private set; }
+    public DateTimeOffset? HumanQueueReminderSentAt { get; private set; }
+    public DateTimeOffset? HumanQueueSlaExceededAt { get; private set; }
     public ConversationAutomationMode AutomationMode { get; private set; }
     public ConversationPriority Priority { get; private set; }
     public int Version { get; private set; }
@@ -124,13 +127,14 @@ public sealed class Conversation : Entity, ITenantEntity
         Status = ConversationStatus.WaitingHuman;
         AutomationMode = ConversationAutomationMode.Human;
         AssignedUserId = null;
+        WaitingSince ??= DateTimeOffset.UtcNow;
         Version++;
         UpdatedAt = DateTimeOffset.UtcNow;
     }
     public void ApplyAutomationMode(ConversationAutomationMode automationMode)
     {
         AutomationMode = automationMode;
-        if (automationMode == ConversationAutomationMode.Human) Status = ConversationStatus.WaitingHuman;
+        if (automationMode == ConversationAutomationMode.Human) { Status = ConversationStatus.WaitingHuman; WaitingSince ??= DateTimeOffset.UtcNow; }
         else if (Status != ConversationStatus.Closed) Status = ConversationStatus.Bot;
         Version++;
         UpdatedAt = DateTimeOffset.UtcNow;
@@ -153,7 +157,9 @@ public sealed class Conversation : Entity, ITenantEntity
         UpdatedAt = DateTimeOffset.UtcNow;
     }
     public void Assign(Guid userId) { AssignedUserId = userId; Status = ConversationStatus.Human; AutomationMode = ConversationAutomationMode.Human; Version++; UpdatedAt = DateTimeOffset.UtcNow; }
-    public void Release() { AssignedUserId = null; Status = ConversationStatus.WaitingHuman; AutomationMode = ConversationAutomationMode.Human; Version++; UpdatedAt = DateTimeOffset.UtcNow; }
+    public void Release() { AssignedUserId = null; Status = ConversationStatus.WaitingHuman; AutomationMode = ConversationAutomationMode.Human; WaitingSince ??= DateTimeOffset.UtcNow; Version++; UpdatedAt = DateTimeOffset.UtcNow; }
+    public void MarkReminderSent(DateTimeOffset at) { HumanQueueReminderSentAt = at; UpdatedAt = at; }
+    public void MarkSlaExceeded(DateTimeOffset at) { HumanQueueSlaExceededAt = at; UpdatedAt = at; }
     public void PauseAutomation() { AutomationMode = ConversationAutomationMode.Paused; Version++; UpdatedAt = DateTimeOffset.UtcNow; }
     public void ResumeAutomation() { AutomationMode = ConversationAutomationMode.Automated; if (Status != ConversationStatus.Closed) Status = ConversationStatus.Bot; Version++; UpdatedAt = DateTimeOffset.UtcNow; }
     public void SetPriority(ConversationPriority priority) { Priority = priority; Version++; UpdatedAt = DateTimeOffset.UtcNow; }

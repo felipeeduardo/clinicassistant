@@ -2,6 +2,8 @@
 
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { Suspense } from "react";
 import { ProtectedShell } from "@/components/protected-shell";
 import { conversationsApi } from "@/lib/api/conversations";
 import type { ConversationDetail, ConversationItem, ConversationMessage } from "@/lib/api/types";
@@ -37,8 +39,13 @@ function sortConversations(items: ConversationItem[]) {
 }
 
 export default function ConversationsPage() {
+  return <Suspense fallback={<main className="p-6 text-sm text-slate-600">Carregando conversas...</main>}><ConversationsPageContent /></Suspense>;
+}
+
+function ConversationsPageContent() {
   const api = useApi();
   const { user } = useAuth();
+  const searchParams = useSearchParams();
   const client = useQueryClient();
   const allowed = can(user, "manageOperations");
   const [search, setSearch] = useState("");
@@ -46,6 +53,7 @@ export default function ConversationsPage() {
   const [selectedId, setSelectedId] = useState<string>();
   const [filter, setFilter] = useState<Filter>("all");
   const [mobileDetail, setMobileDetail] = useState(false);
+  useEffect(() => { const conversationId = searchParams.get("conversationId"); if (conversationId && !selectedId) { setSelectedId(conversationId); setMobileDetail(true); } if (searchParams.get("queue") === "waiting") setFilter("waiting"); }, [searchParams, selectedId]);
 
   const conversations = useInfiniteQuery({ queryKey: ["conversations", submittedSearch], initialPageParam: 1, queryFn: ({ pageParam }) => conversationsApi.list(api, pageParam, submittedSearch), getNextPageParam: lastPage => lastPage.page * lastPage.pageSize < lastPage.totalCount ? lastPage.page + 1 : undefined });
   const queue = useQuery({ enabled: allowed, queryKey: ["conversation-queue"], queryFn: () => conversationsApi.queue(api) });

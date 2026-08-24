@@ -23,6 +23,7 @@ using Microsoft.Extensions.DependencyInjection;
 using StackExchange.Redis;
 using ClinicAssistant.Infrastructure.Messaging;
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Hosting;
 
 namespace ClinicAssistant.Infrastructure;
 
@@ -121,12 +122,16 @@ public static class DependencyInjection
             .Validate(options => options.MaxMessageLength is > 0 and <= 4_000, "Conversation:MaxMessageLength must be between 1 and 4000.")
             .Validate(options => !string.IsNullOrWhiteSpace(options.DefaultLanguage), "Conversation:DefaultLanguage is required.")
             .ValidateOnStart();
+        services.AddOptions<HumanQueueOptions>().Bind(configuration.GetSection(HumanQueueOptions.SectionName))
+            .Validate(x => x.ReminderMinutes > 0 && x.SlaMinutes > x.ReminderMinutes && x.PollingSeconds is >= 10 and <= 300, "HumanQueue SLA settings are invalid.").ValidateOnStart();
         services.AddSingleton<IConversationIntentResolver, ConversationIntentResolver>();
         services.AddSingleton<IConversationStateMachine, ConversationStateMachine>();
         services.AddSingleton<IConversationResponseComposer, InMemoryConversationResponseComposer>();
         services.AddScoped<IConversationLockManager, RedisConversationLock>();
         services.AddScoped<IConversationOrchestrator, ConversationOrchestrator>();
         services.AddScoped<IConversationAdministrationService, ConversationAdministrationService>();
+        services.AddScoped<IOperationalNotificationService, OperationalNotificationService>();
+        services.AddHostedService<HumanQueueEscalationHostedService>();
         services.AddScoped<IPlatformAdministrationService, PlatformAdministrationService>();
         services.AddScoped<IPlatformBootstrapService, PlatformBootstrapService>();
         services.AddScoped<IAuditQueryService, AuditQueryService>();
