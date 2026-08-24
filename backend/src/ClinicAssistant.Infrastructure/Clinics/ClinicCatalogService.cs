@@ -20,10 +20,10 @@ public sealed class ClinicCatalogService(ClinicAssistantDbContext db, TenantAcce
         var action = clinic is null ? "clinic.created" : "clinic.updated";
         if (clinic is null)
         {
-            clinic = new Clinic(tenantId, request.LegalName, request.TradeName, request.Document, request.Email, request.Phone, request.TimeZone);
+            clinic = new Clinic(tenantId, request.LegalName, request.TradeName, request.Document, request.Email, request.Phone, request.TimeZone, request.AssistantDisplayName);
             db.Clinics.Add(clinic);
         }
-        else clinic.Update(request.LegalName, request.TradeName, request.Document, request.Email, request.Phone, request.TimeZone);
+        else clinic.Update(request.LegalName, request.TradeName, request.Document, request.Email, request.Phone, request.TimeZone, request.AssistantDisplayName);
         db.AuditRecords.Add(new AuditRecord(tenantId, null, action, "Clinic", clinic.Id, "Succeeded", "Clinic updated by clinic administration."));
         await db.SaveChangesAsync(ct); await PublishAuditAsync(tenantId, action, "Clinic", clinic.Id, ct); return Map(clinic);
     }
@@ -62,13 +62,13 @@ public sealed class ClinicCatalogService(ClinicAssistantDbContext db, TenantAcce
     private async Task SetSpecialties(Professional p, IReadOnlyCollection<Guid> ids, CancellationToken ct) { var unique = ids.Distinct().ToArray(); if (unique.Length != ids.Count || await db.Specialties.CountAsync(x => unique.Contains(x.Id), ct) != unique.Length) throw new InvalidOperationException("One or more specialties are invalid for this tenant."); foreach (var id in unique) p.Specialties.Add(new ProfessionalSpecialty(p.Id, id)); }
     private static async Task<T> Require<T>(IQueryable<T> query, Guid id, CancellationToken ct) where T : class => await query.SingleOrDefaultAsync(x => EF.Property<Guid>(x, "Id") == id, ct) ?? throw new KeyNotFoundException("Resource not found.");
     private Task PublishAuditAsync(Guid tenantId, string action, string resourceType, Guid resourceId, CancellationToken ct) => events.PublishAsync(tenantId, "audit.created", new { Action = action, ResourceType = resourceType, ResourceId = resourceId, Result = "Succeeded" }, ct);
-    private static ClinicResponse Map(Clinic x) => new(x.Id, x.LegalName, x.TradeName, x.Document, x.Email, x.Phone, x.TimeZone, x.Status.ToString());
+    private static ClinicResponse Map(Clinic x) => new(x.Id, x.LegalName, x.TradeName, x.Document, x.Email, x.Phone, x.TimeZone, x.Status.ToString(), x.AssistantDisplayName);
     private static UnitResponse Map(ClinicUnit x) => new(x.Id, x.ClinicId, x.Name, x.Address, x.Phone, x.Status.ToString());
     private static SpecialtyResponse Map(Specialty x) => new(x.Id, x.Name, x.Description, x.Status.ToString());
     private static ProfessionalResponse Map(Professional x) => new(x.Id, x.ClinicUnitId, x.Name, x.Email, x.Phone, x.RegistrationNumber, x.Status.ToString(), x.Specialties.Select(s => s.SpecialtyId).ToList());
 }
 
-file sealed class ClinicRequestValidator : AbstractValidator<ClinicRequest> { public ClinicRequestValidator() { RuleFor(x => x.LegalName).NotEmpty().MaximumLength(200); RuleFor(x => x.TradeName).NotEmpty().MaximumLength(200); RuleFor(x => x.Document).NotEmpty().MaximumLength(32); RuleFor(x => x.Email).EmailAddress().MaximumLength(320); RuleFor(x => x.Phone).NotEmpty().MaximumLength(32); RuleFor(x => x.TimeZone).NotEmpty().MaximumLength(100); } }
+file sealed class ClinicRequestValidator : AbstractValidator<ClinicRequest> { public ClinicRequestValidator() { RuleFor(x => x.LegalName).NotEmpty().MaximumLength(200); RuleFor(x => x.TradeName).NotEmpty().MaximumLength(200); RuleFor(x => x.Document).NotEmpty().MaximumLength(32); RuleFor(x => x.Email).EmailAddress().MaximumLength(320); RuleFor(x => x.Phone).NotEmpty().MaximumLength(32); RuleFor(x => x.TimeZone).NotEmpty().MaximumLength(100); RuleFor(x => x.AssistantDisplayName).MaximumLength(60).Must(value => string.IsNullOrWhiteSpace(value) || !value.Contains('<') && !value.Contains('>')).WithMessage("O nome da assistente contém caracteres inválidos."); } }
 file sealed class UnitRequestValidator : AbstractValidator<UnitRequest> { public UnitRequestValidator() { RuleFor(x => x.Name).NotEmpty().MaximumLength(200); RuleFor(x => x.Address).NotEmpty().MaximumLength(500); RuleFor(x => x.Phone).NotEmpty().MaximumLength(32); } }
 file sealed class SpecialtyRequestValidator : AbstractValidator<SpecialtyRequest> { public SpecialtyRequestValidator() { RuleFor(x => x.Name).NotEmpty().MaximumLength(160); RuleFor(x => x.Description).MaximumLength(1000); } }
 file sealed class ProfessionalRequestValidator : AbstractValidator<ProfessionalRequest> { public ProfessionalRequestValidator() { RuleFor(x => x.ClinicUnitId).NotEmpty(); RuleFor(x => x.Name).NotEmpty().MaximumLength(200); RuleFor(x => x.Email).EmailAddress().MaximumLength(320); RuleFor(x => x.Phone).NotEmpty().MaximumLength(32); RuleFor(x => x.RegistrationNumber).NotEmpty().MaximumLength(80); RuleFor(x => x.SpecialtyIds).NotEmpty(); } }

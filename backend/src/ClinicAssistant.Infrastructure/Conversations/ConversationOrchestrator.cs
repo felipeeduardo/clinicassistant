@@ -486,6 +486,19 @@ public sealed class ConversationOrchestrator(
 
     private async Task<(IReadOnlyCollection<ConversationOptionDefinition> Options, string? Text)> BuildInformationalResponseAsync(ConversationTransitionResult transition, ConversationContext context, Guid tenantId, Guid patientId, CancellationToken cancellationToken)
     {
+        if (transition.ResponseKey is "conversation.greeting" or "conversation.menu" or "conversation.expired")
+        {
+            var clinic = await dbContext.Clinics.IgnoreQueryFilters().AsNoTracking().SingleOrDefaultAsync(item => item.TenantId == tenantId, cancellationToken);
+            var assistant = string.IsNullOrWhiteSpace(clinic?.AssistantDisplayName) ? "IA Recepção" : clinic.AssistantDisplayName.Trim();
+            var clinicName = string.IsNullOrWhiteSpace(clinic?.TradeName) ? "a clínica" : clinic.TradeName.Trim();
+            var text = transition.ResponseKey switch
+            {
+                "conversation.greeting" => $"Olá! 👋\n\nEu sou a {assistant}, assistente virtual da {clinicName}.\nEstou por aqui para ajudar com sua consulta.\n\nComo posso ajudar?",
+                "conversation.expired" => "Vamos continuar por aqui. Como posso ajudar?",
+                _ => "Claro. Como posso ajudar agora?"
+            };
+            return (ConversationStateMachine.MenuOptions(), text);
+        }
         if (transition.Intent is (ConversationIntent.ConfirmSelectedSlot or ConversationIntent.ConfirmAppointment) && context.PendingConfirmation && context.CurrentIntent == ConversationIntent.ScheduleAppointment)
             return ([], context.SelectedSlotStartsAt.HasValue ? null : "Não consegui continuar com esse horário. Vou consultar os horários novamente.");
         if (transition.Intent is (ConversationIntent.RescheduleAppointment or ConversationIntent.CancelAppointment or ConversationIntent.ConfirmExistingAppointment or ConversationIntent.ConfirmAppointment))

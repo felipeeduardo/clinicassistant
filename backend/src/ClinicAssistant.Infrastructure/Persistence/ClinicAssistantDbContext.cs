@@ -97,7 +97,7 @@ public sealed class ClinicAssistantDbContext(DbContextOptions<ClinicAssistantDbC
         modelBuilder.Entity<Clinic>(entity =>
         {
             entity.ToTable("clinics"); entity.Property(x => x.LegalName).HasMaxLength(200); entity.Property(x => x.TradeName).HasMaxLength(200);
-            entity.Property(x => x.Document).HasMaxLength(32); entity.Property(x => x.Email).HasMaxLength(320); entity.Property(x => x.Phone).HasMaxLength(32); entity.Property(x => x.TimeZone).HasMaxLength(100);
+            entity.Property(x => x.Document).HasMaxLength(32); entity.Property(x => x.Email).HasMaxLength(320); entity.Property(x => x.Phone).HasMaxLength(32); entity.Property(x => x.TimeZone).HasMaxLength(100); entity.Property(x => x.AssistantDisplayName).HasMaxLength(60).HasDefaultValue("IA Recepção");
             entity.Property(x => x.Status).HasConversion<string>().HasMaxLength(32); entity.HasIndex(x => x.TenantId).IsUnique(); entity.HasQueryFilter(x => IsPlatformAdmin || (CurrentTenantId.HasValue && x.TenantId == CurrentTenantId.Value));
         });
         modelBuilder.Entity<ClinicUnit>(entity =>

@@ -4,7 +4,7 @@ export type IntegrationStatus = { status: string; displayPhoneNumber?: string | 
 export type WhatsAppTemplate = { id: string; name: string; languageCode: string; category?: string | null; status: string; contentSidMasked: string; updatedAt: string };
 export type WhatsAppTemplateDetail = WhatsAppTemplate & { variables: string[]; createdAt: string };
 
-export type Clinic = { id: string; legalName: string; tradeName: string; document: string; email: string; phone: string; timeZone: string; status: string };
+export type Clinic = { id: string; legalName: string; tradeName: string; document: string; email: string; phone: string; timeZone: string; status: string; assistantDisplayName?: string | null };
 export type Unit = { id: string; clinicId: string; name: string; address: string; phone: string; status: string };
 export type UnitDetail = { unit: Unit; timeZone: string; businessHours: { dayOfWeek: number; opensAt: string; closesAt: string }[]; professionals: { id: string; name: string; registrationNumber: string; status: string }[]; recentAudit: { occurredAt: string; action: string; result: string }[] };
 export type Specialty = { id: string; name: string; description?: string | null; status: string };
@@ -20,7 +20,7 @@ export type PatientListItem = Patient & { source: string; lastContactAt?: string
 export type PatientPage = PagedResult<PatientListItem>;
 export type PatientDetail = { patient: Patient; source: string; firstContactAt?: string | null; lastContactAt?: string | null; upcomingAppointments: { id: string; startsAt: string; endsAt: string; status: string; source: string }[]; conversations: { id: string; status: string; automationMode: string; lastMessageAt?: string | null }[]; recentAudit: { occurredAt: string; action: string; result: string }[] };
 
-export type ClinicRequest = Pick<Clinic, "legalName" | "tradeName" | "document" | "email" | "phone" | "timeZone">;
+export type ClinicRequest = Pick<Clinic, "legalName" | "tradeName" | "document" | "email" | "phone" | "timeZone" | "assistantDisplayName">;
 export type UnitRequest = Pick<Unit, "name" | "address" | "phone">;
 export type SpecialtyRequest = Pick<Specialty, "name" | "description">;
 export type ProfessionalRequest = Pick<Professional, "clinicUnitId" | "name" | "email" | "phone" | "registrationNumber" | "specialtyIds">;
