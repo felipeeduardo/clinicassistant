@@ -9,6 +9,8 @@ export type CalendarFilterState = {
   search?: string;
 };
 
+export const DEFAULT_CLINIC_TIME_ZONE = "America/Recife";
+
 export function shiftCalendarDate(value: string, days: number) {
   const date = new Date(`${value}T12:00:00`);
   date.setDate(date.getDate() + days);

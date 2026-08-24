@@ -2,7 +2,9 @@ namespace ClinicAssistant.Application.WhatsApp;
 
 public interface IWhatsAppGateway
 {
+    WhatsAppGatewayCapabilities Capabilities { get; }
     Task<SendWhatsAppMessageResult> SendTextAsync(SendWhatsAppTextRequest request, CancellationToken cancellationToken);
+    Task<SendWhatsAppMessageResult> SendInteractiveAsync(SendWhatsAppInteractiveRequest request, CancellationToken cancellationToken);
     Task<SendWhatsAppMessageResult> SendTemplateAsync(SendWhatsAppTemplateRequest request, CancellationToken cancellationToken);
     Task<SendWhatsAppMessageResult> SendMediaAsync(SendWhatsAppMediaRequest request, CancellationToken cancellationToken);
 }
@@ -10,6 +12,16 @@ public interface IWhatsAppGateway
 public sealed record SendWhatsAppTextRequest(
     Guid TenantId, Guid IntegrationId, Guid ConversationId, Guid ConversationMessageId,
     string RecipientPhone, string Text, string IdempotencyKey, string? CorrelationId);
+
+public sealed record SendWhatsAppInteractiveRequest(
+    Guid TenantId, Guid IntegrationId, Guid ConversationId, Guid ConversationMessageId,
+    string RecipientPhone, string Text, WhatsAppInteraction Interaction,
+    string IdempotencyKey, string? CorrelationId);
+
+public sealed record WhatsAppInteraction(WhatsAppInteractionType Type, IReadOnlyCollection<WhatsAppChoice> Choices);
+public sealed record WhatsAppChoice(string ActionId, string Label, string? Description = null);
+public enum WhatsAppInteractionType { List = 1, ReplyButtons = 2 }
+public sealed record WhatsAppGatewayCapabilities(bool SupportsInteractiveLists, bool SupportsReplyButtons, bool SupportsFreeformText);
 
 public sealed record SendWhatsAppTemplateRequest(
     Guid TenantId, Guid IntegrationId, Guid ConversationId, Guid ConversationMessageId,
@@ -82,7 +94,7 @@ public enum WhatsAppOutgoingMessageProcessingResult { Sent, Failed, Duplicate, R
 public sealed record WhatsAppIncomingMessageReceived(
     Guid TenantId, Guid IntegrationId, Guid InboxMessageId, string ExternalMessageId,
     string SenderPhone, string RecipientPhone, WhatsAppIncomingMessageType Type, string? Text,
-    IReadOnlyCollection<WhatsAppIncomingMedia> Media, string? ProfileName, DateTimeOffset ReceivedAt,
+    IReadOnlyCollection<WhatsAppIncomingMedia> Media, string? ProfileName, string? ActionId, DateTimeOffset ReceivedAt,
     string CorrelationId);
 
 public enum WhatsAppIncomingMessageType { Unknown = 0, Text = 1, Media = 2, Location = 3, Interactive = 4, Contact = 5 }
@@ -103,10 +115,10 @@ public enum WhatsAppMediaDisposition { Accepted, RequiresHuman }
 
 public sealed record ConversationMessageReceived(Guid TenantId, Guid IntegrationId, Guid ConversationId, Guid ConversationMessageId, string CorrelationId);
 
-public enum WhatsAppOutgoingMessageType { Text = 1, Template = 2, Media = 3 }
+public enum WhatsAppOutgoingMessageType { Text = 1, Template = 2, Media = 3, Interactive = 4 }
 
 public sealed record SendWhatsAppMessageCommand(
     Guid TenantId, Guid IntegrationId, Guid ConversationId, Guid ConversationMessageId,
     WhatsAppOutgoingMessageType Type, string RecipientPhone, string? Text, string? ContentSid,
     IReadOnlyDictionary<string, string>? ContentVariables, string? MediaUrl, string IdempotencyKey,
-    string CorrelationId);
+    string CorrelationId, WhatsAppInteraction? Interaction = null);

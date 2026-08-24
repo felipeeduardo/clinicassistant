@@ -7,6 +7,7 @@ internal static class ConversationMessageCatalog
         ["conversation.greeting"] = "Olá! 👋\nPosso ajudar você com sua consulta.\n\nComo posso ajudar?",
         ["conversation.menu"] = "Como posso ajudar?",
         ["conversation.invalid_answer"] = "Não consegui identificar essa opção. Você pode escrever o que precisa ou escolher uma opção.",
+        ["conversation.invalid_confirmation"] = "Não reconheci essa resposta. Escolha 1 para confirmar, 2 para escolher outro horário ou escreva menu para sair.",
         ["conversation.invalid_again"] = "Ainda não consegui entender. Quer voltar ao menu ou falar com um atendente?",
         ["conversation.expired"] = "Vamos continuar por aqui. Como posso ajudar?",
         ["conversation.cancelled"] = "Tudo bem, interrompi essa operação. Como posso ajudar agora?",

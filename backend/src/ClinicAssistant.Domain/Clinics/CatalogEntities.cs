@@ -7,8 +7,8 @@ public enum CatalogStatus { Active, Inactive }
 public sealed class Clinic : Entity, ITenantEntity
 {
     private Clinic() { }
-    public Clinic(Guid tenantId, string legalName, string tradeName, string document, string email, string phone, string timeZone)
-    { TenantId = tenantId; Update(legalName, tradeName, document, email, phone, timeZone); }
+    public Clinic(Guid tenantId, string legalName, string tradeName, string document, string email, string phone, string timeZone, string? assistantDisplayName = null)
+    { TenantId = tenantId; Update(legalName, tradeName, document, email, phone, timeZone, assistantDisplayName); }
     public Guid TenantId { get; private set; }
     public string LegalName { get; private set; } = null!;
     public string TradeName { get; private set; } = null!;
@@ -16,9 +16,10 @@ public sealed class Clinic : Entity, ITenantEntity
     public string Email { get; private set; } = null!;
     public string Phone { get; private set; } = null!;
     public string TimeZone { get; private set; } = null!;
+    public string AssistantDisplayName { get; private set; } = "IA Recepção";
     public CatalogStatus Status { get; private set; } = CatalogStatus.Active;
-    public void Update(string legalName, string tradeName, string document, string email, string phone, string timeZone)
-    { LegalName = legalName; TradeName = tradeName; Document = document; Email = email; Phone = phone; TimeZone = timeZone; UpdatedAt = DateTimeOffset.UtcNow; }
+    public void Update(string legalName, string tradeName, string document, string email, string phone, string timeZone, string? assistantDisplayName = null)
+    { LegalName = legalName; TradeName = tradeName; Document = document; Email = email; Phone = phone; TimeZone = timeZone; AssistantDisplayName = string.IsNullOrWhiteSpace(assistantDisplayName) ? "IA Recepção" : assistantDisplayName.Trim(); UpdatedAt = DateTimeOffset.UtcNow; }
 }
 
 public sealed class ClinicUnit : Entity, ITenantEntity

@@ -11,6 +11,10 @@ public sealed class InMemoryConversationResponseComposer : IConversationResponse
         ["professionals"] = "Ver profissionais",
         ["availability"] = "Consultar disponibilidade",
         ["schedule"] = "Agendar consulta",
+        ["confirm_slot"] = "Confirmar agendamento",
+        ["confirm_reschedule"] = "Confirmar reagendamento",
+        ["more_slots"] = "Mais horários",
+        ["mainmenu"] = "Voltar ao menu inicial",
         ["reschedule"] = "Reagendar consulta",
         ["cancel_appointment"] = "Cancelar consulta",
         ["confirm"] = "Confirmar consulta",
@@ -25,7 +29,20 @@ public sealed class InMemoryConversationResponseComposer : IConversationResponse
         var menu = string.Join(Environment.NewLine, request.Options
             .OrderBy(option => option.DisplayOrder)
             .Select(option => $"{option.Key} - {DisplayLabel(option.Value)}"));
-        return new($"{text}{Environment.NewLine}{Environment.NewLine}{menu}", request.Options);
+        var interactionType = request.Options.Any(option => option.Value.StartsWith("confirm_slot", StringComparison.Ordinal) || option.Value.StartsWith("confirm_reschedule", StringComparison.Ordinal) || option.Value.StartsWith("more_slots", StringComparison.Ordinal))
+            ? ConversationInteractionType.ReplyButtons
+            : ConversationInteractionType.List;
+        var choices = request.Options.OrderBy(option => option.DisplayOrder)
+            .Select(option =>
+            {
+                var parts = option.Value.Split("||", 2, StringSplitOptions.None);
+                var actionId = option.ActionId ?? parts[0];
+                var label = DisplayLabel(option.Value);
+                return new ConversationChoice(actionId, label);
+            }).ToArray();
+        var renderedText = request.OptionsAlreadyRendered ? text : $"{text}{Environment.NewLine}{Environment.NewLine}{menu}";
+        return new(renderedText, request.Options,
+            request.OptionsAlreadyRendered ? new(ConversationInteractionType.List, choices) : new(interactionType, choices));
     }
 
     private static string DisplayLabel(string value)

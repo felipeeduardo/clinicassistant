@@ -58,7 +58,7 @@ services:
       Conversation__MaximumInvalidAttempts: ${CONVERSATION_MAXIMUM_INVALID_ATTEMPTS:-3}
       Conversation__LockTimeoutSeconds: ${CONVERSATION_LOCK_TIMEOUT_SECONDS:-10}
       Conversation__LockTtlSeconds: ${CONVERSATION_LOCK_TTL_SECONDS:-60}
-      Conversation__MaxOptionsPerMessage: ${CONVERSATION_MAX_OPTIONS_PER_MESSAGE:-10}
+      Conversation__MaxOptionsPerMessage: ${CONVERSATION_MAX_OPTIONS_PER_MESSAGE:-6}
       Conversation__MaxMessageLength: ${CONVERSATION_MAX_MESSAGE_LENGTH:-2000}
       Conversation__DefaultLanguage: ${CONVERSATION_DEFAULT_LANGUAGE:-pt-BR}
       Conversation__ReopenClosedConversations: ${CONVERSATION_REOPEN_CLOSED_CONVERSATIONS:-true}
@@ -126,7 +126,7 @@ services:
       Conversation__MaximumInvalidAttempts: ${CONVERSATION_MAXIMUM_INVALID_ATTEMPTS:-3}
       Conversation__LockTimeoutSeconds: ${CONVERSATION_LOCK_TIMEOUT_SECONDS:-10}
       Conversation__LockTtlSeconds: ${CONVERSATION_LOCK_TTL_SECONDS:-60}
-      Conversation__MaxOptionsPerMessage: ${CONVERSATION_MAX_OPTIONS_PER_MESSAGE:-10}
+      Conversation__MaxOptionsPerMessage: ${CONVERSATION_MAX_OPTIONS_PER_MESSAGE:-6}
       Conversation__MaxMessageLength: ${CONVERSATION_MAX_MESSAGE_LENGTH:-2000}
       Conversation__DefaultLanguage: ${CONVERSATION_DEFAULT_LANGUAGE:-pt-BR}
       Conversation__ReopenClosedConversations: ${CONVERSATION_REOPEN_CLOSED_CONVERSATIONS:-true}

@@ -1,12 +1,13 @@
 import type { ReactNode, SVGProps } from "react";
 import { cn } from "./utils";
 
-export type IconName = "dashboard" | "messages" | "patients" | "calendar" | "professionals" | "specialties" | "units" | "clinic" | "whatsapp" | "audit" | "platform" | "menu" | "close" | "collapse" | "logout" | "chevronRight" | "chevronDown" | "chevronUp" | "shield" | "building" | "userCheck" | "history" | "arrowRight" | "eye" | "eyeOff" | "signal";
+export type IconName = "dashboard" | "messages" | "bell" | "patients" | "calendar" | "professionals" | "specialties" | "units" | "clinic" | "whatsapp" | "audit" | "platform" | "menu" | "close" | "collapse" | "logout" | "chevronRight" | "chevronDown" | "chevronUp" | "shield" | "building" | "userCheck" | "history" | "arrowRight" | "eye" | "eyeOff" | "signal";
 export function Icon({ name, className, ...props }: SVGProps<SVGSVGElement> & { name: IconName }) {
   const common = { className: cn("size-5 shrink-0", className), fill: "none", stroke: "currentColor", strokeWidth: 1.8, strokeLinecap: "round" as const, strokeLinejoin: "round" as const, viewBox: "0 0 24 24", "aria-hidden": true };
   const paths: Record<IconName, ReactNode> = {
     dashboard: <><rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" /><rect x="3" y="14" width="7" height="7" rx="1" /><rect x="14" y="14" width="7" height="7" rx="1" /></>,
     messages: <><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v7a2.5 2.5 0 0 1-2.5 2.5H10l-4.5 4v-4.2A2.5 2.5 0 0 1 4 12.5z" /><path d="M8 8h8M8 11h5" /></>,
+    bell: <><path d="M18 9a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9" /><path d="M10 21h4" /></>,
     patients: <><circle cx="12" cy="8" r="3" /><path d="M5 21a7 7 0 0 1 14 0" /></>,
     calendar: <><rect x="3" y="5" width="18" height="16" rx="2" /><path d="M8 3v4M16 3v4M3 10h18" /></>,
     professionals: <><path d="M8 4h8v4h3v12H5V8h3z" /><path d="M10 13h4M12 11v4" /></>,

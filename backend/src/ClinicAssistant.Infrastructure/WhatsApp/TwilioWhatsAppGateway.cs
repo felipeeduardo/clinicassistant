@@ -6,6 +6,9 @@ namespace ClinicAssistant.Infrastructure.WhatsApp;
 
 public sealed class TwilioWhatsAppGateway(ITwilioMessageClient client, IWhatsAppPhoneNumberFormatter phoneNumberFormatter, IOptions<TwilioOptions> options) : IWhatsAppGateway
 {
+    // Twilio's current Programmable Messaging client requires Content API configuration for WhatsApp lists/buttons.
+    // Keep the provider capability disabled by default so the active-session text fallback remains independent of templates.
+    public WhatsAppGatewayCapabilities Capabilities { get; } = new(false, false, true);
     private readonly TwilioOptions _options = options.Value;
 
     public async Task<SendWhatsAppMessageResult> SendTextAsync(SendWhatsAppTextRequest request, CancellationToken cancellationToken)
@@ -14,6 +17,9 @@ public sealed class TwilioWhatsAppGateway(ITwilioMessageClient client, IWhatsApp
         var result = await client.SendTextAsync(new(phoneNumberFormatter.FormatForProvider(request.RecipientPhone), ResolveFrom(), request.Text, _options.MessagingServiceSid, _options.StatusCallbackUrl), cancellationToken);
         return Map(result);
     }
+
+    public Task<SendWhatsAppMessageResult> SendInteractiveAsync(SendWhatsAppInteractiveRequest request, CancellationToken cancellationToken) =>
+        Task.FromResult(Invalid("Interactive WhatsApp messages are not enabled for this Twilio integration; use the text fallback."));
 
     public async Task<SendWhatsAppMessageResult> SendTemplateAsync(SendWhatsAppTemplateRequest request, CancellationToken cancellationToken)
     {

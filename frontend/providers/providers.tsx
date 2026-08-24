@@ -7,6 +7,7 @@ import type { AuthResponse, User } from "@/lib/api/types";
 type Auth = { user: User | null; token: string | null; authReady: boolean; realtimeStatus: "offline" | "connecting" | "online"; login: (email: string, password: string) => Promise<void>; logout: () => Promise<void> };
 const AuthContext = createContext<Auth | null>(null);
 export const useAuth = () => { const value = useContext(AuthContext); if (!value) throw new Error("AuthProvider ausente."); return value; };
+export const useOptionalAuth = () => useContext(AuthContext);
 export const useApi = () => { const { token, logout } = useAuth(); return useMemo(() => new ApiClient(() => token, () => { void logout(); }), [token, logout]); };
 export function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(() => new QueryClient({ defaultOptions: { queries: { retry: 1, staleTime: 30_000 } } }));
@@ -53,6 +54,10 @@ function RealtimeBridge({ token, queryClient, setStatus }: { token: string | nul
     connection.on("queue.item.completed", (event: RealtimeEvent) => invalidate(event, [["conversation-queue"], ["conversations"], ["conversation"]]));
     connection.on("audit.created", (event: RealtimeEvent) => invalidate(event, [["audit"], ["clinic"], ["units"], ["specialties"], ["professionals"]]));
     connection.on("dashboard.invalidated", (event: RealtimeEvent) => invalidate(event, [["dashboard"]]));
+    connection.on("human.handoff.requested", (event: RealtimeEvent) => invalidate(event, [["notifications"], ["notifications", "summary"], ["conversations"], ["conversation-queue"]]));
+    connection.on("human.queue.reminder", (event: RealtimeEvent) => invalidate(event, [["notifications"], ["notifications", "summary"]]));
+    connection.on("human.queue.sla.exceeded", (event: RealtimeEvent) => invalidate(event, [["notifications"], ["notifications", "summary"], ["conversations"], ["conversation-queue"]]));
+    connection.on("human.conversation.resolved", (event: RealtimeEvent) => invalidate(event, [["notifications"], ["notifications", "summary"], ["conversations"], ["conversation-queue"]]));
     connection.onreconnecting(() => setStatus("connecting")); connection.onreconnected(() => setStatus("online")); connection.onclose(() => setStatus("offline"));
     setStatus("connecting"); void connection.start().then(() => setStatus("online")).catch(() => setStatus("offline"));
     return () => { void connection.stop(); setStatus("offline"); };
