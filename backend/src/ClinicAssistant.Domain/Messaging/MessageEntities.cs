@@ -27,8 +27,8 @@ public sealed class InboxMessage : Entity, ITenantEntity
 public sealed class OutboxMessage : Entity, ITenantEntity
 {
     private OutboxMessage() { }
-    public OutboxMessage(Guid tenantId, string type, string payload) { TenantId = tenantId; Type = type; Payload = payload; }
-    public Guid TenantId { get; private set; } public string Type { get; private set; } = null!; public string Payload { get; private set; } = null!; public MessageStatus Status { get; private set; } = MessageStatus.Pending; public DateTimeOffset? ProcessedAt { get; private set; } public int RetryCount { get; private set; } public string? LastError { get; private set; } public DateTimeOffset? FirstFailureAt { get; private set; } public DateTimeOffset? NextAttemptAt { get; private set; }
+    public OutboxMessage(Guid tenantId, string type, string payload, Guid? whatsAppChannelId = null) { TenantId = tenantId; Type = type; Payload = payload; WhatsAppChannelId = whatsAppChannelId; }
+    public Guid TenantId { get; private set; } public Guid? WhatsAppChannelId { get; private set; } public string Type { get; private set; } = null!; public string Payload { get; private set; } = null!; public MessageStatus Status { get; private set; } = MessageStatus.Pending; public DateTimeOffset? ProcessedAt { get; private set; } public int RetryCount { get; private set; } public string? LastError { get; private set; } public DateTimeOffset? FirstFailureAt { get; private set; } public DateTimeOffset? NextAttemptAt { get; private set; }
     public void MarkProcessed() { Status = MessageStatus.Processed; ProcessedAt = DateTimeOffset.UtcNow; UpdatedAt = DateTimeOffset.UtcNow; }
     public void MarkFailure(string error, int maximumRetryAttempts)
     {

@@ -1,5 +1,5 @@
 import type { ApiClient } from "@/lib/api/client";
-import type { DemoLeadDetail, DemoLeadPage, DemoLeadSummary, OnboardTenantRequest, OnboardTenantResponse, PlatformClinic, PlatformDashboard, PlatformOnboardingStatus, PlatformTenant, PlatformUser, PlatformWhatsAppStatus } from "@/lib/api/types";
+import type { DemoLeadDetail, DemoLeadPage, DemoLeadSummary, OnboardTenantRequest, OnboardTenantResponse, PlatformClinic, PlatformDashboard, PlatformOnboardingStatus, PlatformTenant, PlatformUser, PlatformWhatsAppChannel, PlatformWhatsAppStatus } from "@/lib/api/types";
 
 export const platformApi = {
   tenants: (api: ApiClient) => api.request<PlatformTenant[]>("/api/platform/tenants"),
@@ -8,6 +8,10 @@ export const platformApi = {
   dashboard: (api: ApiClient, period = "30d") => api.request<PlatformDashboard>(`/api/platform/dashboard?period=${period}`),
   onboardingStatus: (api: ApiClient, tenantId: string) => api.request<PlatformOnboardingStatus>(`/api/platform/onboarding/${tenantId}`),
   whatsappStatus: (api: ApiClient, tenantId: string) => api.request<PlatformWhatsAppStatus>(`/api/platform/tenants/${tenantId}/whatsapp`),
+  whatsappChannels: (api: ApiClient, tenantId: string) => api.request<PlatformWhatsAppChannel[]>(`/api/platform/tenants/${tenantId}/whatsapp/channels`),
+  createWhatsAppChannel: (api: ApiClient, tenantId: string, request: { clinicId?: string | null; unitId?: string | null; provider: string; phoneNumber: string; displayPhoneNumber?: string; isDefault?: boolean }) => api.request<PlatformWhatsAppChannel>(`/api/platform/tenants/${tenantId}/whatsapp/channels`, { method: "POST", body: JSON.stringify(request) }),
+  setWhatsAppChannelStatus: (api: ApiClient, tenantId: string, channelId: string, action: "validate" | "activate" | "suspend" | "disable") => api.request<void>(`/api/platform/tenants/${tenantId}/whatsapp/channels/${channelId}/${action}`, { method: "POST" }),
+  updateWhatsAppAssessment: (api: ApiClient, tenantId: string, channelId: string, request: { numberOrigin: string; currentUsage: string }) => api.request<PlatformWhatsAppChannel>(`/api/platform/tenants/${tenantId}/whatsapp/channels/${channelId}/assessment`, { method: "POST", body: JSON.stringify({ NumberOrigin: request.numberOrigin, CurrentUsage: request.currentUsage }) }),
   createClinicAdmin: (api: ApiClient, tenantId: string, request: { name: string; email: string; temporaryPassword: string }, idempotencyKey: string) => api.request<PlatformUser>(`/api/platform/tenants/${tenantId}/clinic-admins`, { method: "POST", headers: { "Idempotency-Key": idempotencyKey }, body: JSON.stringify(request) }),
   status: (api: ApiClient, id: string, action: "activate" | "suspend" | "disable") => api.request<void>(`/api/platform/tenants/${id}/${action}`, { method: "POST" }),
   deleteTenant: (api: ApiClient, tenantId: string, request: { clinicAdminEmail: string; confirmation: string }) => api.request<void>(`/api/platform/tenants/${tenantId}/purge`, { method: "POST", body: JSON.stringify(request) }),

@@ -23,10 +23,12 @@ public sealed class WhatsAppStatusCallbackService(ClinicAssistantDbContext dbCon
         var providerStatus = Get(request.Parameters, "MessageStatus");
         if (string.IsNullOrWhiteSpace(messageSid) || string.IsNullOrWhiteSpace(providerStatus) || !TryMapStatus(providerStatus, out var nextStatus)) return new(WhatsAppStatusCallbackResultStatus.InvalidPayload);
 
-        var message = await dbContext.ConversationMessages.IgnoreQueryFilters().SingleOrDefaultAsync(item => item.TenantId == integration.TenantId && item.Provider == WhatsAppProvider.Twilio && item.ExternalMessageId == messageSid, cancellationToken);
+        // MessageSid is the provider correlation key; resolve the tenant from the persisted message,
+        // never from a guessed/default tenant.
+        var message = await dbContext.ConversationMessages.IgnoreQueryFilters().SingleOrDefaultAsync(item => item.Provider == WhatsAppProvider.Twilio && item.ExternalMessageId == messageSid, cancellationToken);
         if (message is null) return new(WhatsAppStatusCallbackResultStatus.Unchanged);
-        var conversationMatchesIntegration = await dbContext.Conversations.IgnoreQueryFilters().AnyAsync(item => item.Id == message.ConversationId && item.TenantId == integration.TenantId && item.IntegrationId == integration.Id, cancellationToken);
-        if (!conversationMatchesIntegration) return new(WhatsAppStatusCallbackResultStatus.Unchanged);
+        var conversation = await dbContext.Conversations.IgnoreQueryFilters().SingleOrDefaultAsync(item => item.Id == message.ConversationId && item.TenantId == message.TenantId && item.IntegrationId == integration.Id, cancellationToken);
+        if (conversation is null) return new(WhatsAppStatusCallbackResultStatus.Unchanged);
         if (!transitionPolicy.CanTransition(message.Status, nextStatus)) return new(WhatsAppStatusCallbackResultStatus.Unchanged);
 
         var errorCode = Get(request.Parameters, "ErrorCode");
@@ -34,6 +36,8 @@ public sealed class WhatsAppStatusCallbackService(ClinicAssistantDbContext dbCon
         message.UpdateProviderStatus(nextStatus, providerStatus.ToLowerInvariant(), errorCode, safeError);
         if (nextStatus == ConversationMessageStatus.Failed) integration.MarkSendFailure(safeError!);
         else integration.MarkSuccessfulSend();
+        var channel = conversation.WhatsAppChannelId.HasValue ? await dbContext.WhatsAppChannels.IgnoreQueryFilters().SingleOrDefaultAsync(item => item.Id == conversation.WhatsAppChannelId.Value, cancellationToken) : null;
+        if (channel is not null) channel.MarkOutbound();
         await dbContext.SaveChangesAsync(cancellationToken);
         await events.PublishAsync(integration.TenantId, "whatsapp.message.status.changed", new { MessageId = message.Id, ConversationId = message.ConversationId, Status = message.Status.ToString() }, cancellationToken);
         WhatsAppTelemetry.StatusUpdates.Add(1);

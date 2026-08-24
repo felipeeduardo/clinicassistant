@@ -6,7 +6,7 @@ using Microsoft.Extensions.Logging;
 
 namespace ClinicAssistant.Infrastructure.WhatsApp;
 
-public sealed class WhatsAppOutgoingMessageProcessor(ClinicAssistantDbContext dbContext, IWhatsAppGateway gateway, IWhatsAppConversationWindowPolicy conversationWindowPolicy, IWhatsAppTemplateVariableValidator templateVariableValidator, ILogger<WhatsAppOutgoingMessageProcessor>? logger = null) : IWhatsAppOutgoingMessageProcessor
+public sealed class WhatsAppOutgoingMessageProcessor(ClinicAssistantDbContext dbContext, IWhatsAppGateway gateway, IWhatsAppConversationWindowPolicy conversationWindowPolicy, IWhatsAppTemplateVariableValidator templateVariableValidator, IWhatsAppChannelResolver channelResolver, ILogger<WhatsAppOutgoingMessageProcessor>? logger = null) : IWhatsAppOutgoingMessageProcessor
 {
     private static readonly Action<ILogger, WhatsAppInteractionType, Exception?> InteractiveRendererSelected = LoggerMessage.Define<WhatsAppInteractionType>(LogLevel.Information, new EventId(4101, "InteractiveRendererSelected"), "WhatsApp renderer selected: interaction={InteractionType}, interactive=true");
     private static readonly Action<ILogger, WhatsAppInteractionType, Exception?> TextFallbackSelected = LoggerMessage.Define<WhatsAppInteractionType>(LogLevel.Information, new EventId(4102, "TextFallbackSelected"), "WhatsApp renderer selected: interaction={InteractionType}, interactive=false, fallback=text, reason=capability_unavailable");
@@ -23,10 +23,12 @@ public sealed class WhatsAppOutgoingMessageProcessor(ClinicAssistantDbContext db
         if (integration is null) return WhatsAppOutgoingMessageProcessingResult.Rejected;
         var conversation = await dbContext.Conversations.IgnoreQueryFilters().SingleOrDefaultAsync(item => item.Id == command.ConversationId && item.TenantId == command.TenantId && item.IntegrationId == command.IntegrationId, cancellationToken);
         if (conversation is null) return WhatsAppOutgoingMessageProcessingResult.Rejected;
+        var channel = await channelResolver.ResolveOutboundAsync(command.TenantId, command.WhatsAppChannelId ?? conversation.WhatsAppChannelId, cancellationToken);
+        if (channel is null) return WhatsAppOutgoingMessageProcessingResult.Rejected;
         var message = await dbContext.ConversationMessages.IgnoreQueryFilters().SingleOrDefaultAsync(item => item.Id == command.ConversationMessageId && item.TenantId == command.TenantId && item.ConversationId == command.ConversationId && item.Direction == ConversationMessageDirection.Outbound, cancellationToken);
         if (message is null) return WhatsAppOutgoingMessageProcessingResult.Rejected;
         if (!string.IsNullOrWhiteSpace(message.ExternalMessageId) || message.Status is ConversationMessageStatus.Accepted or ConversationMessageStatus.Sent or ConversationMessageStatus.Delivered or ConversationMessageStatus.Read) return WhatsAppOutgoingMessageProcessingResult.Duplicate;
-        var result = await SendAsync(command, message, cancellationToken);
+        var result = await SendAsync(command, message, channel.SenderPhone, cancellationToken);
         if (result.Success && !string.IsNullOrWhiteSpace(result.ExternalMessageId))
         {
             message.MarkAccepted(result.ExternalMessageId, result.ProviderStatus);
@@ -47,7 +49,7 @@ public sealed class WhatsAppOutgoingMessageProcessor(ClinicAssistantDbContext db
         return WhatsAppOutgoingMessageProcessingResult.Failed;
     }
 
-    private async Task<SendWhatsAppMessageResult> SendAsync(SendWhatsAppMessageCommand command, ConversationMessage message, CancellationToken cancellationToken)
+    private async Task<SendWhatsAppMessageResult> SendAsync(SendWhatsAppMessageCommand command, ConversationMessage message, string senderPhone, CancellationToken cancellationToken)
     {
         if (command.Type is WhatsAppOutgoingMessageType.Text or WhatsAppOutgoingMessageType.Interactive)
         {
@@ -60,18 +62,18 @@ public sealed class WhatsAppOutgoingMessageProcessor(ClinicAssistantDbContext db
             if (command.Type == WhatsAppOutgoingMessageType.Interactive && supportsInteraction)
             {
                 if (logger is not null) InteractiveRendererSelected(logger, command.Interaction!.Type, null);
-                return await gateway.SendInteractiveAsync(new(command.TenantId, command.IntegrationId, command.ConversationId, command.ConversationMessageId, command.RecipientPhone, command.Text!, command.Interaction!, command.IdempotencyKey, command.CorrelationId), cancellationToken);
+                return await gateway.SendInteractiveAsync(new(command.TenantId, command.IntegrationId, command.ConversationId, command.ConversationMessageId, command.RecipientPhone, command.Text!, command.Interaction!, command.IdempotencyKey, command.CorrelationId, senderPhone), cancellationToken);
             }
             if (command.Type == WhatsAppOutgoingMessageType.Interactive)
                 if (logger is not null) TextFallbackSelected(logger, command.Interaction?.Type ?? WhatsAppInteractionType.List, null);
-            return await gateway.SendTextAsync(new(command.TenantId, command.IntegrationId, command.ConversationId, command.ConversationMessageId, command.RecipientPhone, command.Text!, command.IdempotencyKey, command.CorrelationId), cancellationToken);
+            return await gateway.SendTextAsync(new(command.TenantId, command.IntegrationId, command.ConversationId, command.ConversationMessageId, command.RecipientPhone, command.Text!, command.IdempotencyKey, command.CorrelationId, senderPhone), cancellationToken);
         }
 
         if (message.Type != ConversationMessageType.Template) return PermanentFailure("The conversation message type does not match the command.");
         var template = await dbContext.WhatsAppTemplates.IgnoreQueryFilters().SingleOrDefaultAsync(item => item.TenantId == command.TenantId && item.IntegrationId == command.IntegrationId && item.ContentSid == command.ContentSid, cancellationToken);
         var variables = command.ContentVariables ?? new Dictionary<string, string>();
         if (template is null || template.Status != WhatsAppTemplateStatus.Approved || !templateVariableValidator.IsValid(template.ParametersSchema, variables)) return PermanentFailure("The WhatsApp template is not available for this message.");
-        return await gateway.SendTemplateAsync(new(command.TenantId, command.IntegrationId, command.ConversationId, command.ConversationMessageId, command.RecipientPhone, template.ContentSid, variables, command.IdempotencyKey, command.CorrelationId), cancellationToken);
+        return await gateway.SendTemplateAsync(new(command.TenantId, command.IntegrationId, command.ConversationId, command.ConversationMessageId, command.RecipientPhone, template.ContentSid, variables, command.IdempotencyKey, command.CorrelationId, senderPhone), cancellationToken);
     }
 
     private static SendWhatsAppMessageResult PermanentFailure(string message) => new(false, null, "failed", new(WhatsAppFailureType.Permanent, "policy_validation", message, false));

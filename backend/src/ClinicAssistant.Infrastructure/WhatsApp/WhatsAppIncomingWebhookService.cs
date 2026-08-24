@@ -12,15 +12,18 @@ namespace ClinicAssistant.Infrastructure.WhatsApp;
 public sealed class WhatsAppIncomingWebhookService(
     ClinicAssistantDbContext dbContext,
     ITwilioWebhookSignatureValidator signatureValidator,
-    ITwilioWhatsAppWebhookParser parser) : IWhatsAppIncomingWebhookService
+    ITwilioWhatsAppWebhookParser parser,
+    IWhatsAppChannelResolver channelResolver) : IWhatsAppIncomingWebhookService
 {
     public async Task<WhatsAppIncomingWebhookResult> ProcessAsync(WhatsAppIncomingWebhookRequest request, CancellationToken cancellationToken)
     {
         using var activity = WhatsAppTelemetry.ActivitySource.StartActivity("whatsapp.webhook.incoming");
-        var integration = await dbContext.WhatsAppIntegrations.IgnoreQueryFilters()
-            .SingleOrDefaultAsync(item => item.IntegrationKey == request.IntegrationKey, cancellationToken);
-        if (integration is null) return new(WhatsAppIncomingWebhookStatus.IntegrationNotFound);
-        if (integration.Provider != WhatsAppProvider.Twilio || integration.Status != WhatsAppIntegrationStatus.Connected)
+        var webhook = ToWebhook(request.Parameters);
+        if (string.IsNullOrWhiteSpace(webhook.MessageSid) || string.IsNullOrWhiteSpace(webhook.To)) return new(WhatsAppIncomingWebhookStatus.InvalidPayload);
+        var channel = await channelResolver.ResolveInboundAsync(webhook.To, request.IntegrationKey, cancellationToken);
+        if (channel is null) return new(WhatsAppIncomingWebhookStatus.IntegrationNotFound);
+        var integration = await dbContext.WhatsAppIntegrations.IgnoreQueryFilters().SingleOrDefaultAsync(item => item.Id == channel.IntegrationId && item.TenantId == channel.TenantId, cancellationToken);
+        if (integration is null || integration.Provider != WhatsAppProvider.Twilio || integration.Status != WhatsAppIntegrationStatus.Connected)
             return new(WhatsAppIncomingWebhookStatus.IntegrationDisabled);
         if (!signatureValidator.IsValid(request.RequestUrl, request.Parameters, request.Signature))
         {
@@ -28,18 +31,16 @@ public sealed class WhatsAppIncomingWebhookService(
             return new(WhatsAppIncomingWebhookStatus.InvalidSignature);
         }
 
-        var webhook = ToWebhook(request.Parameters);
-        if (string.IsNullOrWhiteSpace(webhook.MessageSid)) return new(WhatsAppIncomingWebhookStatus.InvalidPayload);
         var inboxMessage = new InboxMessage(integration.TenantId, integration.Id, "Twilio", "incoming_message", webhook.MessageSid,
             Convert.ToHexStringLower(SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(request.RawPayload))), request.RawPayload, request.CorrelationId);
 
         WhatsAppIncomingMessageReceived message;
-        try { message = parser.Parse(webhook, integration.TenantId, integration.Id, inboxMessage.Id, request.CorrelationId); }
+        try { message = parser.Parse(webhook, integration.TenantId, integration.Id, inboxMessage.Id, request.CorrelationId) with { WhatsAppChannelId = channel.ChannelId == Guid.Empty ? null : channel.ChannelId }; }
         catch (InvalidOperationException) { return new(WhatsAppIncomingWebhookStatus.InvalidPayload); }
 
         await using var transaction = await dbContext.Database.BeginTransactionAsync(cancellationToken);
         dbContext.InboxMessages.Add(inboxMessage);
-        dbContext.OutboxMessages.Add(new OutboxMessage(integration.TenantId, nameof(WhatsAppIncomingMessageReceived), JsonSerializer.Serialize(message)));
+        dbContext.OutboxMessages.Add(new OutboxMessage(integration.TenantId, nameof(WhatsAppIncomingMessageReceived), JsonSerializer.Serialize(message), channel.ChannelId == Guid.Empty ? null : channel.ChannelId));
         try
         {
             await dbContext.SaveChangesAsync(cancellationToken);

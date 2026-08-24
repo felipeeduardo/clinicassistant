@@ -4,6 +4,8 @@ Importe `clinic-assistant.postman_collection.json` e um environment da pasta `en
 
 Para a Etapa 9.8.6, importe também `etapa-9-8-6-leads-recovery.postman_collection.json`. Ela contém os requests públicos de demonstração/recuperação e os requests PlatformAdmin de consulta, status e observações de leads.
 
+Para validar a Etapa 9.9, importe também `whatsapp-multitenant.postman_collection.json`. Ela cobre cadastro/ativação de canais e dois webhooks com o mesmo telefone de paciente em tenants A/B.
+
 - `ClinicAssistant-Local.postman_environment.json` para desenvolvimento local;
 - `ClinicAssistant-E2E.postman_environment.json` para o perfil de dados determinísticos;
 - `ClinicAssistant-Sandbox.postman_environment.json` como modelo sanitizado para sandbox.

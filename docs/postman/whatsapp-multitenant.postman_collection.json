@@ -1,0 +1,31 @@
+{
+  "info": { "name": "Clinic Assistant - WhatsApp Multi-Tenant", "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json" },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8080" },
+    { "key": "token", "value": "" },
+    { "key": "tenantA", "value": "" },
+    { "key": "tenantB", "value": "" },
+    { "key": "channelA", "value": "" },
+    { "key": "channelB", "value": "" },
+    { "key": "integrationKey", "value": "twilio-local-main" }
+  ],
+  "item": [
+    {
+      "name": "Channel administration",
+      "item": [
+        { "name": "List tenant A channels", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }], "url": "{{baseUrl}}/api/platform/tenants/{{tenantA}}/whatsapp/channels" } },
+        { "name": "Create tenant A channel", "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"provider\": \"Twilio\",\n  \"phoneNumber\": \"+15551234567\",\n  \"displayPhoneNumber\": \"+1 555 123-4567\",\n  \"isDefault\": true\n}" }, "url": "{{baseUrl}}/api/platform/tenants/{{tenantA}}/whatsapp/channels" } },
+        { "name": "Assess tenant A number", "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"numberOrigin\": \"ExistingClinicNumber\",\n  \"currentUsage\": \"WhatsAppBusinessApp\"\n}" }, "url": "{{baseUrl}}/api/platform/tenants/{{tenantA}}/whatsapp/channels/{{channelA}}/assessment" } },
+        { "name": "Activate tenant A channel", "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }], "url": "{{baseUrl}}/api/platform/tenants/{{tenantA}}/whatsapp/channels/{{channelA}}/activate" } },
+        { "name": "Suspend tenant A channel", "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }], "url": "{{baseUrl}}/api/platform/tenants/{{tenantA}}/whatsapp/channels/{{channelA}}/suspend" } }
+      ]
+    },
+    {
+      "name": "Inbound isolation A/B",
+      "item": [
+        { "name": "Inbound sender A", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/x-www-form-urlencoded" }], "body": { "mode": "urlencoded", "urlencoded": [{ "key": "MessageSid", "value": "SM-A-{{$guid}}" }, { "key": "From", "value": "whatsapp:+5511999990001" }, { "key": "To", "value": "+15551234567" }, { "key": "Body", "value": "menu" }] }, "url": "{{baseUrl}}/api/webhooks/whatsapp/twilio/{{integrationKey}}" } },
+        { "name": "Inbound sender B", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/x-www-form-urlencoded" }], "body": { "mode": "urlencoded", "urlencoded": [{ "key": "MessageSid", "value": "SM-B-{{$guid}}" }, { "key": "From", "value": "whatsapp:+5511999990001" }, { "key": "To", "value": "+15557654321" }, { "key": "Body", "value": "menu" }] }, "url": "{{baseUrl}}/api/webhooks/whatsapp/twilio/{{integrationKey}}" } }
+      ]
+    }
+  ]
+}
