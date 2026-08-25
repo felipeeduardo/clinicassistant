@@ -241,7 +241,9 @@ public sealed class PlatformAdministrationService(ClinicAssistantDbContext db, I
         var commercial = new PlatformDashboardCommercial(
             leads.Count(l => l.Status == DemoLeadStatus.New), leads.Count(l => l.Status == DemoLeadStatus.Contacted),
             leads.Count(l => l.Status == DemoLeadStatus.Qualified), leads.Count(l => l.Status == DemoLeadStatus.DemoScheduled),
-            leads.Count(l => l.Status == DemoLeadStatus.Won), leads.Count(l => l.Status is DemoLeadStatus.New or DemoLeadStatus.Contacted), leads.Count);
+            leads.Count(l => l.Status == DemoLeadStatus.Won), leads.Count(l => l.Status is DemoLeadStatus.New or DemoLeadStatus.Contacted), leads.Count,
+            leads.Count(l => l.Status == DemoLeadStatus.DemoCompleted), leads.Count(l => l.Status == DemoLeadStatus.Pilot), leads.Count(l => l.Status == DemoLeadStatus.Lost),
+            leads.Count == 0 ? 0 : Math.Round((decimal)leads.Count(l => l.Status == DemoLeadStatus.Won) * 100 / leads.Count, 1));
         var growth = Enumerable.Range(0, (to.Date - from.Date).Days + 1).Select(offset =>
         {
             var date = DateOnly.FromDateTime(from.UtcDateTime.Date.AddDays(offset));

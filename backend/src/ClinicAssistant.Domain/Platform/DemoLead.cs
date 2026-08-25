@@ -8,6 +8,8 @@ public enum DemoLeadStatus
     Contacted,
     Qualified,
     DemoScheduled,
+    DemoCompleted,
+    Pilot,
     Won,
     Lost,
     Archived
@@ -50,6 +52,8 @@ public sealed class DemoLead : Entity
     public DemoLeadStatus Status { get; private set; } = DemoLeadStatus.New;
     public Guid? AssignedToUserId { get; private set; }
     public DateTimeOffset? LastContactAt { get; private set; }
+    public DateTimeOffset? NextActionAt { get; private set; }
+    public string? NextActionDescription { get; private set; }
     public int Version { get; private set; } = 1;
 
     public void ChangeStatus(DemoLeadStatus status)
@@ -65,5 +69,13 @@ public sealed class DemoLead : Entity
         AssignedToUserId = userId;
         Version++;
         UpdatedAt = DateTimeOffset.UtcNow;
+    }
+
+    public void SetNextAction(DateTimeOffset? at, string? description)
+    {
+        NextActionAt = at;
+        NextActionDescription = string.IsNullOrWhiteSpace(description) ? null : description.Trim();
+        UpdatedAt = DateTimeOffset.UtcNow;
+        Version++;
     }
 }

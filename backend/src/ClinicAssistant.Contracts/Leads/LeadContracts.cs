@@ -36,6 +36,8 @@ public sealed record DemoLeadListItem(
     Guid? AssignedToUserId,
     DateTimeOffset CreatedAt,
     DateTimeOffset? LastContactAt,
+    DateTimeOffset? NextActionAt = null,
+    string? NextActionDescription = null,
     string? UtmSource = null,
     string? UtmMedium = null,
     string? UtmCampaign = null,
@@ -53,7 +55,8 @@ public sealed record DemoLeadDetail(
     IReadOnlyList<DemoLeadNote> History);
 
 public sealed record DemoLeadPage(IReadOnlyList<DemoLeadListItem> Items, int Page, int PageSize, int TotalCount);
-public sealed record DemoLeadSummary(int New, int Contacted, int Qualified, int DemoScheduled, int Won, int Lost, int Archived, int Total);
+public sealed record DemoLeadSummary(int New, int Contacted, int Qualified, int DemoScheduled, int Won, int Lost, int Archived, int Total, int DemoCompleted = 0, int Pilot = 0);
 public sealed record UpdateDemoLeadStatusRequest(string Status);
 public sealed record AssignDemoLeadRequest(Guid? UserId);
 public sealed record AddDemoLeadNoteRequest(string Note);
+public sealed record UpdateDemoLeadNextActionRequest(DateTimeOffset? At, string? Description);

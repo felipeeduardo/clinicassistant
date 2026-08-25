@@ -267,6 +267,7 @@ try
     platformLeads.MapPost("/{id:guid}/status", async (Guid id, UpdateDemoLeadStatusRequest request, IDemoLeadService service, CancellationToken ct) => { await service.UpdateStatusAsync(id, request.Status, ct); return Results.NoContent(); });
     platformLeads.MapPost("/{id:guid}/assignment", async (Guid id, AssignDemoLeadRequest request, IDemoLeadService service, CancellationToken ct) => { await service.AssignAsync(id, request.UserId, ct); return Results.NoContent(); });
     platformLeads.MapPost("/{id:guid}/notes", async (Guid id, AddDemoLeadNoteRequest request, IDemoLeadService service, CancellationToken ct) => { await service.AddNoteAsync(id, request.Note, ct); return Results.NoContent(); });
+    platformLeads.MapPost("/{id:guid}/next-action", async (Guid id, UpdateDemoLeadNextActionRequest request, IDemoLeadService service, CancellationToken ct) => { await service.SetNextActionAsync(id, request, ct); return Results.NoContent(); });
     var clinic = app.MapGroup("/api");
     clinic.MapGet("/clinics/current", async (IClinicCatalogService service, CancellationToken ct) => (await service.GetClinicAsync(ct)) is { } item ? Results.Ok(item) : Results.NotFound()).RequireAuthorization(ClinicPolicies.ClinicsView);
     clinic.MapGet("/clinics/current/setup", async (ITenantContext tenantContext, IPlatformAdministrationService service, CancellationToken ct) => tenantContext.TenantId is Guid tenantId ? Results.Ok(await service.GetOnboardingStatusAsync(tenantId, ct)) : Results.Unauthorized()).RequireAuthorization(ClinicPolicies.ClinicsView);

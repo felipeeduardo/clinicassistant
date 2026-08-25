@@ -15,7 +15,7 @@ public sealed record DeleteTenantRequest(string ClinicAdminEmail, string Confirm
 public sealed record PlatformDashboardQuery(string Period = "30d", DateTimeOffset? From = null, DateTimeOffset? To = null);
 public sealed record PlatformDashboardResponse(DateTimeOffset From, DateTimeOffset To, PlatformDashboardSummary Summary, PlatformDashboardCommercial Commercial, IReadOnlyList<PlatformDashboardGrowthPoint> Growth, IReadOnlyList<PlatformDashboardClinic> Clinics, IReadOnlyList<PlatformDashboardHealth> Health, IReadOnlyList<PlatformDashboardAttention> Attention, IReadOnlyList<PlatformDashboardActivity> RecentActivity);
 public sealed record PlatformDashboardSummary(int TotalClinics, int ActiveClinics, int ProvisioningClinics, int SuspendedClinics, int DisabledClinics, int NewClinics, int ActiveClinicAdmins);
-public sealed record PlatformDashboardCommercial(int New, int Contacted, int Qualified, int DemoScheduled, int Won, int AwaitingContact, int TotalInPeriod);
+public sealed record PlatformDashboardCommercial(int New, int Contacted, int Qualified, int DemoScheduled, int Won, int AwaitingContact, int TotalInPeriod, int DemoCompleted = 0, int Pilot = 0, int Lost = 0, decimal ConversionRate = 0);
 public sealed record PlatformDashboardGrowthPoint(DateOnly Date, int NewClinics, int NewLeads);
 public sealed record PlatformDashboardClinic(Guid TenantId, string Name, string Status, int SetupCompleted, int SetupTotal, string? ClinicAdminName, DateTimeOffset CreatedAt);
 public sealed record PlatformDashboardHealth(string Service, string Status, string? Message);

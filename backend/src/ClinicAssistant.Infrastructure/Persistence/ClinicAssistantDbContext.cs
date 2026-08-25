@@ -183,6 +183,7 @@ public sealed class ClinicAssistantDbContext(DbContextOptions<ClinicAssistantDbC
             entity.Property(x => x.Email).HasMaxLength(320).IsRequired();
             entity.Property(x => x.Phone).HasMaxLength(40).IsRequired();
             entity.Property(x => x.Description).HasMaxLength(2000);
+            entity.Property(x => x.NextActionDescription).HasMaxLength(500);
             entity.Property(x => x.Source).HasMaxLength(80).IsRequired();
             entity.Property(x => x.Status).HasConversion<string>().HasMaxLength(32).IsRequired();
             entity.Property(x => x.Version).IsConcurrencyToken();

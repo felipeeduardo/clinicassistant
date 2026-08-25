@@ -1,4 +1,12 @@
 export const publicEvents = [
+  "page_view",
+  "cta_demo_click",
+  "lead_form_view",
+  "lead_form_start",
+  "lead_form_submit",
+  "demo_page_view",
+  "pricing_view",
+  "pioneers_page_view",
   "landing_view",
   "hero_demo_started",
   "hero_demo_completed",
@@ -12,6 +20,7 @@ export const publicEvents = [
   "lead_started",
   "lead_submitted",
   "lead_failed",
+  "demo_cta_click",
 ] as const;
 
 export type PublicEvent = (typeof publicEvents)[number];

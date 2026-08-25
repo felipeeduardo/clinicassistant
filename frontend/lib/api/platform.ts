@@ -22,4 +22,5 @@ export const platformApi = {
   leadStatus: (api: ApiClient, id: string, status: string) => api.request<void>(`/api/platform/leads/${id}/status`, { method: "POST", body: JSON.stringify({ status }) }),
   leadAssign: (api: ApiClient, id: string, userId: string | null) => api.request<void>(`/api/platform/leads/${id}/assignment`, { method: "POST", body: JSON.stringify({ userId }) }),
   leadNote: (api: ApiClient, id: string, note: string) => api.request<void>(`/api/platform/leads/${id}/notes`, { method: "POST", body: JSON.stringify({ note }) }),
+  leadNextAction: (api: ApiClient, id: string, at: string | null, description: string | null) => api.request<void>(`/api/platform/leads/${id}/next-action`, { method: "POST", body: JSON.stringify({ at, description }) }),
 };
