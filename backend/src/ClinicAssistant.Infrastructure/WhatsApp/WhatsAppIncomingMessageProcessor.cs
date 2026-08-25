@@ -41,6 +41,7 @@ public sealed class WhatsAppIncomingMessageProcessor(ClinicAssistantDbContext db
                 conversation = new Conversation(message.TenantId, patient.Id, message.IntegrationId, message.SenderPhone);
                 dbContext.Conversations.Add(conversation);
             }
+            if (message.WhatsAppChannelId.HasValue) conversation.SetWhatsAppChannel(message.WhatsAppChannelId.Value);
             conversation.RegisterMessage(message.ReceivedAt);
 
             var conversationMessage = new ConversationMessage(message.TenantId, conversation.Id, ToConversationMessageType(message), message.Text, WhatsAppProvider.Twilio, message.ExternalMessageId, message.ReceivedAt);
@@ -55,7 +56,7 @@ public sealed class WhatsAppIncomingMessageProcessor(ClinicAssistantDbContext db
             }
             if (mediaEvaluations.Any(evaluation => evaluation.Policy.Disposition == WhatsAppMediaDisposition.RequiresHuman)) conversation.RequestHumanHandoff();
             if (mediaEvaluations.Length > 0) WhatsAppMediaMetrics.Received.Add(mediaEvaluations.Length);
-            dbContext.OutboxMessages.Add(new OutboxMessage(message.TenantId, nameof(ConversationMessageReceived), JsonSerializer.Serialize(new ConversationMessageReceived(message.TenantId, message.IntegrationId, conversation.Id, conversationMessage.Id, message.CorrelationId))));
+            dbContext.OutboxMessages.Add(new OutboxMessage(message.TenantId, nameof(ConversationMessageReceived), JsonSerializer.Serialize(new ConversationMessageReceived(message.TenantId, message.IntegrationId, conversation.Id, conversationMessage.Id, message.CorrelationId)), message.WhatsAppChannelId));
             inboxMessage.MarkProcessed();
             await dbContext.SaveChangesAsync(cancellationToken);
             await transaction.CommitAsync(cancellationToken);

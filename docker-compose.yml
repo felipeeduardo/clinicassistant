@@ -48,6 +48,7 @@ services:
       WhatsApp__RawPayloadRetentionDays: ${WHATSAPP_RAW_PAYLOAD_RETENTION_DAYS:-30}
       WhatsApp__MaxWebhookBodySizeBytes: ${WHATSAPP_MAX_WEBHOOK_BODY_SIZE_BYTES:-1048576}
       WhatsApp__TestRecipient: ${WHATSAPP_TEST_RECIPIENT:-}
+      WhatsApp__MultiTenantChannelEnabled: ${WHATSAPP_MULTI_TENANT_CHANNEL_ENABLED:-true}
       WhatsApp__Media__MaxFileSizeBytes: ${WHATSAPP_MEDIA_MAX_FILE_SIZE_BYTES:-10485760}
       WhatsApp__Media__AllowedTypes: ${WHATSAPP_MEDIA_ALLOWED_TYPES:-image/jpeg,image/png,application/pdf,audio/ogg}
       WhatsApp__Fake__DelayMilliseconds: ${WHATSAPP_FAKE_DELAY_MILLISECONDS:-100}
@@ -106,6 +107,7 @@ services:
       Redis__Port: 6379
       WhatsApp__Provider: ${WHATSAPP_PROVIDER:-Fake}
       WhatsApp__TestRecipient: ${WHATSAPP_TEST_RECIPIENT:-}
+      WhatsApp__MultiTenantChannelEnabled: ${WHATSAPP_MULTI_TENANT_CHANNEL_ENABLED:-true}
       Twilio__AccountSid: ${TWILIO_ACCOUNT_SID:-}
       Twilio__AuthToken: ${TWILIO_AUTH_TOKEN:-}
       Twilio__WhatsAppFrom: ${TWILIO_WHATSAPP_FROM:-}

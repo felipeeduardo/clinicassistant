@@ -11,12 +11,12 @@ public interface IWhatsAppGateway
 
 public sealed record SendWhatsAppTextRequest(
     Guid TenantId, Guid IntegrationId, Guid ConversationId, Guid ConversationMessageId,
-    string RecipientPhone, string Text, string IdempotencyKey, string? CorrelationId);
+    string RecipientPhone, string Text, string IdempotencyKey, string? CorrelationId, string? SenderPhone = null);
 
 public sealed record SendWhatsAppInteractiveRequest(
     Guid TenantId, Guid IntegrationId, Guid ConversationId, Guid ConversationMessageId,
     string RecipientPhone, string Text, WhatsAppInteraction Interaction,
-    string IdempotencyKey, string? CorrelationId);
+    string IdempotencyKey, string? CorrelationId, string? SenderPhone = null);
 
 public sealed record WhatsAppInteraction(WhatsAppInteractionType Type, IReadOnlyCollection<WhatsAppChoice> Choices);
 public sealed record WhatsAppChoice(string ActionId, string Label, string? Description = null);
@@ -26,11 +26,11 @@ public sealed record WhatsAppGatewayCapabilities(bool SupportsInteractiveLists, 
 public sealed record SendWhatsAppTemplateRequest(
     Guid TenantId, Guid IntegrationId, Guid ConversationId, Guid ConversationMessageId,
     string RecipientPhone, string ContentSid, IReadOnlyDictionary<string, string> Variables,
-    string IdempotencyKey, string? CorrelationId);
+    string IdempotencyKey, string? CorrelationId, string? SenderPhone = null);
 
 public sealed record SendWhatsAppMediaRequest(
     Guid TenantId, Guid IntegrationId, Guid ConversationId, Guid ConversationMessageId,
-    string RecipientPhone, string MediaUrl, string? Caption, string IdempotencyKey, string? CorrelationId);
+    string RecipientPhone, string MediaUrl, string? Caption, string IdempotencyKey, string? CorrelationId, string? SenderPhone = null);
 
 public sealed record SendWhatsAppMessageResult(
     bool Success, string? ExternalMessageId, string? ProviderStatus, WhatsAppFailure? Failure);
@@ -66,6 +66,14 @@ public interface IWhatsAppIncomingWebhookService
     Task<WhatsAppIncomingWebhookResult> ProcessAsync(WhatsAppIncomingWebhookRequest request, CancellationToken cancellationToken);
 }
 
+public interface IWhatsAppChannelResolver
+{
+    Task<WhatsAppChannelResolution?> ResolveInboundAsync(string? recipientPhone, string integrationKey, CancellationToken cancellationToken);
+    Task<WhatsAppChannelResolution?> ResolveOutboundAsync(Guid tenantId, Guid? channelId, CancellationToken cancellationToken);
+}
+
+public sealed record WhatsAppChannelResolution(Guid ChannelId, Guid TenantId, Guid? IntegrationId, string SenderPhone, string NormalizedPhoneNumber);
+
 public interface IWhatsAppIncomingMessageProcessor
 {
     Task<WhatsAppIncomingMessageProcessingResult> ProcessAsync(WhatsAppIncomingMessageReceived message, CancellationToken cancellationToken);
@@ -95,7 +103,7 @@ public sealed record WhatsAppIncomingMessageReceived(
     Guid TenantId, Guid IntegrationId, Guid InboxMessageId, string ExternalMessageId,
     string SenderPhone, string RecipientPhone, WhatsAppIncomingMessageType Type, string? Text,
     IReadOnlyCollection<WhatsAppIncomingMedia> Media, string? ProfileName, string? ActionId, DateTimeOffset ReceivedAt,
-    string CorrelationId);
+    string CorrelationId, Guid? WhatsAppChannelId = null);
 
 public enum WhatsAppIncomingMessageType { Unknown = 0, Text = 1, Media = 2, Location = 3, Interactive = 4, Contact = 5 }
 
@@ -121,4 +129,4 @@ public sealed record SendWhatsAppMessageCommand(
     Guid TenantId, Guid IntegrationId, Guid ConversationId, Guid ConversationMessageId,
     WhatsAppOutgoingMessageType Type, string RecipientPhone, string? Text, string? ContentSid,
     IReadOnlyDictionary<string, string>? ContentVariables, string? MediaUrl, string IdempotencyKey,
-    string CorrelationId, WhatsAppInteraction? Interaction = null);
+    string CorrelationId, WhatsAppInteraction? Interaction = null, Guid? WhatsAppChannelId = null);

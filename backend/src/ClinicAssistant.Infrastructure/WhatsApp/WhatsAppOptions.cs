@@ -11,6 +11,7 @@ public sealed class WhatsAppOptions
     public int RawPayloadRetentionDays { get; init; } = 30;
     public int MaxWebhookBodySizeBytes { get; init; } = 1_048_576;
     public string? TestRecipient { get; init; }
+    public bool MultiTenantChannelEnabled { get; init; } = true;
     public WhatsAppMediaOptions Media { get; init; } = new();
     public FakeWhatsAppOptions Fake { get; init; } = new();
 }

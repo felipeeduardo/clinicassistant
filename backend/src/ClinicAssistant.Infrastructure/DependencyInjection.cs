@@ -148,6 +148,7 @@ public static class DependencyInjection
         services.AddSingleton<ITwilioWhatsAppWebhookParser, TwilioWhatsAppWebhookParser>();
         services.AddSingleton<TwilioWebhookUrlResolver>();
         services.AddScoped<IWhatsAppIncomingWebhookService, WhatsAppIncomingWebhookService>();
+        services.AddScoped<IWhatsAppChannelResolver, WhatsAppChannelResolver>();
         services.AddScoped<IWhatsAppIncomingMessageProcessor, WhatsAppIncomingMessageProcessor>();
         services.AddScoped<IWhatsAppOutgoingMessageProcessor, WhatsAppOutgoingMessageProcessor>();
         services.AddScoped<IWhatsAppStatusCallbackService, WhatsAppStatusCallbackService>();

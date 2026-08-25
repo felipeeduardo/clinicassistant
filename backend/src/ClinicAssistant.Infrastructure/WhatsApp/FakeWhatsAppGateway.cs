@@ -12,18 +12,18 @@ public sealed partial class FakeWhatsAppGateway(IOptions<WhatsAppOptions> option
     private readonly FakeWhatsAppOptions _options = options.Value.Fake;
 
     public Task<SendWhatsAppMessageResult> SendTextAsync(SendWhatsAppTextRequest request, CancellationToken cancellationToken) =>
-        SendAsync(request.IdempotencyKey, request.IntegrationId, "text", cancellationToken);
+        SendAsync(request.IdempotencyKey, request.IntegrationId, request.SenderPhone, "text", cancellationToken);
 
     public Task<SendWhatsAppMessageResult> SendInteractiveAsync(SendWhatsAppInteractiveRequest request, CancellationToken cancellationToken) =>
-        SendAsync(request.IdempotencyKey, request.IntegrationId, $"interactive:{request.Interaction.Type}", cancellationToken);
+        SendAsync(request.IdempotencyKey, request.IntegrationId, request.SenderPhone, $"interactive:{request.Interaction.Type}", cancellationToken);
 
     public Task<SendWhatsAppMessageResult> SendTemplateAsync(SendWhatsAppTemplateRequest request, CancellationToken cancellationToken) =>
-        SendAsync(request.IdempotencyKey, request.IntegrationId, "template", cancellationToken);
+        SendAsync(request.IdempotencyKey, request.IntegrationId, request.SenderPhone, "template", cancellationToken);
 
     public Task<SendWhatsAppMessageResult> SendMediaAsync(SendWhatsAppMediaRequest request, CancellationToken cancellationToken) =>
-        SendAsync(request.IdempotencyKey, request.IntegrationId, "media", cancellationToken);
+        SendAsync(request.IdempotencyKey, request.IntegrationId, request.SenderPhone, "media", cancellationToken);
 
-    private async Task<SendWhatsAppMessageResult> SendAsync(string idempotencyKey, Guid integrationId, string messageType, CancellationToken cancellationToken)
+    private async Task<SendWhatsAppMessageResult> SendAsync(string idempotencyKey, Guid integrationId, string? senderPhone, string messageType, CancellationToken cancellationToken)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(idempotencyKey);
         if (_results.TryGetValue(idempotencyKey, out var existing)) return existing;
@@ -33,7 +33,7 @@ public sealed partial class FakeWhatsAppGateway(IOptions<WhatsAppOptions> option
 
         var result = CreateResult();
         _results.TryAdd(idempotencyKey, result);
-        LogSimulatedMessage(logger, integrationId, messageType, result.Success);
+        LogSimulatedMessage(logger, integrationId, senderPhone ?? "legacy", messageType, result.Success);
         return result;
     }
 
@@ -51,6 +51,6 @@ public sealed partial class FakeWhatsAppGateway(IOptions<WhatsAppOptions> option
         };
     }
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "Fake WhatsApp message simulated. IntegrationId: {IntegrationId}; Type: {MessageType}; Success: {Success}")]
-    private static partial void LogSimulatedMessage(ILogger logger, Guid integrationId, string messageType, bool success);
+    [LoggerMessage(Level = LogLevel.Information, Message = "Fake WhatsApp message simulated. IntegrationId: {IntegrationId}; Sender: {SenderPhone}; Type: {MessageType}; Success: {Success}")]
+    private static partial void LogSimulatedMessage(ILogger logger, Guid integrationId, string senderPhone, string messageType, bool success);
 }

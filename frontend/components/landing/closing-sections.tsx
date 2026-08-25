@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Icon, type IconName } from "@/components/ui/icon";
+import { commercialConfig, formatCommercialCurrency } from "@/lib/commercial/config";
 
 type TrustCard = { title: string; description: string; icon: IconName };
 const trustCards: TrustCard[] = [
@@ -23,6 +24,8 @@ const questions = [
   ["Posso usar vários profissionais?", "Sim. A agenda organiza profissionais, especialidades, disponibilidade, bloqueios e férias."],
   ["É possível controlar horários e bloqueios?", "Sim. A operação mantém regras de disponibilidade, bloqueios e férias por profissional."],
   ["Como funciona a implantação?", "A configuração começa pela clínica, unidades, profissionais, agenda e integração WhatsApp, com validação operacional."],
+  ["Quanto custa o IA Recepção?", `O plano inicial custa ${formatCommercialCurrency(commercialConfig.pricing.monthlyPrice)} por mês, com implantação a partir de ${formatCommercialCurrency(commercialConfig.pricing.setupPrice)}. Durante a demonstração entendemos a operação da clínica e validamos a configuração necessária.`],
+  ["Existe custo de implantação?", `Sim. A implantação inicial contempla a preparação da operação para entrada em uso. O valor inicial apresentado é de ${formatCommercialCurrency(commercialConfig.pricing.setupPrice)}.`],
 ] as const;
 
 export function FaqSection() {

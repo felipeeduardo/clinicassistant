@@ -285,8 +285,8 @@ public sealed class ConversationOrchestrator(
             var outgoingMessage = new ConversationMessage(command.TenantId, command.ConversationId, ConversationMessageType.Text, response.Text, integration.Provider);
             var interaction = ToWhatsAppInteraction(response.Interaction);
             var outgoingCommand = new SendWhatsAppMessageCommand(command.TenantId, command.IntegrationId, command.ConversationId, outgoingMessage.Id,
-                interaction is null ? WhatsAppOutgoingMessageType.Text : WhatsAppOutgoingMessageType.Interactive, patient.Phone, response.Text, null, null, null, $"conversation:{command.ConversationMessageId:N}", command.CorrelationId, interaction);
-            var outboxMessage = new OutboxMessage(command.TenantId, nameof(SendWhatsAppMessageCommand), JsonSerializer.Serialize(outgoingCommand));
+                interaction is null ? WhatsAppOutgoingMessageType.Text : WhatsAppOutgoingMessageType.Interactive, patient.Phone, response.Text, null, null, null, $"conversation:{command.ConversationMessageId:N}", command.CorrelationId, interaction, conversation.WhatsAppChannelId);
+            var outboxMessage = new OutboxMessage(command.TenantId, nameof(SendWhatsAppMessageCommand), JsonSerializer.Serialize(outgoingCommand), conversation.WhatsAppChannelId);
             var processedMessage = new ConversationProcessedMessage(command.TenantId, command.ConversationId, command.ConversationMessageId);
             processedMessage.SetResponse(outgoingMessage.Id, outboxMessage.Id);
 

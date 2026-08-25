@@ -5,6 +5,10 @@ namespace ClinicAssistant.Domain.WhatsApp;
 
 public enum WhatsAppProvider { Fake = 1, Twilio = 2, Meta = 3 }
 public enum WhatsAppIntegrationStatus { Pending, Connected, Disconnected, InvalidCredentials, Suspended, Disabled }
+public enum WhatsAppChannelStatus { Pending, Active, Suspended, Disabled }
+public enum WhatsAppNumberOrigin { ExistingClinicNumber, NewNumber, TwilioNumber }
+public enum WhatsAppCurrentUsage { None, WhatsAppBusinessApp, WhatsAppBusinessPlatformOtherProvider, TwilioWhatsApp, Unknown }
+public enum WhatsAppOnboardingStatus { Draft, NeedsAssessment, MigrationRequired, ProviderMigrationRequired, ReadyForRegistration, RegistrationInProgress, PendingVerification, ReadyForValidation, Active, Error, Suspended }
 public enum WhatsAppTemplateStatus { Draft, PendingApproval, Approved, Rejected, Paused, Disabled }
 public enum ConversationChannel { WhatsApp }
 public enum ConversationStatus { Bot, WaitingHuman, Human, Closed }
@@ -51,6 +55,58 @@ public sealed class WhatsAppIntegration : Entity, ITenantEntity
     public void MarkValidated() { LastValidatedAt = DateTimeOffset.UtcNow; FailureReason = null; UpdatedAt = DateTimeOffset.UtcNow; }
     public void MarkSuccessfulSend() { LastSuccessfulSendAt = DateTimeOffset.UtcNow; FailureReason = null; UpdatedAt = DateTimeOffset.UtcNow; }
     public void MarkSendFailure(string safeReason) { LastFailureAt = DateTimeOffset.UtcNow; FailureReason = safeReason; UpdatedAt = DateTimeOffset.UtcNow; }
+}
+
+/// <summary>Tenant-owned WhatsApp sender. Provider credentials remain global.</summary>
+public sealed class WhatsAppChannel : Entity, ITenantEntity
+{
+    private WhatsAppChannel() { }
+    public WhatsAppChannel(Guid tenantId, Guid? clinicId, Guid? unitId, WhatsAppProvider provider, string phoneNumber, string? displayPhoneNumber = null, Guid? integrationId = null)
+    {
+        TenantId = tenantId; ClinicId = clinicId; UnitId = unitId; Provider = provider;
+        PhoneNumber = phoneNumber; NormalizedPhoneNumber = Normalize(phoneNumber); DisplayPhoneNumber = displayPhoneNumber;
+        IntegrationId = integrationId; Status = WhatsAppChannelStatus.Pending; IsDefault = true; NumberOrigin = WhatsAppNumberOrigin.ExistingClinicNumber; CurrentUsage = WhatsAppCurrentUsage.Unknown; OnboardingStatus = WhatsAppOnboardingStatus.NeedsAssessment;
+    }
+    public Guid TenantId { get; private set; }
+    public Guid? ClinicId { get; private set; }
+    public Guid? UnitId { get; private set; }
+    public Guid? IntegrationId { get; private set; }
+    public WhatsAppProvider Provider { get; private set; }
+    public string PhoneNumber { get; private set; } = null!;
+    public string NormalizedPhoneNumber { get; private set; } = null!;
+    public string? DisplayPhoneNumber { get; private set; }
+    public string? ProviderSenderId { get; private set; }
+    public WhatsAppChannelStatus Status { get; private set; }
+    public bool IsDefault { get; private set; }
+    public WhatsAppNumberOrigin NumberOrigin { get; private set; }
+    public WhatsAppCurrentUsage CurrentUsage { get; private set; }
+    public WhatsAppOnboardingStatus OnboardingStatus { get; private set; }
+    public string? ValidationMessage { get; private set; }
+    public DateTimeOffset? ActivatedAt { get; private set; }
+    public DateTimeOffset? LastValidationAt { get; private set; }
+    public DateTimeOffset? LastInboundAt { get; private set; }
+    public DateTimeOffset? LastOutboundAt { get; private set; }
+    public DateTimeOffset? LastFailureAt { get; private set; }
+    public string? FailureReason { get; private set; }
+    public void Assess(WhatsAppNumberOrigin origin, WhatsAppCurrentUsage usage)
+    {
+        NumberOrigin = origin; CurrentUsage = usage;
+        OnboardingStatus = usage switch { WhatsAppCurrentUsage.WhatsAppBusinessApp => WhatsAppOnboardingStatus.MigrationRequired, WhatsAppCurrentUsage.WhatsAppBusinessPlatformOtherProvider => WhatsAppOnboardingStatus.ProviderMigrationRequired, WhatsAppCurrentUsage.None => WhatsAppOnboardingStatus.ReadyForRegistration, WhatsAppCurrentUsage.TwilioWhatsApp => WhatsAppOnboardingStatus.ReadyForValidation, _ => WhatsAppOnboardingStatus.NeedsAssessment };
+        ValidationMessage = OnboardingStatus switch { WhatsAppOnboardingStatus.MigrationRequired => "Este número está no WhatsApp Business App. É necessário migrar/registrar o sender na WhatsApp Business Platform.", WhatsAppOnboardingStatus.ProviderMigrationRequired => "Este número está em outro provedor. É necessário migrar o sender para a configuração Twilio.", WhatsAppOnboardingStatus.ReadyForRegistration => "O número está pronto para iniciar o registro como WhatsApp Sender.", WhatsAppOnboardingStatus.ReadyForValidation => "O sender será validado na configuração Twilio.", _ => "Informe como este número é utilizado atualmente." };
+        UpdatedAt = DateTimeOffset.UtcNow;
+    }
+    public void Validate() { LastValidationAt = DateTimeOffset.UtcNow; FailureReason = null; if (OnboardingStatus is WhatsAppOnboardingStatus.ReadyForValidation or WhatsAppOnboardingStatus.PendingVerification) OnboardingStatus = WhatsAppOnboardingStatus.ReadyForValidation; UpdatedAt = DateTimeOffset.UtcNow; }
+    public void Activate() { Status = WhatsAppChannelStatus.Active; OnboardingStatus = WhatsAppOnboardingStatus.Active; IsDefault = true; ActivatedAt = DateTimeOffset.UtcNow; UpdatedAt = DateTimeOffset.UtcNow; }
+    public void Suspend() { Status = WhatsAppChannelStatus.Suspended; OnboardingStatus = WhatsAppOnboardingStatus.Suspended; UpdatedAt = DateTimeOffset.UtcNow; }
+    public void Disable() { Status = WhatsAppChannelStatus.Disabled; IsDefault = false; UpdatedAt = DateTimeOffset.UtcNow; }
+    public void MarkInbound() { LastInboundAt = DateTimeOffset.UtcNow; UpdatedAt = DateTimeOffset.UtcNow; }
+    public void MarkOutbound() { LastOutboundAt = DateTimeOffset.UtcNow; UpdatedAt = DateTimeOffset.UtcNow; }
+    public static string Normalize(string value)
+    {
+        var raw = value.Trim().Replace("whatsapp:", string.Empty, StringComparison.OrdinalIgnoreCase);
+        var digits = new string(raw.Where(char.IsDigit).ToArray());
+        return raw.StartsWith('+') ? "+" + digits : "+" + digits;
+    }
 }
 
 public sealed class WhatsAppTemplate : Entity, ITenantEntity
@@ -109,6 +165,7 @@ public sealed class Conversation : Entity, ITenantEntity
     public Guid PatientId { get; private set; }
     public ConversationChannel Channel { get; private set; }
     public Guid IntegrationId { get; private set; }
+    public Guid? WhatsAppChannelId { get; private set; }
     public string? ExternalContactId { get; private set; }
     public ConversationStatus Status { get; private set; }
     public Guid? AssignedUserId { get; private set; }
@@ -163,6 +220,7 @@ public sealed class Conversation : Entity, ITenantEntity
     public void PauseAutomation() { AutomationMode = ConversationAutomationMode.Paused; Version++; UpdatedAt = DateTimeOffset.UtcNow; }
     public void ResumeAutomation() { AutomationMode = ConversationAutomationMode.Automated; if (Status != ConversationStatus.Closed) Status = ConversationStatus.Bot; Version++; UpdatedAt = DateTimeOffset.UtcNow; }
     public void SetPriority(ConversationPriority priority) { Priority = priority; Version++; UpdatedAt = DateTimeOffset.UtcNow; }
+    public void SetWhatsAppChannel(Guid channelId) { WhatsAppChannelId = channelId; UpdatedAt = DateTimeOffset.UtcNow; }
 }
 
 public sealed class ConversationMessage : Entity, ITenantEntity

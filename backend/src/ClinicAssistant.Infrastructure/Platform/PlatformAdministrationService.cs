@@ -70,6 +70,8 @@ public sealed class PlatformAdministrationService(ClinicAssistantDbContext db, I
             await db.SaveChangesAsync(ct);
             db.AddRange(clinic, unit);
             db.Users.Add(admin!);
+            if (!string.IsNullOrWhiteSpace(r.WhatsAppPhoneNumber))
+                db.WhatsAppChannels.Add(new WhatsAppChannel(tenant.Id, clinic.Id, unit.Id, WhatsAppProvider.Twilio, r.WhatsAppPhoneNumber));
             db.AddRange(
                 new AuditRecord(tenant.Id, null, "tenant.onboard", "Tenant", tenant.Id, "Succeeded", "Transactional onboarding"),
                 new IdempotencyRecord(scope, key, JsonSerializer.Serialize(response)));
@@ -95,15 +97,46 @@ public sealed class PlatformAdministrationService(ClinicAssistantDbContext db, I
         var professionalsConfigured = await db.Professionals.IgnoreQueryFilters().AnyAsync(x => x.TenantId == tenantId, ct);
         var availabilityConfigured = await db.AvailabilityRules.IgnoreQueryFilters().AnyAsync(x => x.TenantId == tenantId, ct);
         var clinicAdminConfigured = await db.Users.IgnoreQueryFilters().AnyAsync(x => x.TenantId == tenantId && x.Role == UserRole.ClinicAdmin && x.Status == UserStatus.Active, ct);
-        var whatsAppConfigured = await db.WhatsAppIntegrations.IgnoreQueryFilters().AnyAsync(x => x.TenantId == tenantId && x.Status != WhatsAppIntegrationStatus.Disabled, ct);
+        var whatsAppConfigured = await db.WhatsAppChannels.IgnoreQueryFilters().AnyAsync(x => x.TenantId == tenantId && x.Status == WhatsAppChannelStatus.Active, ct)
+            || await db.WhatsAppIntegrations.IgnoreQueryFilters().AnyAsync(x => x.TenantId == tenantId && x.Status != WhatsAppIntegrationStatus.Disabled, ct);
         return new PlatformOnboardingStatusResponse(tenantId, clinicConfigured, unitConfigured, specialtiesConfigured, professionalsConfigured, availabilityConfigured, clinicAdminConfigured, whatsAppConfigured, clinicConfigured && unitConfigured && clinicAdminConfigured);
     }
     public async Task<PlatformWhatsAppStatusResponse> GetWhatsAppStatusAsync(Guid tenantId, CancellationToken ct)
     {
         await EnsureTenantAsync(tenantId, ct);
+        var channel = await db.WhatsAppChannels.IgnoreQueryFilters().Where(x => x.TenantId == tenantId && x.IsDefault).OrderByDescending(x => x.UpdatedAt).FirstOrDefaultAsync(ct);
         var integration = await db.WhatsAppIntegrations.IgnoreQueryFilters().Where(x => x.TenantId == tenantId).OrderByDescending(x => x.UpdatedAt).FirstOrDefaultAsync(ct);
-        if (integration is null) return new(tenantId, false, null, null, null, null, null, null, null);
-        return new(tenantId, integration.Status != WhatsAppIntegrationStatus.Disabled, integration.Provider.ToString(), integration.Status.ToString(), MaskPhone(integration.DisplayPhoneNumber ?? integration.WhatsAppFrom), integration.LastWebhookAt, integration.LastSuccessfulSendAt, integration.LastFailureAt, integration.FailureReason);
+        if (integration is null && channel is null) return new(tenantId, false, null, null, null, null, null, null, null);
+        return new(tenantId, channel?.Status == WhatsAppChannelStatus.Active || integration?.Status == WhatsAppIntegrationStatus.Connected, channel?.Provider.ToString() ?? integration?.Provider.ToString(), channel?.Status.ToString() ?? integration?.Status.ToString(), MaskPhone(channel?.DisplayPhoneNumber ?? channel?.PhoneNumber ?? integration?.DisplayPhoneNumber ?? integration?.WhatsAppFrom ?? ""), integration?.LastWebhookAt, channel?.LastOutboundAt ?? integration?.LastSuccessfulSendAt, integration?.LastFailureAt, integration?.FailureReason);
+    }
+    public async Task<IReadOnlyList<PlatformWhatsAppChannelResponse>> GetWhatsAppChannelsAsync(Guid tenantId, CancellationToken ct)
+    {
+        await EnsureTenantAsync(tenantId, ct);
+        return await db.WhatsAppChannels.IgnoreQueryFilters().Where(x => x.TenantId == tenantId).OrderByDescending(x => x.IsDefault).ThenBy(x => x.PhoneNumber).Select(x => new PlatformWhatsAppChannelResponse(x.Id, x.TenantId, x.ClinicId, x.UnitId, x.Provider.ToString(), x.DisplayPhoneNumber ?? x.PhoneNumber, x.Status.ToString(), x.IsDefault, x.LastValidationAt, x.LastInboundAt, x.LastOutboundAt, x.OnboardingStatus.ToString(), x.NumberOrigin.ToString(), x.CurrentUsage.ToString(), x.ValidationMessage)).ToListAsync(ct);
+    }
+    public async Task<PlatformWhatsAppChannelResponse> CreateWhatsAppChannelAsync(Guid tenantId, CreateWhatsAppChannelRequest request, CancellationToken ct)
+    {
+        await EnsureTenantAsync(tenantId, ct);
+        if (!Enum.TryParse<WhatsAppProvider>(request.Provider, true, out var provider)) throw new InvalidOperationException("Unsupported WhatsApp provider.");
+        var normalized = WhatsAppChannel.Normalize(request.PhoneNumber);
+        if (normalized.Length < 9 || normalized.Length > 16 || normalized[0] != '+' || normalized.Skip(1).Any(c => !char.IsDigit(c))) throw new InvalidOperationException("PhoneNumber must be a valid E.164 number.");
+        if (await db.WhatsAppChannels.IgnoreQueryFilters().AnyAsync(x => x.NormalizedPhoneNumber == normalized && x.Status == WhatsAppChannelStatus.Active, ct)) throw new InvalidOperationException("This WhatsApp sender is already active for another tenant.");
+        var channel = new WhatsAppChannel(tenantId, request.ClinicId, request.UnitId, provider, request.PhoneNumber, request.DisplayPhoneNumber, request.IntegrationId);
+        db.WhatsAppChannels.Add(channel); await db.SaveChangesAsync(ct);
+        return new(channel.Id, channel.TenantId, channel.ClinicId, channel.UnitId, channel.Provider.ToString(), channel.DisplayPhoneNumber ?? channel.PhoneNumber, channel.Status.ToString(), channel.IsDefault, channel.LastValidationAt, channel.LastInboundAt, channel.LastOutboundAt, channel.OnboardingStatus.ToString(), channel.NumberOrigin.ToString(), channel.CurrentUsage.ToString(), channel.ValidationMessage);
+    }
+    public async Task<PlatformWhatsAppChannelResponse> UpdateWhatsAppChannelAssessmentAsync(Guid tenantId, Guid channelId, UpdateWhatsAppChannelAssessmentRequest request, CancellationToken ct)
+    {
+        var channel = await db.WhatsAppChannels.IgnoreQueryFilters().SingleOrDefaultAsync(x => x.Id == channelId && x.TenantId == tenantId, ct) ?? throw new KeyNotFoundException("WhatsApp channel not found.");
+        if (!Enum.TryParse<WhatsAppNumberOrigin>(request.NumberOrigin, true, out var origin) || !Enum.TryParse<WhatsAppCurrentUsage>(request.CurrentUsage, true, out var usage)) throw new InvalidOperationException("Invalid WhatsApp onboarding assessment.");
+        channel.Assess(origin, usage); db.AuditRecords.Add(new AuditRecord(tenantId, null, "whatsapp.channel.assessed", "WhatsAppChannel", channel.Id, "Succeeded", $"Number origin: {origin}; current usage: {usage}")); await db.SaveChangesAsync(ct);
+        return new(channel.Id, channel.TenantId, channel.ClinicId, channel.UnitId, channel.Provider.ToString(), channel.DisplayPhoneNumber ?? channel.PhoneNumber, channel.Status.ToString(), channel.IsDefault, channel.LastValidationAt, channel.LastInboundAt, channel.LastOutboundAt, channel.OnboardingStatus.ToString(), channel.NumberOrigin.ToString(), channel.CurrentUsage.ToString(), channel.ValidationMessage);
+    }
+    public async Task SetWhatsAppChannelStatusAsync(Guid tenantId, Guid channelId, string action, CancellationToken ct)
+    {
+        var channel = await db.WhatsAppChannels.IgnoreQueryFilters().SingleOrDefaultAsync(x => x.Id == channelId && x.TenantId == tenantId, ct) ?? throw new KeyNotFoundException("WhatsApp channel not found.");
+        switch (action.ToLowerInvariant()) { case "validate": channel.Validate(); break; case "activate": channel.Activate(); break; case "suspend": channel.Suspend(); break; case "disable": channel.Disable(); break; default: throw new InvalidOperationException("Invalid WhatsApp channel action."); }
+        await db.SaveChangesAsync(ct);
     }
     private static string MaskPhone(string value)
     {
@@ -155,6 +188,7 @@ public sealed class PlatformAdministrationService(ClinicAssistantDbContext db, I
         await db.Database.ExecuteSqlInterpolatedAsync($"DELETE FROM clinic_assistant.conversation_messages WHERE \"TenantId\" = {tenantId}", ct);
         await db.Database.ExecuteSqlInterpolatedAsync($"DELETE FROM clinic_assistant.conversations WHERE \"TenantId\" = {tenantId}", ct);
         await db.Database.ExecuteSqlInterpolatedAsync($"DELETE FROM clinic_assistant.whatsapp_templates WHERE \"TenantId\" = {tenantId}", ct);
+        await db.Database.ExecuteSqlInterpolatedAsync($"DELETE FROM clinic_assistant.whatsapp_channels WHERE \"TenantId\" = {tenantId}", ct);
         await db.Database.ExecuteSqlInterpolatedAsync($"DELETE FROM clinic_assistant.whatsapp_integrations WHERE \"TenantId\" = {tenantId}", ct);
         await db.Database.ExecuteSqlInterpolatedAsync($"DELETE FROM clinic_assistant.inbox_messages WHERE \"TenantId\" = {tenantId}", ct);
         await db.Database.ExecuteSqlInterpolatedAsync($"DELETE FROM clinic_assistant.outbox_messages WHERE \"TenantId\" = {tenantId}", ct);
