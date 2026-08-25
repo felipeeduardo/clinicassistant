@@ -23,8 +23,11 @@ const groups: NavigationGroup[] = [
   { label: "Atendimento", items: [{ href: "/conversations", label: "Conversas e fila", icon: "messages", roles: ["ClinicAdmin", "Receptionist"] }, { href: "/patients", label: "Pacientes", icon: "patients", roles: ["ClinicAdmin", "Receptionist", "Professional"] }] },
   { label: "Agenda", items: [{ href: "/appointments", label: "Agenda", icon: "calendar", roles: ["ClinicAdmin", "Receptionist", "Professional"] }, { href: "/professionals", label: "Profissionais", icon: "professionals", roles: ["ClinicAdmin"] }, { href: "/specialties", label: "Especialidades", icon: "specialties", roles: ["ClinicAdmin"] }, { href: "/units", label: "Unidades", icon: "units", roles: ["ClinicAdmin"] }] },
   { label: "Administração", items: [{ href: "/clinics", label: "Clínica", icon: "clinic", roles: ["ClinicAdmin"] }, { href: "/setup", label: "Configuração da clínica", icon: "clinic", roles: ["ClinicAdmin"] }, { href: "/platform", label: "Plataforma", icon: "platform", roles: ["PlatformAdmin"] }] },
+  { label: "Comercial", items: [{ href: "/platform/leads", label: "Leads", icon: "messages", roles: ["PlatformAdmin"] }, { href: "/platform/monetization", label: "Planos e monetização", icon: "history", roles: ["PlatformAdmin"] }] },
+  { label: "Implantação", items: [{ href: "/platform/implementation", label: "Clínicas em implantação", icon: "building", roles: ["PlatformAdmin"] }] },
+  { label: "Conhecimento", items: [{ href: "/platform/wiki", label: "Wiki", icon: "history", roles: ["PlatformAdmin"] }] },
   { label: "Integrações", items: [{ href: "/integrations/whatsapp", label: "WhatsApp", icon: "whatsapp", roles: ["ClinicAdmin"] }, { href: "/integrations/whatsapp/templates", label: "Templates", icon: "messages", roles: ["ClinicAdmin"] }] },
-  { label: "Governança", items: [{ href: "/audit", label: "Auditoria", icon: "audit", roles: ["ClinicAdmin"] }] },
+  { label: "Governança", items: [{ href: "/audit", label: "Auditoria", icon: "audit", roles: ["ClinicAdmin", "PlatformAdmin"] }] },
 ];
 
 function canSee(item: NavigationItem, user: User) {
