@@ -11,6 +11,8 @@ describe("security headers", () => {
     expect(csp).toContain("default-src 'self'");
     expect(csp).toContain("frame-ancestors 'none'");
     expect(csp).toContain("connect-src 'self' http://localhost:8080 ws://localhost:8080");
+    expect(csp).toContain("script-src 'self' 'unsafe-inline' https://www.googletagmanager.com");
+    expect(csp).toContain("https://www.google-analytics.com");
     expect(csp).not.toContain("unsafe-eval");
     expect(csp).not.toContain("*");
     expect(headers).toContainEqual({ key: "X-Frame-Options", value: "DENY" });
