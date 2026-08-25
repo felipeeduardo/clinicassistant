@@ -170,6 +170,13 @@ public sealed class ClinicAssistantDbContext(DbContextOptions<ClinicAssistantDbC
         modelBuilder.Entity<DemoLead>(entity =>
         {
             entity.ToTable("demo_leads");
+            entity.Property(item => item.UtmSource).HasMaxLength(100);
+            entity.Property(item => item.UtmMedium).HasMaxLength(100);
+            entity.Property(item => item.UtmCampaign).HasMaxLength(200);
+            entity.Property(item => item.UtmContent).HasMaxLength(200);
+            entity.Property(item => item.UtmTerm).HasMaxLength(200);
+            entity.Property(item => item.LandingPage).HasMaxLength(500);
+            entity.Property(item => item.Referrer).HasMaxLength(1000);
             entity.HasKey(x => x.Id);
             entity.Property(x => x.FullName).HasMaxLength(200).IsRequired();
             entity.Property(x => x.CompanyOrClinicName).HasMaxLength(200).IsRequired();

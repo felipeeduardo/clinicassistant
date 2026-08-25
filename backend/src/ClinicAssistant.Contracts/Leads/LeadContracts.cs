@@ -6,7 +6,14 @@ public sealed record CreateDemoLeadRequest(
     string Email,
     string Phone,
     string? Description = null,
-    string? Website = null);
+    string? Website = null,
+    string? UtmSource = null,
+    string? UtmMedium = null,
+    string? UtmCampaign = null,
+    string? UtmContent = null,
+    string? UtmTerm = null,
+    string? LandingPage = null,
+    string? Referrer = null);
 
 public sealed record DemoLeadListQuery(
     int Page = 1,
@@ -15,7 +22,8 @@ public sealed record DemoLeadListQuery(
     string? Search = null,
     Guid? AssignedToUserId = null,
     DateTimeOffset? From = null,
-    DateTimeOffset? To = null);
+    DateTimeOffset? To = null,
+    string? UtmSource = null);
 
 public sealed record DemoLeadListItem(
     Guid Id,
@@ -27,7 +35,14 @@ public sealed record DemoLeadListItem(
     string Source,
     Guid? AssignedToUserId,
     DateTimeOffset CreatedAt,
-    DateTimeOffset? LastContactAt);
+    DateTimeOffset? LastContactAt,
+    string? UtmSource = null,
+    string? UtmMedium = null,
+    string? UtmCampaign = null,
+    string? UtmContent = null,
+    string? UtmTerm = null,
+    string? LandingPage = null,
+    string? Referrer = null);
 
 public sealed record DemoLeadNote(DateTimeOffset CreatedAt, Guid? ActorUserId, string? ActorName, string Note);
 

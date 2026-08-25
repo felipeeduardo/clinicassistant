@@ -23,7 +23,9 @@ public sealed class DemoLeadService(ClinicAssistantDbContext db, ITenantContext 
         var email = NormalizeEmail(request.Email);
         var phone = Require(request.Phone, "Telefone", 40);
         var description = Optional(request.Description, 2000);
-        var lead = new DemoLead(fullName, company, email, phone, description, Source);
+        var lead = new DemoLead(fullName, company, email, phone, description, Source,
+            Optional(request.UtmSource, 100), Optional(request.UtmMedium, 100), Optional(request.UtmCampaign, 200),
+            Optional(request.UtmContent, 200), Optional(request.UtmTerm, 200), Optional(request.LandingPage, 500), Optional(request.Referrer, 1000));
         db.DemoLeads.Add(lead);
         db.AuditRecords.Add(new AuditRecord(null, null, "demo_lead.created", "DemoLead", lead.Id, "Succeeded", Source));
         await db.SaveChangesAsync(cancellationToken);
@@ -37,6 +39,7 @@ public sealed class DemoLeadService(ClinicAssistantDbContext db, ITenantContext 
         var source = db.DemoLeads.AsNoTracking().IgnoreQueryFilters();
         if (TryStatus(query.Status, out var status)) source = source.Where(x => x.Status == status);
         if (query.AssignedToUserId.HasValue) source = source.Where(x => x.AssignedToUserId == query.AssignedToUserId);
+        if (!string.IsNullOrWhiteSpace(query.UtmSource)) source = source.Where(x => x.UtmSource == query.UtmSource.Trim());
         if (query.From.HasValue) source = source.Where(x => x.CreatedAt >= query.From.Value.ToUniversalTime());
         if (query.To.HasValue) source = source.Where(x => x.CreatedAt < query.To.Value.ToUniversalTime());
         if (!string.IsNullOrWhiteSpace(query.Search))
@@ -98,7 +101,7 @@ public sealed class DemoLeadService(ClinicAssistantDbContext db, ITenantContext 
     }
 
     private async Task<DemoLead> Find(Guid id, CancellationToken ct) => await db.DemoLeads.IgnoreQueryFilters().SingleOrDefaultAsync(x => x.Id == id, ct) ?? throw new KeyNotFoundException("Lead não encontrado.");
-    private static DemoLeadListItem ToItem(DemoLead x) => new(x.Id, x.FullName, x.CompanyOrClinicName, x.Email, x.Phone, x.Status.ToString(), x.Source, x.AssignedToUserId, x.CreatedAt, x.LastContactAt);
+    private static DemoLeadListItem ToItem(DemoLead x) => new(x.Id, x.FullName, x.CompanyOrClinicName, x.Email, x.Phone, x.Status.ToString(), x.Source, x.AssignedToUserId, x.CreatedAt, x.LastContactAt, x.UtmSource, x.UtmMedium, x.UtmCampaign, x.UtmContent, x.UtmTerm, x.LandingPage, x.Referrer);
     private static bool TryStatus(string? value, out DemoLeadStatus status) => Enum.TryParse(value, true, out status) && Statuses.Contains(status);
     private static string Require(string? value, string field, int max) { var result = value?.Trim() ?? string.Empty; if (result.Length == 0) throw new InvalidOperationException($"{field} é obrigatório."); if (result.Length > max) throw new InvalidOperationException($"{field} excede o limite permitido."); return result; }
     private static string? Optional(string? value, int max) { var result = value?.Trim(); if (string.IsNullOrWhiteSpace(result)) return null; if (result.Length > max) throw new InvalidOperationException("Descrição excede o limite permitido."); return result; }
