@@ -1,9 +1,13 @@
+using ClinicAssistant.Infrastructure.Persistence;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
 namespace ClinicAssistant.Infrastructure.Persistence.Migrations;
 
+[DbContext(typeof(ClinicAssistantDbContext))]
+[Migration("202608250001_DemoLeadAttribution")]
 public partial class DemoLeadAttribution : Migration
 {
     protected override void Up(MigrationBuilder migrationBuilder)
