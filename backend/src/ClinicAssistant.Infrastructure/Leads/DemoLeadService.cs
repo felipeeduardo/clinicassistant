@@ -45,7 +45,7 @@ public sealed class DemoLeadService(ClinicAssistantDbContext db, ITenantContext 
         if (!string.IsNullOrWhiteSpace(query.Search))
         {
             var search = query.Search.Trim();
-            source = source.Where(x => x.FullName.Contains(search) || x.CompanyOrClinicName.Contains(search) || x.Email.Contains(search));
+            source = source.Where(x => x.FullName.Contains(search) || x.CompanyOrClinicName.Contains(search) || x.Email.Contains(search) || x.Phone.Contains(search));
         }
         var total = await source.CountAsync(cancellationToken);
         var entities = await source.OrderByDescending(x => x.CreatedAt).Skip((page - 1) * pageSize).Take(pageSize).ToListAsync(cancellationToken);
@@ -70,7 +70,7 @@ public sealed class DemoLeadService(ClinicAssistantDbContext db, ITenantContext 
     {
         var counts = await db.DemoLeads.AsNoTracking().IgnoreQueryFilters().GroupBy(x => x.Status).Select(x => new { Status = x.Key, Count = x.Count() }).ToListAsync(cancellationToken);
         int Count(DemoLeadStatus status) => counts.FirstOrDefault(x => x.Status == status)?.Count ?? 0;
-        return new(Count(DemoLeadStatus.New), Count(DemoLeadStatus.Contacted), Count(DemoLeadStatus.Qualified), Count(DemoLeadStatus.DemoScheduled), Count(DemoLeadStatus.Won), Count(DemoLeadStatus.Lost), Count(DemoLeadStatus.Archived), counts.Sum(x => x.Count));
+        return new(Count(DemoLeadStatus.New), Count(DemoLeadStatus.Contacted), Count(DemoLeadStatus.Qualified), Count(DemoLeadStatus.DemoScheduled), Count(DemoLeadStatus.Won), Count(DemoLeadStatus.Lost), Count(DemoLeadStatus.Archived), counts.Sum(x => x.Count), Count(DemoLeadStatus.DemoCompleted), Count(DemoLeadStatus.Pilot));
     }
 
     public async Task UpdateStatusAsync(Guid id, string status, CancellationToken cancellationToken)
@@ -78,7 +78,17 @@ public sealed class DemoLeadService(ClinicAssistantDbContext db, ITenantContext 
         if (!TryStatus(status, out var parsed)) throw new InvalidOperationException("Status de lead inválido.");
         var lead = await Find(id, cancellationToken);
         lead.ChangeStatus(parsed);
-        db.AuditRecords.Add(new AuditRecord(null, tenantContext.UserId, "demo_lead.status_changed", "DemoLead", id, "Succeeded", parsed.ToString()));
+        var action = parsed switch
+        {
+            DemoLeadStatus.Contacted => "demo_lead.contacted",
+            DemoLeadStatus.DemoScheduled => "demo_lead.demo_scheduled",
+            DemoLeadStatus.DemoCompleted => "demo_lead.demo_completed",
+            DemoLeadStatus.Pilot => "demo_lead.pilot_started",
+            DemoLeadStatus.Won => "demo_lead.won",
+            DemoLeadStatus.Lost => "demo_lead.lost",
+            _ => "demo_lead.status_changed"
+        };
+        db.AuditRecords.Add(new AuditRecord(null, tenantContext.UserId, action, "DemoLead", id, "Succeeded", parsed.ToString()));
         await db.SaveChangesAsync(cancellationToken);
     }
 
@@ -100,8 +110,18 @@ public sealed class DemoLeadService(ClinicAssistantDbContext db, ITenantContext 
         await db.SaveChangesAsync(cancellationToken);
     }
 
+    public async Task SetNextActionAsync(Guid id, UpdateDemoLeadNextActionRequest request, CancellationToken cancellationToken)
+    {
+        var lead = await Find(id, cancellationToken);
+        var description = request.Description?.Trim();
+        if (description is { Length: > 500 }) throw new InvalidOperationException("Próxima ação excede o limite permitido.");
+        lead.SetNextAction(request.At, description);
+        db.AuditRecords.Add(new AuditRecord(null, tenantContext.UserId, "demo_lead.next_action_changed", "DemoLead", id, "Succeeded", description ?? "cleared"));
+        await db.SaveChangesAsync(cancellationToken);
+    }
+
     private async Task<DemoLead> Find(Guid id, CancellationToken ct) => await db.DemoLeads.IgnoreQueryFilters().SingleOrDefaultAsync(x => x.Id == id, ct) ?? throw new KeyNotFoundException("Lead não encontrado.");
-    private static DemoLeadListItem ToItem(DemoLead x) => new(x.Id, x.FullName, x.CompanyOrClinicName, x.Email, x.Phone, x.Status.ToString(), x.Source, x.AssignedToUserId, x.CreatedAt, x.LastContactAt, x.UtmSource, x.UtmMedium, x.UtmCampaign, x.UtmContent, x.UtmTerm, x.LandingPage, x.Referrer);
+    private static DemoLeadListItem ToItem(DemoLead x) => new(x.Id, x.FullName, x.CompanyOrClinicName, x.Email, x.Phone, x.Status.ToString(), x.Source, x.AssignedToUserId, x.CreatedAt, x.LastContactAt, x.NextActionAt, x.NextActionDescription, x.UtmSource, x.UtmMedium, x.UtmCampaign, x.UtmContent, x.UtmTerm, x.LandingPage, x.Referrer);
     private static bool TryStatus(string? value, out DemoLeadStatus status) => Enum.TryParse(value, true, out status) && Statuses.Contains(status);
     private static string Require(string? value, string field, int max) { var result = value?.Trim() ?? string.Empty; if (result.Length == 0) throw new InvalidOperationException($"{field} é obrigatório."); if (result.Length > max) throw new InvalidOperationException($"{field} excede o limite permitido."); return result; }
     private static string? Optional(string? value, int max) { var result = value?.Trim(); if (string.IsNullOrWhiteSpace(result)) return null; if (result.Length > max) throw new InvalidOperationException("Descrição excede o limite permitido."); return result; }

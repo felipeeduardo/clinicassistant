@@ -11,4 +11,5 @@ public interface IDemoLeadService
     Task UpdateStatusAsync(Guid id, string status, CancellationToken cancellationToken);
     Task AssignAsync(Guid id, Guid? userId, CancellationToken cancellationToken);
     Task AddNoteAsync(Guid id, string note, CancellationToken cancellationToken);
+    Task SetNextActionAsync(Guid id, UpdateDemoLeadNextActionRequest request, CancellationToken cancellationToken);
 }
