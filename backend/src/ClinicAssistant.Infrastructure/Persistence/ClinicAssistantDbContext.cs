@@ -30,6 +30,7 @@ public sealed class ClinicAssistantDbContext(DbContextOptions<ClinicAssistantDbC
     public DbSet<ScheduleBlock> ScheduleBlocks => Set<ScheduleBlock>();
     public DbSet<ProfessionalVacation> ProfessionalVacations => Set<ProfessionalVacation>();
     public DbSet<Appointment> Appointments => Set<Appointment>();
+    public DbSet<AppointmentReminder> AppointmentReminders => Set<AppointmentReminder>();
     public DbSet<InboxMessage> InboxMessages => Set<InboxMessage>();
     public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
     public DbSet<WhatsAppIntegration> WhatsAppIntegrations => Set<WhatsAppIntegration>();
@@ -151,6 +152,21 @@ public sealed class ClinicAssistantDbContext(DbContextOptions<ClinicAssistantDbC
             entity.ToTable("appointments"); entity.Property(x => x.Status).HasConversion<string>().HasMaxLength(32); entity.Property(x => x.Source).HasConversion<string>().HasMaxLength(32); entity.Property(x => x.Notes).HasMaxLength(1000); entity.Property(x => x.CancellationReason).HasMaxLength(500); entity.Property(x => x.Version).IsConcurrencyToken();
             entity.HasIndex(x => new { x.ProfessionalId, x.StartsAt }); entity.HasIndex(x => new { x.PatientId, x.StartsAt }); entity.HasIndex(x => new { x.Status, x.CreatedAt });
             entity.HasOne<Professional>().WithMany().HasForeignKey(x => x.ProfessionalId).OnDelete(DeleteBehavior.Restrict); entity.HasOne<Patient>().WithMany().HasForeignKey(x => x.PatientId).OnDelete(DeleteBehavior.Restrict); entity.HasQueryFilter(x => IsPlatformAdmin || (CurrentTenantId.HasValue && x.TenantId == CurrentTenantId.Value));
+        });
+        modelBuilder.Entity<AppointmentReminder>(entity =>
+        {
+            entity.ToTable("appointment_reminders", "clinic_assistant");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Type).HasConversion<string>().HasMaxLength(32);
+            entity.Property(x => x.Status).HasConversion<string>().HasMaxLength(32);
+            entity.Property(x => x.CorrelationId).HasMaxLength(100);
+            entity.Property(x => x.ProviderCode).HasMaxLength(100);
+            entity.Property(x => x.FailureReason).HasMaxLength(2000);
+            entity.HasIndex(x => new { x.Status, x.ScheduledAtUtc });
+            entity.HasIndex(x => new { x.TenantId, x.AppointmentId });
+            entity.HasIndex(x => new { x.AppointmentId, x.Type, x.AppointmentStartUtc }).IsUnique();
+            entity.Property(x => x.AppointmentStartUtc).IsRequired();
+            entity.Property(x => x.ScheduledAtUtc).IsRequired();
         });
         modelBuilder.Entity<InboxMessage>(entity => { entity.ToTable("inbox_messages"); entity.Property(x => x.Provider).HasMaxLength(80); entity.Property(x => x.EventType).HasMaxLength(80); entity.Property(x => x.ExternalMessageId).HasMaxLength(200); entity.Property(x => x.ExternalEventId).HasMaxLength(200); entity.Property(x => x.PayloadHash).HasMaxLength(64); entity.Property(x => x.LastErrorCode).HasMaxLength(120); entity.Property(x => x.LastErrorMessage).HasMaxLength(2000); entity.Property(x => x.CorrelationId).HasMaxLength(128); entity.Property(x => x.Status).HasConversion<string>().HasMaxLength(32); entity.HasIndex(x => new { x.Provider, x.IntegrationId, x.ExternalMessageId }).IsUnique(); entity.HasIndex(x => new { x.Status, x.CreatedAt }); entity.HasQueryFilter(x => IsPlatformAdmin || (CurrentTenantId.HasValue && x.TenantId == CurrentTenantId.Value)); });
         modelBuilder.Entity<OutboxMessage>(entity => { entity.ToTable("outbox_messages"); entity.Property(x => x.Type).HasMaxLength(120); entity.Property(x => x.Status).HasConversion<string>().HasMaxLength(32); entity.Property(x => x.LastError).HasMaxLength(2000); entity.HasIndex(x => new { x.Status, x.NextAttemptAt, x.CreatedAt }); entity.HasIndex(x => x.WhatsAppChannelId); entity.HasQueryFilter(x => IsPlatformAdmin || (CurrentTenantId.HasValue && x.TenantId == CurrentTenantId.Value)); });

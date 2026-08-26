@@ -71,6 +71,11 @@ services:
       Twilio__StatusCallbackBaseUrl: ${TWILIO_STATUS_CALLBACK_BASE_URL:-}
       Twilio__StatusCallbackUrl: ${TWILIO_STATUS_CALLBACK_URL:-}
       Twilio__RequestTimeoutSeconds: ${TWILIO_REQUEST_TIMEOUT_SECONDS:-15}
+      Twilio__AppointmentReminder24hContentSid: ${TWILIO_APPOINTMENT_REMINDER_24H_CONTENT_SID:-}
+      Twilio__AppointmentReminder1hContentSid: ${TWILIO_APPOINTMENT_REMINDER_1H_CONTENT_SID:-}
+      AppointmentReminders__Enabled: ${APPOINTMENT_REMINDERS__ENABLED:-false}
+      AppointmentReminders__DayBeforeEnabled: ${APPOINTMENT_REMINDERS__DAY_BEFORE_ENABLED:-true}
+      AppointmentReminders__HourBeforeEnabled: ${APPOINTMENT_REMINDERS__HOUR_BEFORE_ENABLED:-true}
       OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
     ports:
       - "${API_PORT:-8080}:8080"
@@ -116,6 +121,11 @@ services:
       Twilio__StatusCallbackBaseUrl: ${TWILIO_STATUS_CALLBACK_BASE_URL:-}
       Twilio__StatusCallbackUrl: ${TWILIO_STATUS_CALLBACK_URL:-}
       Twilio__RequestTimeoutSeconds: ${TWILIO_REQUEST_TIMEOUT_SECONDS:-15}
+      Twilio__AppointmentReminder24hContentSid: ${TWILIO_APPOINTMENT_REMINDER_24H_CONTENT_SID:-}
+      Twilio__AppointmentReminder1hContentSid: ${TWILIO_APPOINTMENT_REMINDER_1H_CONTENT_SID:-}
+      AppointmentReminders__Enabled: ${APPOINTMENT_REMINDERS__ENABLED:-false}
+      AppointmentReminders__DayBeforeEnabled: ${APPOINTMENT_REMINDERS__DAY_BEFORE_ENABLED:-true}
+      AppointmentReminders__HourBeforeEnabled: ${APPOINTMENT_REMINDERS__HOUR_BEFORE_ENABLED:-true}
       Jwt__Issuer: ${JWT_ISSUER:-ClinicAssistant}
       Jwt__Audience: ${JWT_AUDIENCE:-ClinicAssistant.Web}
       Jwt__Secret: ${JWT_SECRET:-development-only-secret-change-before-production-2026}

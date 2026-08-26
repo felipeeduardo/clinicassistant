@@ -4,7 +4,6 @@ using ClinicAssistant.Infrastructure.Identity;
 using ClinicAssistant.Application.Clinics;
 using ClinicAssistant.Infrastructure.Clinics;
 using ClinicAssistant.Application.Scheduling;
-using ClinicAssistant.Infrastructure.Scheduling;
 using ClinicAssistant.Application.WhatsApp;
 using ClinicAssistant.Domain.WhatsApp;
 using ClinicAssistant.Infrastructure.WhatsApp;
@@ -24,6 +23,7 @@ using StackExchange.Redis;
 using ClinicAssistant.Infrastructure.Messaging;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Hosting;
+using ClinicAssistant.Infrastructure.Scheduling;
 
 namespace ClinicAssistant.Infrastructure;
 
@@ -93,6 +93,8 @@ public static class DependencyInjection
             .Bind(configuration.GetSection(PlatformBootstrapOptions.SectionName));
         services.AddScoped<IClinicCatalogService, ClinicCatalogService>();
         services.AddScoped<ISchedulingService, SchedulingService>();
+        services.AddOptions<AppointmentReminderOptions>().Bind(configuration.GetSection(AppointmentReminderOptions.SectionName)).Validate(x => !x.Enabled || x.PollingSeconds > 0, "AppointmentReminders:PollingSeconds must be positive.").ValidateOnStart();
+        services.AddScoped<AppointmentReminderDispatcher>();
         services.AddOptions<WhatsAppOptions>()
             .Bind(configuration.GetSection(WhatsAppOptions.SectionName))
             .Validate(options => !string.Equals(environment, "Production", StringComparison.OrdinalIgnoreCase) || options.Provider == WhatsAppProvider.Twilio, "Production WhatsApp provider must be configured as Twilio.")

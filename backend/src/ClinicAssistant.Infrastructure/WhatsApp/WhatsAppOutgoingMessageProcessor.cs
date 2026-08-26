@@ -3,6 +3,7 @@ using ClinicAssistant.Domain.WhatsApp;
 using ClinicAssistant.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using ClinicAssistant.Domain.Scheduling;
 
 namespace ClinicAssistant.Infrastructure.WhatsApp;
 
@@ -32,6 +33,7 @@ public sealed class WhatsAppOutgoingMessageProcessor(ClinicAssistantDbContext db
         if (result.Success && !string.IsNullOrWhiteSpace(result.ExternalMessageId))
         {
             message.MarkAccepted(result.ExternalMessageId, result.ProviderStatus);
+            await MarkAppointmentReminderAsync(command, sent: true, result.Failure?.ProviderCode, result.Failure?.SafeMessage, cancellationToken);
             integration.MarkSuccessfulSend();
             await dbContext.SaveChangesAsync(cancellationToken);
             WhatsAppTelemetry.OutgoingMessages.Add(1);
@@ -41,12 +43,22 @@ public sealed class WhatsAppOutgoingMessageProcessor(ClinicAssistantDbContext db
         }
 
         message.MarkFailed(result.Failure?.ProviderCode, result.Failure?.SafeMessage ?? "The WhatsApp provider rejected the message.");
+        await MarkAppointmentReminderAsync(command, sent: false, result.Failure?.ProviderCode, result.Failure?.SafeMessage, cancellationToken);
         integration.MarkSendFailure(result.Failure?.SafeMessage ?? "The WhatsApp provider rejected the message.");
         await dbContext.SaveChangesAsync(cancellationToken);
         WhatsAppTelemetry.OutgoingMessages.Add(1);
         WhatsAppTelemetry.SendFailure.Add(1);
         if (command.CorrelationId.StartsWith("integration-test:", StringComparison.Ordinal)) WhatsAppTelemetry.TestMessagesFailed.Add(1);
         return WhatsAppOutgoingMessageProcessingResult.Failed;
+    }
+
+    private async Task MarkAppointmentReminderAsync(SendWhatsAppMessageCommand command, bool sent, string? providerCode, string? reason, CancellationToken ct)
+    {
+        const string prefix = "appointment-reminder:";
+        if (!command.IdempotencyKey.StartsWith(prefix, StringComparison.Ordinal) || !Guid.TryParse(command.IdempotencyKey[prefix.Length..], out var id)) return;
+        var reminder = await dbContext.AppointmentReminders.IgnoreQueryFilters().SingleOrDefaultAsync(x => x.Id == id && x.TenantId == command.TenantId, ct);
+        if (reminder is null) return;
+        if (sent) reminder.MarkSent(); else reminder.MarkFailed(providerCode, reason ?? "WhatsApp provider rejected the reminder.");
     }
 
     private async Task<SendWhatsAppMessageResult> SendAsync(SendWhatsAppMessageCommand command, ConversationMessage message, string senderPhone, CancellationToken cancellationToken)

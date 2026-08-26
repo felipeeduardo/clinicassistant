@@ -25,6 +25,7 @@ builder.Services.AddHostedService<MessagingWorker>();
 builder.Services.AddHostedService<WhatsAppIncomingMessageConsumer>();
 builder.Services.AddHostedService<SendWhatsAppMessageConsumer>();
 builder.Services.AddHostedService<ConversationMessageReceivedConsumer>();
+builder.Services.AddHostedService<AppointmentReminderHostedService>();
 builder.Services.AddHostedService<WhatsAppTemplateSyncConsumer>();
 builder.Services.AddSingleton<RabbitMqPublisher>();
 builder.Services.AddOpenTelemetry()
