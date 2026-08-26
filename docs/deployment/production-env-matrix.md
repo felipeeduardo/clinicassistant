@@ -28,7 +28,10 @@ manager do respectivo provedor.
 | `Twilio__WhatsAppFrom` | Railway API/Worker | sender Sandbox | sender Sandbox | sender aprovado | sender aprovado | Runtime |
 | `Twilio__IncomingWebhookBaseUrl` | Railway API | ngrok | URL Preview HTTPS | API Pilot | `https://api.iarecepcao.com.br` | Runtime |
 | `Twilio__StatusCallbackBaseUrl` | Railway API | ngrok | URL Preview HTTPS | API Pilot | `https://api.iarecepcao.com.br` | Runtime |
-| `PasswordRecovery__Provider` | Railway API | `Disabled` ou `Smtp` local | `Smtp` quando validado | `Smtp` | `Smtp` | Runtime |
+| `Email__Enabled` / `Email__Provider` | Railway API | `false` / `Fake` | `false` / `Fake` | `true` / `SendGrid` | `true` / `SendGrid` | Runtime |
+| `Email__FromAddress`, `Email__FromName` | Railway API | remetente local | remetente Preview | remetente autenticado | `no-reply@iarecepcao.com.br` | Runtime |
+| `SendGrid__ApiKey` | Railway API | vazio | secret Preview | secret Pilot | secret Railway | Secret |
+| `SendGrid__RequestTimeoutSeconds` | Railway API | `30` | `30` | `30` | `30` | Runtime |
 | `PasswordRecovery__FrontendBaseUrl` | Railway API | `http://localhost:3000` | URL do app Preview | app Pilot | `https://app.iarecepcao.com.br` | Runtime |
 | `PasswordRecovery__From` | Railway API | remetente local | remetente Preview | remetente aprovado | remetente do domínio | Runtime |
 | `PasswordRecovery__SmtpHost`, `PasswordRecovery__SmtpPort` | Railway API | provedor local | host SMTP Preview | host SMTP Pilot | host SMTP Production | Runtime |
@@ -52,11 +55,11 @@ manager do respectivo provedor.
   Redis, JWT e Twilio.
 - Toda mudança de Production deve registrar responsável, data, motivo e rollback.
 
-## SMTP para recuperação de senha
+## SendGrid para recuperação de senha
 
-As variáveis `PasswordRecovery__*` devem ser cadastradas somente no serviço API
-do Railway. O Worker não precisa receber essas credenciais. Use o domínio
-autorizado pelo provedor SMTP e mantenha `PasswordRecovery__EnableSsl=true`.
+As variáveis `Email__*` e `SendGrid__*` devem ser cadastradas somente no serviço
+API do Railway. O Worker não precisa receber essas credenciais. Use um domínio
+autenticado no SendGrid e uma chave com apenas `Mail Send`.
 
 Procedimento:
 
@@ -67,7 +70,8 @@ Procedimento:
    diferentes.
 5. Após validar, remover qualquer valor temporário ou senha de teste.
 
-O modo `Disabled` é aceitável apenas em desenvolvimento sem teste de e-mail. Em
-Production, use `Smtp` e não registre tokens, links ou senhas nos logs.
+O modo desabilitado é aceitável em desenvolvimento. Em Production, use
+`Email__Enabled=true`, `Email__Provider=SendGrid` e não registre tokens, links ou
+senhas nos logs.
 
 O frontend/Vercel não recebe nenhuma variável de credencial Twilio. Em produção, `WhatsApp__Provider=Twilio` é obrigatório e Fake não pode ser usado como fallback.

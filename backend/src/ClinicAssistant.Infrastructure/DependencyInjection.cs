@@ -24,6 +24,7 @@ using ClinicAssistant.Infrastructure.Messaging;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Hosting;
 using ClinicAssistant.Infrastructure.Scheduling;
+using System.Net.Mail;
 
 namespace ClinicAssistant.Infrastructure;
 
@@ -87,6 +88,33 @@ public static class DependencyInjection
         services.Configure<JwtOptions>(configuration.GetSection(JwtOptions.SectionName));
         services.AddScoped<IAuthService, AuthService>();
         services.AddOptions<PasswordRecoveryOptions>().Bind(configuration.GetSection(PasswordRecoveryOptions.SectionName));
+        services.AddOptions<EmailOptions>()
+            .Bind(configuration.GetSection(EmailOptions.SectionName))
+            .Validate(options => !options.Enabled || (options.Provider.Equals("SendGrid", StringComparison.OrdinalIgnoreCase) || options.Provider.Equals("Fake", StringComparison.OrdinalIgnoreCase)), "Email:Provider must be SendGrid or Fake when email is enabled.")
+            .Validate(options => !options.Enabled || !string.IsNullOrWhiteSpace(options.FromAddress) && MailAddress.TryCreate(options.FromAddress, out _), "Email:FromAddress must be a valid address when email is enabled.")
+            .Validate(options => !options.Enabled || !string.IsNullOrWhiteSpace(options.FromName), "Email:FromName is required when email is enabled.")
+            .ValidateOnStart();
+        services.AddOptions<SendGridOptions>()
+            .Bind(configuration.GetSection(SendGridOptions.SectionName))
+            .Validate(options => options.RequestTimeoutSeconds is > 0 and <= 120, "SendGrid:RequestTimeoutSeconds must be between 1 and 120.")
+            .Validate(options => !configuration.GetValue<bool>($"{EmailOptions.SectionName}:Enabled") || !string.Equals(configuration[$"{EmailOptions.SectionName}:Provider"], "SendGrid", StringComparison.OrdinalIgnoreCase) || !string.IsNullOrWhiteSpace(options.ApiKey), "SendGrid:ApiKey is required when SendGrid email is enabled.")
+            .ValidateOnStart();
+        services.AddHttpClient<SendGridEmailSender>((serviceProvider, client) =>
+        {
+            client.BaseAddress = new Uri("https://api.sendgrid.com/");
+            client.Timeout = TimeSpan.FromSeconds(serviceProvider.GetRequiredService<IOptions<SendGridOptions>>().Value.RequestTimeoutSeconds);
+        });
+        services.AddScoped<IEmailSender>(serviceProvider =>
+        {
+            var options = serviceProvider.GetRequiredService<IOptions<EmailOptions>>().Value;
+            return options.Provider.Equals("Fake", StringComparison.OrdinalIgnoreCase)
+                ? serviceProvider.GetRequiredService<FakeEmailSender>()
+                : options.Provider.Equals("SendGrid", StringComparison.OrdinalIgnoreCase)
+                    ? serviceProvider.GetRequiredService<SendGridEmailSender>()
+                    : serviceProvider.GetRequiredService<DisabledEmailSender>();
+        });
+        services.AddScoped<FakeEmailSender>();
+        services.AddScoped<DisabledEmailSender>();
         services.AddScoped<IPasswordRecoveryService, PasswordRecoveryService>();
         services.AddScoped<IPasswordResetEmailSender, PasswordResetEmailSender>();
         services.AddOptions<PlatformBootstrapOptions>()

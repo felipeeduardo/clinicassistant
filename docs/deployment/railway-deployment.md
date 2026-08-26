@@ -30,10 +30,14 @@ ambiente. O Worker não deve ser omitido: ele processa Outbox e entrega assíncr
 ## Recuperação de senha
 
 Antes de liberar a recuperação de senha em Production, configure no serviço
-**API** as variáveis `PasswordRecovery__Provider`, `PasswordRecovery__From`,
-`PasswordRecovery__SmtpHost`, `PasswordRecovery__SmtpPort`,
-`PasswordRecovery__SmtpUser`, `PasswordRecovery__SmtpPassword`,
-`PasswordRecovery__EnableSsl` e `PasswordRecovery__FrontendBaseUrl`.
+**API** `Email__Enabled=true`, `Email__Provider=SendGrid`,
+`Email__FromAddress`, `Email__FromName`, `SendGrid__ApiKey`,
+`SendGrid__RequestTimeoutSeconds` e `PasswordRecovery__FrontendBaseUrl`.
 
 As credenciais devem ser adicionadas pelo painel **Variables/Secrets** do
 Railway, nunca no Dockerfile, no repositório ou em variáveis `NEXT_PUBLIC_*`.
+
+Para SendGrid, configure somente na **API**: `Email__Enabled`,
+`Email__Provider=SendGrid`, `Email__FromAddress`, `Email__FromName`,
+`SendGrid__ApiKey` e `SendGrid__RequestTimeoutSeconds`. O Worker não precisa
+dessas variáveis nesta versão.

@@ -37,6 +37,12 @@ services:
       PasswordRecovery__SmtpUser: ${PASSWORD_RECOVERY_SMTP_USER:-}
       PasswordRecovery__SmtpPassword: ${PASSWORD_RECOVERY_SMTP_PASSWORD:-}
       PasswordRecovery__EnableSsl: ${PASSWORD_RECOVERY_SMTP_ENABLE_SSL:-true}
+      Email__Enabled: ${EMAIL_ENABLED:-false}
+      Email__Provider: ${EMAIL_PROVIDER:-SendGrid}
+      Email__FromAddress: ${EMAIL_FROM_ADDRESS:-no-reply@iarecepcao.com.br}
+      Email__FromName: ${EMAIL_FROM_NAME:-IA Recepção}
+      SendGrid__ApiKey: ${SENDGRID_API_KEY:-}
+      SendGrid__RequestTimeoutSeconds: ${SENDGRID_REQUEST_TIMEOUT_SECONDS:-30}
       PlatformBootstrap__Enabled: ${PLATFORM_BOOTSTRAP__ENABLED:-${PLATFORM_BOOTSTRAP_ENABLED:-false}}
       PlatformBootstrap__Admins__0__Email: ${PLATFORM_BOOTSTRAP__ADMINS__0__EMAIL:-${PLATFORM_BOOTSTRAP_ADMINS_0_EMAIL:-}}
       PlatformBootstrap__Admins__0__Password: ${PLATFORM_BOOTSTRAP__ADMINS__0__PASSWORD:-${PLATFORM_BOOTSTRAP_ADMINS_0_PASSWORD:-}}

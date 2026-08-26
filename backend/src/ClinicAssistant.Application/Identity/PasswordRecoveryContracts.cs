@@ -2,6 +2,26 @@ namespace ClinicAssistant.Application.Identity;
 
 public sealed record ForgotPasswordRequest(string Email);
 public sealed record ResetPasswordRequest(string Token, string NewPassword);
+public interface IEmailSender
+{
+    Task SendAsync(string recipient, string subject, string htmlBody, string textBody, CancellationToken cancellationToken);
+}
+
+public sealed record EmailOptions
+{
+    public const string SectionName = "Email";
+    public bool Enabled { get; set; }
+    public string Provider { get; set; } = "Disabled";
+    public string FromAddress { get; set; } = "";
+    public string FromName { get; set; } = "IA Recepção";
+}
+
+public sealed record SendGridOptions
+{
+    public const string SectionName = "SendGrid";
+    public string ApiKey { get; set; } = "";
+    public int RequestTimeoutSeconds { get; set; } = 30;
+}
 public sealed record PasswordRecoveryOptions
 {
     public const string SectionName = "PasswordRecovery";
