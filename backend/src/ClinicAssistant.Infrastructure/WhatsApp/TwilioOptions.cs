@@ -11,6 +11,8 @@ public sealed class TwilioOptions
     public string? IncomingWebhookBaseUrl { get; init; }
     public string? StatusCallbackBaseUrl { get; init; }
     public string? StatusCallbackUrl { get; init; }
+    public string? AppointmentReminder24hContentSid { get; init; }
+    public string? AppointmentReminder1hContentSid { get; init; }
     public bool SignatureValidationEnabled { get; init; } = true;
     public int RequestTimeoutSeconds { get; init; } = 15;
     public string[] TrustedProxyAddresses { get; init; } = [];

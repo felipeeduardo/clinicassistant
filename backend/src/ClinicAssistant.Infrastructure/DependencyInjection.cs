@@ -4,7 +4,6 @@ using ClinicAssistant.Infrastructure.Identity;
 using ClinicAssistant.Application.Clinics;
 using ClinicAssistant.Infrastructure.Clinics;
 using ClinicAssistant.Application.Scheduling;
-using ClinicAssistant.Infrastructure.Scheduling;
 using ClinicAssistant.Application.WhatsApp;
 using ClinicAssistant.Domain.WhatsApp;
 using ClinicAssistant.Infrastructure.WhatsApp;
@@ -24,6 +23,8 @@ using StackExchange.Redis;
 using ClinicAssistant.Infrastructure.Messaging;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Hosting;
+using ClinicAssistant.Infrastructure.Scheduling;
+using System.Net.Mail;
 
 namespace ClinicAssistant.Infrastructure;
 
@@ -87,12 +88,41 @@ public static class DependencyInjection
         services.Configure<JwtOptions>(configuration.GetSection(JwtOptions.SectionName));
         services.AddScoped<IAuthService, AuthService>();
         services.AddOptions<PasswordRecoveryOptions>().Bind(configuration.GetSection(PasswordRecoveryOptions.SectionName));
+        services.AddOptions<EmailOptions>()
+            .Bind(configuration.GetSection(EmailOptions.SectionName))
+            .Validate(options => !options.Enabled || (options.Provider.Equals("SendGrid", StringComparison.OrdinalIgnoreCase) || options.Provider.Equals("Fake", StringComparison.OrdinalIgnoreCase)), "Email:Provider must be SendGrid or Fake when email is enabled.")
+            .Validate(options => !options.Enabled || !string.IsNullOrWhiteSpace(options.FromAddress) && MailAddress.TryCreate(options.FromAddress, out _), "Email:FromAddress must be a valid address when email is enabled.")
+            .Validate(options => !options.Enabled || !string.IsNullOrWhiteSpace(options.FromName), "Email:FromName is required when email is enabled.")
+            .ValidateOnStart();
+        services.AddOptions<SendGridOptions>()
+            .Bind(configuration.GetSection(SendGridOptions.SectionName))
+            .Validate(options => options.RequestTimeoutSeconds is > 0 and <= 120, "SendGrid:RequestTimeoutSeconds must be between 1 and 120.")
+            .Validate(options => !configuration.GetValue<bool>($"{EmailOptions.SectionName}:Enabled") || !string.Equals(configuration[$"{EmailOptions.SectionName}:Provider"], "SendGrid", StringComparison.OrdinalIgnoreCase) || !string.IsNullOrWhiteSpace(options.ApiKey), "SendGrid:ApiKey is required when SendGrid email is enabled.")
+            .ValidateOnStart();
+        services.AddHttpClient<SendGridEmailSender>((serviceProvider, client) =>
+        {
+            client.BaseAddress = new Uri("https://api.sendgrid.com/");
+            client.Timeout = TimeSpan.FromSeconds(serviceProvider.GetRequiredService<IOptions<SendGridOptions>>().Value.RequestTimeoutSeconds);
+        });
+        services.AddScoped<IEmailSender>(serviceProvider =>
+        {
+            var options = serviceProvider.GetRequiredService<IOptions<EmailOptions>>().Value;
+            return options.Provider.Equals("Fake", StringComparison.OrdinalIgnoreCase)
+                ? serviceProvider.GetRequiredService<FakeEmailSender>()
+                : options.Provider.Equals("SendGrid", StringComparison.OrdinalIgnoreCase)
+                    ? serviceProvider.GetRequiredService<SendGridEmailSender>()
+                    : serviceProvider.GetRequiredService<DisabledEmailSender>();
+        });
+        services.AddScoped<FakeEmailSender>();
+        services.AddScoped<DisabledEmailSender>();
         services.AddScoped<IPasswordRecoveryService, PasswordRecoveryService>();
         services.AddScoped<IPasswordResetEmailSender, PasswordResetEmailSender>();
         services.AddOptions<PlatformBootstrapOptions>()
             .Bind(configuration.GetSection(PlatformBootstrapOptions.SectionName));
         services.AddScoped<IClinicCatalogService, ClinicCatalogService>();
         services.AddScoped<ISchedulingService, SchedulingService>();
+        services.AddOptions<AppointmentReminderOptions>().Bind(configuration.GetSection(AppointmentReminderOptions.SectionName)).Validate(x => !x.Enabled || x.PollingSeconds > 0, "AppointmentReminders:PollingSeconds must be positive.").ValidateOnStart();
+        services.AddScoped<AppointmentReminderDispatcher>();
         services.AddOptions<WhatsAppOptions>()
             .Bind(configuration.GetSection(WhatsAppOptions.SectionName))
             .Validate(options => !string.Equals(environment, "Production", StringComparison.OrdinalIgnoreCase) || options.Provider == WhatsAppProvider.Twilio, "Production WhatsApp provider must be configured as Twilio.")

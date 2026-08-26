@@ -37,6 +37,12 @@ services:
       PasswordRecovery__SmtpUser: ${PASSWORD_RECOVERY_SMTP_USER:-}
       PasswordRecovery__SmtpPassword: ${PASSWORD_RECOVERY_SMTP_PASSWORD:-}
       PasswordRecovery__EnableSsl: ${PASSWORD_RECOVERY_SMTP_ENABLE_SSL:-true}
+      Email__Enabled: ${EMAIL_ENABLED:-false}
+      Email__Provider: ${EMAIL_PROVIDER:-SendGrid}
+      Email__FromAddress: ${EMAIL_FROM_ADDRESS:-no-reply@iarecepcao.com.br}
+      Email__FromName: ${EMAIL_FROM_NAME:-IA Recepção}
+      SendGrid__ApiKey: ${SENDGRID_API_KEY:-}
+      SendGrid__RequestTimeoutSeconds: ${SENDGRID_REQUEST_TIMEOUT_SECONDS:-30}
       PlatformBootstrap__Enabled: ${PLATFORM_BOOTSTRAP__ENABLED:-${PLATFORM_BOOTSTRAP_ENABLED:-false}}
       PlatformBootstrap__Admins__0__Email: ${PLATFORM_BOOTSTRAP__ADMINS__0__EMAIL:-${PLATFORM_BOOTSTRAP_ADMINS_0_EMAIL:-}}
       PlatformBootstrap__Admins__0__Password: ${PLATFORM_BOOTSTRAP__ADMINS__0__PASSWORD:-${PLATFORM_BOOTSTRAP_ADMINS_0_PASSWORD:-}}
@@ -71,6 +77,11 @@ services:
       Twilio__StatusCallbackBaseUrl: ${TWILIO_STATUS_CALLBACK_BASE_URL:-}
       Twilio__StatusCallbackUrl: ${TWILIO_STATUS_CALLBACK_URL:-}
       Twilio__RequestTimeoutSeconds: ${TWILIO_REQUEST_TIMEOUT_SECONDS:-15}
+      Twilio__AppointmentReminder24hContentSid: ${TWILIO_APPOINTMENT_REMINDER_24H_CONTENT_SID:-}
+      Twilio__AppointmentReminder1hContentSid: ${TWILIO_APPOINTMENT_REMINDER_1H_CONTENT_SID:-}
+      AppointmentReminders__Enabled: ${APPOINTMENT_REMINDERS__ENABLED:-false}
+      AppointmentReminders__DayBeforeEnabled: ${APPOINTMENT_REMINDERS__DAY_BEFORE_ENABLED:-true}
+      AppointmentReminders__HourBeforeEnabled: ${APPOINTMENT_REMINDERS__HOUR_BEFORE_ENABLED:-true}
       OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
     ports:
       - "${API_PORT:-8080}:8080"
@@ -116,6 +127,11 @@ services:
       Twilio__StatusCallbackBaseUrl: ${TWILIO_STATUS_CALLBACK_BASE_URL:-}
       Twilio__StatusCallbackUrl: ${TWILIO_STATUS_CALLBACK_URL:-}
       Twilio__RequestTimeoutSeconds: ${TWILIO_REQUEST_TIMEOUT_SECONDS:-15}
+      Twilio__AppointmentReminder24hContentSid: ${TWILIO_APPOINTMENT_REMINDER_24H_CONTENT_SID:-}
+      Twilio__AppointmentReminder1hContentSid: ${TWILIO_APPOINTMENT_REMINDER_1H_CONTENT_SID:-}
+      AppointmentReminders__Enabled: ${APPOINTMENT_REMINDERS__ENABLED:-false}
+      AppointmentReminders__DayBeforeEnabled: ${APPOINTMENT_REMINDERS__DAY_BEFORE_ENABLED:-true}
+      AppointmentReminders__HourBeforeEnabled: ${APPOINTMENT_REMINDERS__HOUR_BEFORE_ENABLED:-true}
       Jwt__Issuer: ${JWT_ISSUER:-ClinicAssistant}
       Jwt__Audience: ${JWT_AUDIENCE:-ClinicAssistant.Web}
       Jwt__Secret: ${JWT_SECRET:-development-only-secret-change-before-production-2026}
