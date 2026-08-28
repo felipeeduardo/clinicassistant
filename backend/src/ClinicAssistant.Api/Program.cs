@@ -27,6 +27,7 @@ using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using ClinicAssistant.Infrastructure.Observability;
 using System.Net;
 using ClinicAssistant.Api.Realtime;
 using ClinicAssistant.Application.Realtime;
@@ -144,21 +145,20 @@ try
         .AddCheck<OutboxHealthCheck>("worker-outbox", tags: ["ready"])
         .AddCheck("signalr", () => HealthCheckResult.Healthy("Operations hub is hosted by the API."), tags: ["ready"]);
 
-    builder.Services.AddOpenTelemetry()
-        .ConfigureResource(resource => resource.AddService("ClinicAssistant.Api"))
-        .WithTracing(tracing => tracing
-            .AddSource("ClinicAssistant.WhatsApp")
-            .AddSource("ClinicAssistant.Conversations")
-            .AddAspNetCoreInstrumentation()
-            .AddHttpClientInstrumentation()
-            .AddEntityFrameworkCoreInstrumentation()
-            .AddOtlpExporter())
-        .WithMetrics(metrics => metrics
-            .AddAspNetCoreInstrumentation()
-            .AddMeter("ClinicAssistant.WhatsApp")
-            .AddMeter("ClinicAssistant.Conversations")
-            .AddMeter("ClinicAssistant.Operations")
-            .AddOtlpExporter());
+    var observability = builder.Configuration.GetSection(ObservabilityOptions.SectionName).Get<ObservabilityOptions>() ?? new();
+    var telemetry = builder.Services.AddOpenTelemetry().ConfigureResource(resource => resource.AddService(
+        builder.Configuration["OTEL_SERVICE_NAME"] ?? "ia-recepcao-api-local",
+        serviceNamespace: builder.Configuration["OTEL_SERVICE_NAMESPACE"] ?? "ia-recepcao",
+        serviceVersion: typeof(Program).Assembly.GetName().Version?.ToString() ?? "1.0.0"));
+    if (observability.Enabled)
+    {
+        telemetry.WithTracing(tracing => tracing.SetSampler(new TraceIdRatioBasedSampler(observability.TraceSamplingRatio))
+            .AddSource("ClinicAssistant.WhatsApp").AddSource("ClinicAssistant.Conversations")
+            .AddAspNetCoreInstrumentation(options => options.Filter = context => !context.Request.Path.StartsWithSegments("/health"))
+            .AddHttpClientInstrumentation().AddEntityFrameworkCoreInstrumentation().AddOtlpExporter());
+        telemetry.WithMetrics(metrics => metrics.AddAspNetCoreInstrumentation()
+            .AddMeter("ClinicAssistant.WhatsApp").AddMeter("ClinicAssistant.Conversations").AddMeter("ClinicAssistant.Operations").AddMeter("ClinicAssistant.Worker").AddOtlpExporter());
+    }
 
     var app = builder.Build();
     await using (var scope = app.Services.CreateAsyncScope())

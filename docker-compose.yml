@@ -43,6 +43,14 @@ services:
       Email__FromName: ${EMAIL_FROM_NAME:-IA Recepção}
       SendGrid__ApiKey: ${SENDGRID_API_KEY:-}
       SendGrid__RequestTimeoutSeconds: ${SENDGRID_REQUEST_TIMEOUT_SECONDS:-30}
+      Observability__Enabled: ${OBSERVABILITY_ENABLED:-false}
+      Observability__TraceSamplingRatio: ${OBSERVABILITY_TRACE_SAMPLING_RATIO:-1.0}
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
+      OTEL_EXPORTER_OTLP_HEADERS: ${OTEL_EXPORTER_OTLP_HEADERS:-}
+      OTEL_EXPORTER_OTLP_PROTOCOL: ${OTEL_EXPORTER_OTLP_PROTOCOL:-http/protobuf}
+      OTEL_SERVICE_NAME: ${OTEL_SERVICE_NAME:-ia-recepcao-api-local}
+      OTEL_SERVICE_NAMESPACE: ${OTEL_SERVICE_NAMESPACE:-ia-recepcao}
+      OTEL_RESOURCE_ATTRIBUTES: ${OTEL_RESOURCE_ATTRIBUTES:-deployment.environment=development}
       PlatformBootstrap__Enabled: ${PLATFORM_BOOTSTRAP__ENABLED:-${PLATFORM_BOOTSTRAP_ENABLED:-false}}
       PlatformBootstrap__Admins__0__Email: ${PLATFORM_BOOTSTRAP__ADMINS__0__EMAIL:-${PLATFORM_BOOTSTRAP_ADMINS_0_EMAIL:-}}
       PlatformBootstrap__Admins__0__Password: ${PLATFORM_BOOTSTRAP__ADMINS__0__PASSWORD:-${PLATFORM_BOOTSTRAP_ADMINS_0_PASSWORD:-}}
@@ -82,7 +90,6 @@ services:
       AppointmentReminders__Enabled: ${APPOINTMENT_REMINDERS__ENABLED:-false}
       AppointmentReminders__DayBeforeEnabled: ${APPOINTMENT_REMINDERS__DAY_BEFORE_ENABLED:-true}
       AppointmentReminders__HourBeforeEnabled: ${APPOINTMENT_REMINDERS__HOUR_BEFORE_ENABLED:-true}
-      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
     ports:
       - "${API_PORT:-8080}:8080"
     depends_on:
@@ -127,6 +134,14 @@ services:
       Twilio__StatusCallbackBaseUrl: ${TWILIO_STATUS_CALLBACK_BASE_URL:-}
       Twilio__StatusCallbackUrl: ${TWILIO_STATUS_CALLBACK_URL:-}
       Twilio__RequestTimeoutSeconds: ${TWILIO_REQUEST_TIMEOUT_SECONDS:-15}
+      Observability__Enabled: ${OBSERVABILITY_ENABLED:-false}
+      Observability__TraceSamplingRatio: ${OBSERVABILITY_TRACE_SAMPLING_RATIO:-1.0}
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
+      OTEL_EXPORTER_OTLP_HEADERS: ${OTEL_EXPORTER_OTLP_HEADERS:-}
+      OTEL_EXPORTER_OTLP_PROTOCOL: ${OTEL_EXPORTER_OTLP_PROTOCOL:-http/protobuf}
+      OTEL_SERVICE_NAME: ${OTEL_SERVICE_NAME:-ia-recepcao-worker-local}
+      OTEL_SERVICE_NAMESPACE: ${OTEL_SERVICE_NAMESPACE:-ia-recepcao}
+      OTEL_RESOURCE_ATTRIBUTES: ${OTEL_RESOURCE_ATTRIBUTES:-deployment.environment=development}
       Twilio__AppointmentReminder24hContentSid: ${TWILIO_APPOINTMENT_REMINDER_24H_CONTENT_SID:-}
       Twilio__AppointmentReminder1hContentSid: ${TWILIO_APPOINTMENT_REMINDER_1H_CONTENT_SID:-}
       AppointmentReminders__Enabled: ${APPOINTMENT_REMINDERS__ENABLED:-false}
@@ -148,7 +163,6 @@ services:
       Conversation__MaxMessageLength: ${CONVERSATION_MAX_MESSAGE_LENGTH:-2000}
       Conversation__DefaultLanguage: ${CONVERSATION_DEFAULT_LANGUAGE:-pt-BR}
       Conversation__ReopenClosedConversations: ${CONVERSATION_REOPEN_CLOSED_CONVERSATIONS:-true}
-      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
     depends_on:
       postgres:
         condition: service_healthy
