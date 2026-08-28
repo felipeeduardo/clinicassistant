@@ -24,6 +24,7 @@ using ClinicAssistant.Infrastructure.Messaging;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Hosting;
 using ClinicAssistant.Infrastructure.Scheduling;
+using ClinicAssistant.Infrastructure.Observability;
 using System.Net.Mail;
 
 namespace ClinicAssistant.Infrastructure;
@@ -33,6 +34,10 @@ public static class DependencyInjection
     public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
         var environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT") ?? "Production";
+        services.AddOptions<ObservabilityOptions>()
+            .Bind(configuration.GetSection(ObservabilityOptions.SectionName))
+            .Validate(x => x.TraceSamplingRatio is >= 0 and <= 1, "Observability:TraceSamplingRatio must be between 0 and 1.")
+            .ValidateOnStart();
         services.AddOptions<RabbitMqOptions>()
             .Bind(configuration.GetSection(RabbitMqOptions.SectionName))
             .Validate(options =>

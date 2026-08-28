@@ -10,6 +10,8 @@ using OpenTelemetry.Trace;
 using Serilog;
 using ClinicAssistant.Infrastructure.Messaging;
 using Microsoft.EntityFrameworkCore;
+using ClinicAssistant.Infrastructure.Observability;
+using System.Diagnostics;
 
 var builder = Host.CreateApplicationBuilder(args);
 var migrationCheckLog = LoggerMessage.Define<int, string>(LogLevel.Information, new EventId(9501, "WorkerMigrationCheck"), "Worker database migration check: {PendingCount} pending migration(s): {PendingMigrations}");
@@ -28,10 +30,16 @@ builder.Services.AddHostedService<ConversationMessageReceivedConsumer>();
 builder.Services.AddHostedService<AppointmentReminderHostedService>();
 builder.Services.AddHostedService<WhatsAppTemplateSyncConsumer>();
 builder.Services.AddSingleton<RabbitMqPublisher>();
-builder.Services.AddOpenTelemetry()
-    .ConfigureResource(resource => resource.AddService("ClinicAssistant.Worker"))
-    .WithTracing(tracing => tracing.AddSource("ClinicAssistant.WhatsApp").AddSource("ClinicAssistant.Conversations").AddOtlpExporter())
-    .WithMetrics(metrics => metrics.AddMeter("ClinicAssistant.Conversations").AddMeter("ClinicAssistant.WhatsApp").AddMeter("ClinicAssistant.Worker").AddMeter("ClinicAssistant.Operations").AddOtlpExporter());
+var observability = builder.Configuration.GetSection(ObservabilityOptions.SectionName).Get<ObservabilityOptions>() ?? new();
+var telemetry = builder.Services.AddOpenTelemetry().ConfigureResource(resource => resource.AddService(
+    builder.Configuration["OTEL_SERVICE_NAME"] ?? "ia-recepcao-worker-local",
+    serviceNamespace: builder.Configuration["OTEL_SERVICE_NAMESPACE"] ?? "ia-recepcao",
+    serviceVersion: typeof(Program).Assembly.GetName().Version?.ToString() ?? "1.0.0"));
+if (observability.Enabled)
+{
+    telemetry.WithTracing(tracing => tracing.SetSampler(new TraceIdRatioBasedSampler(observability.TraceSamplingRatio)).AddSource("ClinicAssistant.WhatsApp").AddSource("ClinicAssistant.Conversations").AddHttpClientInstrumentation().AddOtlpExporter())
+        .WithMetrics(metrics => metrics.AddMeter("ClinicAssistant.Conversations").AddMeter("ClinicAssistant.WhatsApp").AddMeter("ClinicAssistant.Worker").AddMeter("ClinicAssistant.Operations").AddOtlpExporter());
+}
 builder.Services.AddSerilog((_, configuration) => configuration
     .ReadFrom.Configuration(builder.Configuration)
     .Enrich.FromLogContext()

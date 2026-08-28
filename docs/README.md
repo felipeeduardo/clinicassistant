@@ -50,3 +50,4 @@ Este índice é o ponto de entrada da documentação de produto e operação. Os
 - [WhatsApp](whatsapp/overview.md)
 - [Configuração Twilio](whatsapp/twilio-setup.md)
 - [Webhooks Twilio](whatsapp/twilio-webhooks.md)
+- [Observabilidade Production v1](observability/README.md)

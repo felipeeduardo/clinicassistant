@@ -8,6 +8,7 @@
     <PackageReference Include="Serilog.Sinks.Console" />
     <PackageReference Include="OpenTelemetry.Extensions.Hosting" />
     <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" />
+    <PackageReference Include="OpenTelemetry.Instrumentation.Http" />
     <PackageReference Include="RabbitMQ.Client" />
   </ItemGroup>
 </Project>
