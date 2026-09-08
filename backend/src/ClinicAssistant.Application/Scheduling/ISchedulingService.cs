@@ -20,6 +20,8 @@ public interface ISchedulingService
     Task AddVacationAsync(Guid professionalId, VacationRequest r, CancellationToken ct);
     Task DeleteVacationAsync(Guid professionalId, Guid vacationId, CancellationToken ct);
     Task<ProfessionalScheduleResponse> GetProfessionalScheduleAsync(Guid professionalId, DateTimeOffset startsAt, DateTimeOffset endsAt, CancellationToken ct);
+    Task<ScheduleImportPreview> PreviewScheduleImportAsync(Stream source, string? fileName, CancellationToken ct);
+    Task<ScheduleImportResult> ImportScheduleAsync(Stream source, string idempotencyKey, CancellationToken ct);
     Task<IReadOnlyList<AppointmentListItem>> GetAppointmentsAsync(DateTimeOffset startsAt, DateTimeOffset endsAt, CancellationToken ct);
     Task<AppointmentPage> SearchAppointmentsAsync(AppointmentSearchRequest r, CancellationToken ct);
     Task<AppointmentDetailResponse> GetAppointmentDetailAsync(Guid id, CancellationToken ct);

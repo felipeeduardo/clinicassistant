@@ -23,7 +23,7 @@ export class ApiClient {
       credentials: "include",
       headers: {
         Accept: "application/json",
-        ...(init.body ? { "Content-Type": "application/json" } : {}),
+        ...(init.body && !(init.body instanceof FormData) ? { "Content-Type": "application/json" } : {}),
         ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
         ...init.headers,
       },
@@ -38,6 +38,14 @@ export class ApiClient {
 
     return response.status === 204 ? (undefined as T) : (response.json() as Promise<T>);
   }
+
+  async download(path: string): Promise<Blob> {
+    const accessToken = this.token();
+    const response = await fetch(`${this.baseUrl}${path}`, { credentials: "include", headers: { Accept: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}) } });
+    if (response.status === 401) this.unauthorized();
+    if (!response.ok) throw new ApiError(response.status, "Não foi possível baixar o modelo.");
+    return response.blob();
+  }
 }
 
 function readProblemField(body: unknown, key: string) {
@@ -48,7 +56,10 @@ function readProblemField(body: unknown, key: string) {
 function readErrorMessage(body: unknown) {
   if (body && typeof body === "object") {
     const code = readProblemField(body, "code");
+    const title = (body as { title?: unknown }).title;
+    if (code === "schedule_import_conflict" && typeof title === "string" && title.trim()) return title;
     const safeMessages: Record<string, string> = {
+      schedule_import_conflict: "Existe um conflito na importação da agenda. Revise a linha indicada e tente novamente.",
       scheduling_conflict: "O horário não está mais disponível. Atualize a agenda e escolha outro slot.",
       appointment_conflict: "Existe conflito de horário. Atualize a agenda e escolha outro slot.",
       slot_unavailable: "Este horário deixou de estar disponível. Consulte novos horários.",
@@ -63,7 +74,6 @@ function readErrorMessage(body: unknown) {
       unexpected_error: "Não foi possível concluir a solicitação.",
     };
     if (code && safeMessages[code]) return safeMessages[code];
-    const title = (body as { title?: unknown }).title;
     if (typeof title === "string" && title.trim()) return title;
   }
 

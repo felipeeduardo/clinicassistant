@@ -1,7 +1,7 @@
 import type { ReactNode, SVGProps } from "react";
 import { cn } from "./utils";
 
-export type IconName = "dashboard" | "messages" | "bell" | "patients" | "calendar" | "professionals" | "specialties" | "units" | "clinic" | "whatsapp" | "audit" | "platform" | "menu" | "close" | "collapse" | "logout" | "chevronRight" | "chevronDown" | "chevronUp" | "shield" | "building" | "userCheck" | "history" | "arrowRight" | "eye" | "eyeOff" | "signal";
+export type IconName = "dashboard" | "messages" | "bell" | "patients" | "calendar" | "professionals" | "specialties" | "units" | "clinic" | "whatsapp" | "audit" | "platform" | "menu" | "close" | "collapse" | "logout" | "chevronRight" | "chevronDown" | "chevronUp" | "shield" | "building" | "userCheck" | "history" | "arrowRight" | "arrowUp" | "download" | "sheet" | "eye" | "eyeOff" | "edit" | "signal";
 export function Icon({ name, className, ...props }: SVGProps<SVGSVGElement> & { name: IconName }) {
   const common = { className: cn("size-5 shrink-0", className), fill: "none", stroke: "currentColor", strokeWidth: 1.8, strokeLinecap: "round" as const, strokeLinejoin: "round" as const, viewBox: "0 0 24 24", "aria-hidden": true };
   const paths: Record<IconName, ReactNode> = {
@@ -29,8 +29,12 @@ export function Icon({ name, className, ...props }: SVGProps<SVGSVGElement> & { 
     userCheck: <><circle cx="9" cy="8" r="3" /><path d="M3 21a6 6 0 0 1 12 0" /><path d="m16 12 2 2 4-4" /></>,
     history: <><path d="M3 12a9 9 0 1 0 3-6.7" /><path d="M3 4v5h5M12 7v5l3 2" /></>,
     arrowRight: <><path d="M5 12h14" /><path d="m13 6 6 6-6 6" /></>,
+    arrowUp: <><path d="M12 19V5" /><path d="m6 11 6-6 6 6" /></>,
+    download: <><path d="M12 3v12" /><path d="m7 10 5 5 5-5" /><path d="M5 21h14" /></>,
+    sheet: <><path d="M6 3h9l3 3v15H6z" /><path d="M15 3v4h4M9 12h6M9 16h6" /></>,
     eye: <><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z" /><circle cx="12" cy="12" r="2.5" /></>,
     eyeOff: <><path d="m3 3 18 18" /><path d="M10.6 6.2A10.6 10.6 0 0 1 12 6c6.5 0 10 6 10 6a18 18 0 0 1-3.1 3.8M6.2 6.2C3.5 8.1 2 12 2 12s3.5 6 10 6a10 10 0 0 0 3.4-.6" /><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2" /></>,
+    edit: <><path d="m4 16-.8 4.8L8 20l11.5-11.5a2.1 2.1 0 0 0-3-3L5 17" /><path d="m14.5 7.5 2 2" /></>,
     signal: <><path d="M5 19v-2M9 19v-5M13 19v-8M17 19V7" /></>,
   };
   return <svg {...common} {...props}>{paths[name]}</svg>;

@@ -1,5 +1,5 @@
 import type { ApiClient } from "@/lib/api/client";
-import type { AvailabilityRule, AvailabilityRuleRequest, Clinic, ClinicRequest, Professional, ProfessionalRequest, ProfessionalSchedule, SchedulePeriod, SchedulePeriodRequest, Specialty, SpecialtyDependencies, SpecialtyRequest, Unit, UnitDetail, UnitRequest } from "@/lib/api/types";
+import type { AvailabilityRule, AvailabilityRuleRequest, Clinic, ClinicRequest, Professional, ProfessionalRequest, ProfessionalSchedule, ScheduleImportPreview, SchedulePeriod, SchedulePeriodRequest, Specialty, SpecialtyDependencies, SpecialtyRequest, Unit, UnitDetail, UnitRequest } from "@/lib/api/types";
 
 export const catalogApi = {
   getClinic: (api: ApiClient) => api.request<Clinic>("/api/clinics/current"),
@@ -16,9 +16,14 @@ export const catalogApi = {
   getSpecialtyDependencies: (api: ApiClient, id: string) => api.request<SpecialtyDependencies>(`/api/specialties/${id}/dependencies`),
   setSpecialtyStatus: (api: ApiClient, id: string, status: "Active" | "Inactive") => api.request<void>(`/api/specialties/${id}/status/${status}`, { method: "POST" }),
   listProfessionals: (api: ApiClient) => api.request<Professional[]>("/api/professionals"),
+  getProfessional: (api: ApiClient, id: string) => api.request<Professional>(`/api/professionals/${id}`),
   createProfessional: (api: ApiClient, request: ProfessionalRequest) => api.request<Professional>("/api/professionals", { method: "POST", body: JSON.stringify(request) }),
   updateProfessional: (api: ApiClient, id: string, request: ProfessionalRequest) => api.request<Professional>(`/api/professionals/${id}`, { method: "PUT", body: JSON.stringify(request) }),
   getProfessionalSchedule: (api: ApiClient, id: string, startsAt: string, endsAt: string) => api.request<ProfessionalSchedule>(`/api/professionals/${id}/schedule?startsAt=${encodeURIComponent(startsAt)}&endsAt=${encodeURIComponent(endsAt)}`),
+  scheduleImportTemplateUrl: "/api/professionals/schedule-import/template",
+  downloadScheduleImportTemplate: (api: ApiClient) => api.download("/api/professionals/schedule-import/template"),
+  previewScheduleImport: (api: ApiClient, file: File) => { const form = new FormData(); form.append("file", file); return api.request<ScheduleImportPreview>("/api/professionals/import/preview", { method: "POST", body: form }); },
+  commitScheduleImport: (api: ApiClient, file: File, idempotencyKey: string) => { const form = new FormData(); form.append("file", file); return api.request<import("@/lib/api/types").ScheduleImportResult>("/api/professionals/import/commit", { method: "POST", headers: { "Idempotency-Key": idempotencyKey }, body: form }); },
   listAvailabilityRules: (api: ApiClient, id: string) => api.request<AvailabilityRule[]>(`/api/professionals/${id}/availability/rules`),
   addAvailabilityRule: (api: ApiClient, id: string, request: AvailabilityRuleRequest) => api.request<void>(`/api/professionals/${id}/availability`, { method: "POST", body: JSON.stringify(request) }),
   listScheduleBlocks: (api: ApiClient, id: string) => api.request<SchedulePeriod[]>(`/api/professionals/${id}/blocks`),

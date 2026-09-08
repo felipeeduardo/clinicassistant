@@ -1,5 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
   <ItemGroup>
+    <Content Include="Assets/modelo-importacao-agenda-ia-recepcao.xlsx" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="../ClinicAssistant.Application/ClinicAssistant.Application.csproj" />
     <ProjectReference Include="../ClinicAssistant.Infrastructure/ClinicAssistant.Infrastructure.csproj" />
   </ItemGroup>

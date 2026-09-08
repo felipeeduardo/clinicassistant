@@ -5,3 +5,14 @@
 .env
 README.md
 docs
+# Frontend dependencies and generated output are ignored here because the
+# compose build context is the repository root (frontend/.dockerignore is not
+# consulted for a root context).
+frontend/node_modules
+frontend/.next
+frontend/coverage
+frontend/test-results
+**/node_modules
+**/.next
+**/coverage
+**/test-results
