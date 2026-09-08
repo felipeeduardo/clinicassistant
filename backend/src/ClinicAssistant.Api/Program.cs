@@ -37,6 +37,7 @@ using ClinicAssistant.Contracts.Platform;
 using ClinicAssistant.Api.Authorization;
 using ClinicAssistant.Application.Operations;
 using ClinicAssistant.Infrastructure.Messaging;
+using ClinicAssistant.Infrastructure.Scheduling;
 using ClinicAssistant.Application.Leads;
 using ClinicAssistant.Contracts.Leads;
 using Microsoft.AspNetCore.RateLimiting;
@@ -190,9 +191,10 @@ try
             _ => StatusCodes.Status500InternalServerError
         };
         var traceId = Activity.Current?.TraceId.ToString() ?? context.TraceIdentifier;
+        var isScheduleImport = context.Request.Path.StartsWithSegments("/api/professionals/import");
         var code = exception switch
         {
-            SchedulingConflictException => "scheduling_conflict",
+            SchedulingConflictException => isScheduleImport ? "schedule_import_conflict" : "scheduling_conflict",
             ClinicNotReadyForActivationException => "clinic_not_ready",
             UnauthorizedAccessException => "unauthorized",
             KeyNotFoundException => "resource_not_found",
@@ -307,6 +309,25 @@ try
     clinic.MapPost("/professionals/{id:guid}/vacations", async (Guid id, VacationRequest request, ISchedulingService service, CancellationToken ct) => { await service.AddVacationAsync(id, request, ct); return Results.NoContent(); }).RequireAuthorization(ClinicPolicies.ProfessionalsManage);
     clinic.MapDelete("/professionals/{id:guid}/vacations/{vacationId:guid}", async (Guid id, Guid vacationId, ISchedulingService service, CancellationToken ct) => { await service.DeleteVacationAsync(id, vacationId, ct); return Results.NoContent(); }).RequireAuthorization(ClinicPolicies.ProfessionalsManage);
     clinic.MapGet("/professionals/{id:guid}/schedule", async (Guid id, DateTimeOffset startsAt, DateTimeOffset endsAt, ISchedulingService service, CancellationToken ct) => Results.Ok(await service.GetProfessionalScheduleAsync(id, startsAt, endsAt, ct))).RequireAuthorization(ClinicPolicies.ProfessionalsView);
+    clinic.MapGet("/professionals/schedule-import/template", (IWebHostEnvironment environment) =>
+    {
+        var path = Path.Combine(environment.ContentRootPath, "Assets", "modelo-importacao-agenda-ia-recepcao.xlsx");
+        return File.Exists(path) ? Results.File(path, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "modelo-importacao-agenda-ia-recepcao.xlsx") : Results.NotFound();
+    }).RequireAuthorization(ClinicPolicies.ProfessionalsManage);
+    clinic.MapPost("/professionals/import/preview", async (IFormFile file, ISchedulingService service, CancellationToken ct) =>
+    {
+        if (file.Length == 0) return Results.BadRequest(new { message = "Selecione um arquivo XLSX." });
+        if (!string.Equals(Path.GetExtension(file.FileName), ".xlsx", StringComparison.OrdinalIgnoreCase)) return Results.BadRequest(new { message = "O arquivo deve estar no formato .xlsx." });
+        await using var stream = file.OpenReadStream();
+        return Results.Ok(await service.PreviewScheduleImportAsync(stream, file.FileName, ct));
+    }).Accepts<IFormFile>("multipart/form-data").DisableAntiforgery().RequireAuthorization(ClinicPolicies.ProfessionalsManage);
+    clinic.MapPost("/professionals/import/commit", async (IFormFile file, HttpRequest request, ISchedulingService service, CancellationToken ct) =>
+    {
+        if (file.Length == 0) return Results.BadRequest(new { message = "Selecione um arquivo XLSX." });
+        if (!string.Equals(Path.GetExtension(file.FileName), ".xlsx", StringComparison.OrdinalIgnoreCase)) return Results.BadRequest(new { message = "O arquivo deve estar no formato .xlsx." });
+        await using var stream = file.OpenReadStream();
+        return Results.Ok(await service.ImportScheduleAsync(stream, request.Headers["Idempotency-Key"].ToString(), ct));
+    }).Accepts<IFormFile>("multipart/form-data").DisableAntiforgery().RequireAuthorization(ClinicPolicies.ProfessionalsManage);
     clinic.MapGet("/appointments", async (DateTimeOffset startsAt, DateTimeOffset endsAt, ISchedulingService service, CancellationToken ct) => Results.Ok(await service.GetAppointmentsAsync(startsAt, endsAt, ct))).RequireAuthorization("ClinicStaff");
     clinic.MapGet("/appointments/search", async ([AsParameters] AppointmentSearchRequest request, ISchedulingService service, CancellationToken ct) => Results.Ok(await service.SearchAppointmentsAsync(request, ct))).RequireAuthorization("ClinicStaff");
     clinic.MapGet("/appointments/{id:guid}", async (Guid id, ISchedulingService service, CancellationToken ct) => Results.Ok(await service.GetAppointmentDetailAsync(id, ct))).RequireAuthorization("ClinicStaff");

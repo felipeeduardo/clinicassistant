@@ -1,8 +1,6 @@
 export type User = { id: string; tenantId: string; name: string; email: string; role: string };
 export type AuthResponse = { accessToken: string; accessTokenExpiresAt: string; user: User };
 export type IntegrationStatus = { status: string; displayPhoneNumber?: string | null; canSendTest: boolean; inboundWebhookConfigured: boolean; statusCallbackConfigured: boolean; lastWebhookAt?: string | null; lastSuccessfulSendAt?: string | null; lastFailureAt?: string | null; failureReason?: string | null };
-export type WhatsAppTemplate = { id: string; name: string; languageCode: string; category?: string | null; status: string; contentSidMasked: string; updatedAt: string };
-export type WhatsAppTemplateDetail = WhatsAppTemplate & { variables: string[]; createdAt: string };
 
 export type Clinic = { id: string; legalName: string; tradeName: string; document: string; email: string; phone: string; timeZone: string; status: string; assistantDisplayName?: string | null };
 export type Unit = { id: string; clinicId: string; name: string; address: string; phone: string; status: string };
@@ -15,6 +13,10 @@ export type AvailabilityRule = { id: string; dayOfWeek: number | string; startTi
 export type AvailabilityRuleRequest = Omit<AvailabilityRule, "id">;
 export type SchedulePeriod = { id: string; startsAt: string; endsAt: string; reason?: string | null };
 export type SchedulePeriodRequest = Omit<SchedulePeriod, "id">;
+export type ScheduleImportRow = { professionalRegistration: string; recordType: string; dayOfWeek?: string | null; startTime?: string | null; endTime?: string | null; slotDurationMinutes?: number | null; reason?: string | null; startDate?: string | null; endDate?: string | null };
+export type ScheduleImportValidationError = { row: number; field: string; message: string };
+export type ScheduleImportPreview = { totalRows: number; validRows: number; rows: ScheduleImportRow[]; errors: ScheduleImportValidationError[]; warnings?: ScheduleImportValidationError[]; fileName?: string | null; availabilityRows?: number; blockRows?: number; vacationRows?: number; warningCount?: number };
+export type ScheduleImportResult = { createdRules: number; createdBlocks: number; createdVacations: number; replayed: boolean };
 export type Patient = { id: string; name: string; phone: string; email?: string | null; birthDate?: string | null; consentStatus: string };
 export type PatientListItem = Patient & { source: string; lastContactAt?: string | null };
 export type PatientPage = PagedResult<PatientListItem>;

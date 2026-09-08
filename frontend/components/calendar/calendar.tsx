@@ -9,7 +9,7 @@ import { EmptyState, Skeleton } from "@/components/ui/states";
 import { Drawer } from "@/components/ui/drawer";
 import { useState } from "react";
 
-export type CalendarAppointment = Appointment & { patientName: string; professionalName: string; unitName: string; specialtyName?: string; kind?: "appointment" | "block" | "vacation" };
+export type CalendarAppointment = Appointment & { patientName: string; professionalName: string; unitName: string; specialtyName?: string; kind?: "appointment" | "availability" | "block" | "vacation" };
 
 type CalendarProps = {
   appointments: CalendarAppointment[];
@@ -35,7 +35,7 @@ type CalendarProps = {
 };
 
 const labels: Record<CalendarView, string> = { day: "Dia", week: "Semana", month: "Mês", list: "Lista" };
-const statusLabels: Record<string, string> = { Pending: "Agendada", Confirmed: "Confirmada", Rescheduled: "Reagendada", Cancelled: "Cancelada", Completed: "Concluída", NoShow: "Não compareceu", Blocked: "Bloqueado", Unavailable: "Indisponível", Conflict: "Conflito" };
+const statusLabels: Record<string, string> = { Pending: "Agendada", Confirmed: "Confirmada", Rescheduled: "Reagendada", Cancelled: "Cancelada", Completed: "Concluída", NoShow: "Não compareceu", Available: "Disponível", Blocked: "Bloqueado", Unavailable: "Indisponível", Conflict: "Conflito" };
 const formatTime = (value: string, timeZone: string) => new Date(value).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", timeZone });
 const formatDate = (value: string, timeZone: string) => new Date(value).toLocaleDateString("pt-BR", { dateStyle: "full", timeZone });
 const dateKey = (value: string, timeZone: string) => new Intl.DateTimeFormat("en-CA", { timeZone, year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date(value));
@@ -45,7 +45,7 @@ export function CalendarShell(props: CalendarProps) {
 }
 
 export function CalendarStatusLegend() {
-  return <div aria-label="Legenda de status das consultas" className="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-slate-100 pt-3 text-xs text-slate-600">{["Pending", "Confirmed", "Completed", "Cancelled", "Rescheduled", "NoShow"].map(status => <span className="inline-flex items-center gap-1.5" key={status}><span aria-hidden="true" className={`size-2 rounded-full ${status === "Pending" ? "bg-brand-500" : status === "Confirmed" ? "bg-emerald-500" : status === "Completed" ? "bg-slate-400" : status === "Cancelled" ? "bg-red-500" : status === "Rescheduled" ? "bg-amber-500" : "bg-orange-500"}`} />{statusLabels[status]}</span>)}</div>;
+  return <div aria-label="Legenda de status das consultas" className="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-slate-100 pt-3 text-xs text-slate-600">{["Pending", "Confirmed", "Available", "Completed", "Cancelled", "Rescheduled", "NoShow"].map(status => <span className="inline-flex items-center gap-1.5" key={status}><span aria-hidden="true" className={`size-2 rounded-full ${status === "Pending" ? "bg-brand-500" : status === "Confirmed" ? "bg-emerald-500" : status === "Available" ? "bg-sky-500" : status === "Completed" ? "bg-slate-400" : status === "Cancelled" ? "bg-red-500" : status === "Rescheduled" ? "bg-amber-500" : "bg-orange-500"}`} />{statusLabels[status]}</span>)}</div>;
 }
 
 export function CalendarToolbar({ date, view, onDateChange, onViewChange, onPrevious, onNext, onToday, onRefresh, realtimeStatus = "offline", timeZone = DEFAULT_CLINIC_TIME_ZONE }: CalendarProps) {
@@ -78,9 +78,9 @@ function CalendarViewContent(props: CalendarProps) {
 }
 
 export function AppointmentCalendarEvent({ appointment, onOpen, timeZone = DEFAULT_CLINIC_TIME_ZONE }: { appointment: CalendarAppointment; onOpen: () => void; timeZone?: string }) {
-  const label = appointment.kind === "vacation" ? "Férias" : appointment.kind === "block" ? "Bloqueado" : statusLabels[appointment.status] ?? appointment.status;
-  const statusClass = appointment.kind ? "border-slate-300 bg-slate-100" : appointment.status === "Confirmed" ? "border-l-emerald-500 bg-emerald-50/70" : appointment.status === "Cancelled" ? "border-l-red-500 bg-red-50/70 opacity-75" : appointment.status === "Completed" ? "border-l-slate-400 bg-slate-50" : appointment.status === "Rescheduled" ? "border-l-amber-500 bg-amber-50/70" : appointment.status === "NoShow" ? "border-l-orange-500 bg-orange-50/70" : "border-l-brand-500 bg-brand-50";
-  return <button aria-label={`Consulta ${formatTime(appointment.startsAt, timeZone)} com ${appointment.patientName}, status ${label}`} className={`w-full rounded-control border border-slate-200 border-l-4 px-2 py-1.5 text-left transition hover:border-brand-300 focus:outline-none focus:ring-2 focus:ring-brand-500 ${statusClass}`} onClick={onOpen} title={`${appointment.patientName} · ${appointment.professionalName} · ${label}`} type="button"><span className="block text-[11px] font-semibold tabular-nums text-slate-600">{formatTime(appointment.startsAt, timeZone)}</span><p className="truncate text-xs font-semibold text-slate-950">{appointment.patientName}</p></button>;
+  const label = appointment.kind === "availability" ? "Disponível" : appointment.kind === "vacation" ? "Férias" : appointment.kind === "block" ? "Bloqueado" : statusLabels[appointment.status] ?? appointment.status;
+  const statusClass = appointment.kind === "availability" ? "border-l-sky-500 bg-sky-50/70" : appointment.kind ? "border-slate-300 bg-slate-100" : appointment.status === "Confirmed" ? "border-l-emerald-500 bg-emerald-50/70" : appointment.status === "Cancelled" ? "border-l-red-500 bg-red-50/70 opacity-75" : appointment.status === "Completed" ? "border-l-slate-400 bg-slate-50" : appointment.status === "Rescheduled" ? "border-l-amber-500 bg-amber-50/70" : appointment.status === "NoShow" ? "border-l-orange-500 bg-orange-50/70" : "border-l-brand-500 bg-brand-50";
+  return <button aria-label={`${label} ${formatTime(appointment.startsAt, timeZone)}${appointment.kind === "availability" ? "" : ` com ${appointment.patientName}`}`} className={`w-full rounded-control border border-slate-200 border-l-4 px-2 py-1.5 text-left transition hover:border-brand-300 focus:outline-none focus:ring-2 focus:ring-brand-500 ${statusClass}`} onClick={onOpen} title={`${appointment.patientName} · ${appointment.professionalName} · ${label}`} type="button"><span className="block text-[11px] font-semibold tabular-nums text-slate-600">{formatTime(appointment.startsAt, timeZone)}</span><p className="truncate text-xs font-semibold text-slate-950">{appointment.patientName}</p></button>;
 }
 
 export function CalendarDayView({ appointments, onOpen, timeZone = DEFAULT_CLINIC_TIME_ZONE }: CalendarProps) {

@@ -4,7 +4,7 @@ import { cn } from "./utils";
 
 type ButtonVariant = "primary" | "secondary" | "outline" | "ghost" | "danger" | "success" | "link";
 type ButtonSize = "sm" | "md" | "lg" | "icon";
-export type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & { variant?: ButtonVariant; size?: ButtonSize; loading?: boolean };
+export type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & { variant?: ButtonVariant; size?: ButtonSize; loading?: boolean; href?: string };
 
 const variants: Record<ButtonVariant, string> = {
   primary: "bg-brand-primary text-white hover:bg-brand-primary-hover",
@@ -17,6 +17,8 @@ const variants: Record<ButtonVariant, string> = {
 };
 const sizes: Record<ButtonSize, string> = { sm: "min-h-8 px-3 text-sm", md: "min-h-10 px-4 text-sm", lg: "min-h-11 px-5 text-base", icon: "size-10 p-0" };
 
-export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button({ className, variant = "primary", size = "md", loading = false, disabled, children, type = "button", ...props }, ref) {
-  return <button ref={ref} type={type} className={cn("inline-flex items-center justify-center gap-2 rounded-control font-medium transition-colors duration-ui disabled:opacity-50", variants[variant], sizes[size], className)} disabled={disabled || loading} aria-busy={loading || undefined} {...props}>{loading && <span className="size-4 animate-spin rounded-full border-2 border-current border-r-transparent" aria-hidden="true" />}{children}</button>;
+export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button({ className, variant = "primary", size = "md", loading = false, disabled, children, type = "button", href, ...props }, ref) {
+  const classes = cn("inline-flex items-center justify-center gap-2 rounded-control font-medium transition-colors duration-ui disabled:opacity-50", variants[variant], sizes[size], className);
+  if (href) return <a className={classes} href={href}>{children}</a>;
+  return <button ref={ref} type={type} className={classes} disabled={disabled || loading} aria-busy={loading || undefined} {...props}>{loading && <span className="size-4 animate-spin rounded-full border-2 border-current border-r-transparent" aria-hidden="true" />}{children}</button>;
 });

@@ -1,4 +1,5 @@
 using System.Data;
+using System.Globalization;
 using System.Text.Json;
 using ClinicAssistant.Application.Identity;
 using ClinicAssistant.Application.Scheduling;
@@ -37,9 +38,28 @@ public sealed class SchedulingService(ClinicAssistantDbContext db, TenantAccessG
     }
     public async Task<PatientResponse> CreatePatientAsync(PatientRequest r, CancellationToken ct) { var tenantId = guard.RequireTenantId(); var p = new Patient(tenantId, r.Name, r.Phone, r.Email, r.BirthDate, ParseConsent(r.ConsentStatus)); db.Patients.Add(p); db.AuditRecords.Add(new AuditRecord(tenantId, null, "patient.created", "Patient", p.Id, "Succeeded", "Patient created by clinic administration.")); await db.SaveChangesAsync(ct); await PublishAuditAsync(tenantId, "patient.created", "Patient", p.Id, ct); return Map(p); }
     public async Task<PatientResponse> UpdatePatientAsync(Guid id, PatientRequest r, CancellationToken ct) { var tenantId = guard.RequireTenantId(); var p = await PatientById(id, ct); p.Update(r.Name, r.Phone, r.Email, r.BirthDate, ParseConsent(r.ConsentStatus)); db.AuditRecords.Add(new AuditRecord(tenantId, null, "patient.updated", "Patient", p.Id, "Succeeded", "Patient updated by clinic administration.")); await db.SaveChangesAsync(ct); await PublishAuditAsync(tenantId, "patient.updated", "Patient", p.Id, ct); return Map(p); }
-    public async Task AddAvailabilityRuleAsync(Guid professionalId, AvailabilityRuleRequest r, CancellationToken ct) { await RequireProfessional(professionalId, ct); if (r.EndTime <= r.StartTime || r.SlotDurationMinutes is < 5 or > 240) throw new InvalidOperationException("Invalid availability rule."); db.AvailabilityRules.Add(new AvailabilityRule(guard.RequireTenantId(), professionalId, r.DayOfWeek, r.StartTime, r.EndTime, r.SlotDurationMinutes)); await db.SaveChangesAsync(ct); }
+    public async Task AddAvailabilityRuleAsync(Guid professionalId, AvailabilityRuleRequest r, CancellationToken ct)
+    {
+        await RequireProfessional(professionalId, ct);
+        ValidateAvailabilityRule(r);
+        if (await db.AvailabilityRules.AnyAsync(x => x.ProfessionalId == professionalId && x.Active && x.DayOfWeek == r.DayOfWeek && x.StartTime < r.EndTime && x.EndTime > r.StartTime, ct))
+            throw new SchedulingConflictException("Availability period overlaps an existing period.");
+        db.AvailabilityRules.Add(new AvailabilityRule(guard.RequireTenantId(), professionalId, r.DayOfWeek, r.StartTime, r.EndTime, r.SlotDurationMinutes));
+        await db.SaveChangesAsync(ct);
+    }
     public async Task<IReadOnlyList<AvailabilityRuleResponse>> GetAvailabilityRulesAsync(Guid professionalId, CancellationToken ct) { await RequireProfessional(professionalId, ct); return await db.AvailabilityRules.Where(x => x.ProfessionalId == professionalId).OrderBy(x => x.DayOfWeek).Select(x => new AvailabilityRuleResponse(x.Id, x.DayOfWeek, x.StartTime, x.EndTime, x.SlotDurationMinutes, x.Active)).ToListAsync(ct); }
-    public async Task<IReadOnlyList<AvailabilityRuleResponse>> ReplaceAvailabilityRulesAsync(Guid professionalId, IReadOnlyList<AvailabilityRuleRequest> r, CancellationToken ct) { await RequireProfessional(professionalId, ct); if (r.GroupBy(x => x.DayOfWeek).Any(x => x.Count() > 1) || r.Any(x => x.EndTime <= x.StartTime || x.SlotDurationMinutes is < 5 or > 240)) throw new InvalidOperationException("Invalid availability rule."); db.AvailabilityRules.RemoveRange(await db.AvailabilityRules.Where(x => x.ProfessionalId == professionalId).ToListAsync(ct)); var rules = r.Select(x => new AvailabilityRule(guard.RequireTenantId(), professionalId, x.DayOfWeek, x.StartTime, x.EndTime, x.SlotDurationMinutes)).ToList(); db.AvailabilityRules.AddRange(rules); await db.SaveChangesAsync(ct); return rules.OrderBy(x => x.DayOfWeek).Select(x => new AvailabilityRuleResponse(x.Id, x.DayOfWeek, x.StartTime, x.EndTime, x.SlotDurationMinutes, x.Active)).ToList(); }
+    public async Task<IReadOnlyList<AvailabilityRuleResponse>> ReplaceAvailabilityRulesAsync(Guid professionalId, IReadOnlyList<AvailabilityRuleRequest> r, CancellationToken ct)
+    {
+        await RequireProfessional(professionalId, ct);
+        foreach (var rule in r) ValidateAvailabilityRule(rule);
+        if (r.GroupBy(x => x.DayOfWeek).Any(day => day.OrderBy(x => x.StartTime).Zip(day.OrderBy(x => x.StartTime).Skip(1)).Any(pair => pair.First.EndTime > pair.Second.StartTime)))
+            throw new SchedulingConflictException("Availability periods cannot overlap.");
+        db.AvailabilityRules.RemoveRange(await db.AvailabilityRules.Where(x => x.ProfessionalId == professionalId).ToListAsync(ct));
+        var rules = r.Select(x => new AvailabilityRule(guard.RequireTenantId(), professionalId, x.DayOfWeek, x.StartTime, x.EndTime, x.SlotDurationMinutes)).ToList();
+        db.AvailabilityRules.AddRange(rules);
+        await db.SaveChangesAsync(ct);
+        return rules.OrderBy(x => x.DayOfWeek).ThenBy(x => x.StartTime).Select(x => new AvailabilityRuleResponse(x.Id, x.DayOfWeek, x.StartTime, x.EndTime, x.SlotDurationMinutes, x.Active)).ToList();
+    }
     public async Task AddScheduleBlockAsync(Guid professionalId, ScheduleBlockRequest r, CancellationToken ct) { await RequireProfessional(professionalId, ct); var start = r.StartsAt.ToUniversalTime(); var end = r.EndsAt.ToUniversalTime(); if (end <= start) throw new InvalidOperationException("Block end must be after start."); if (await db.ScheduleBlocks.AnyAsync(x => x.ProfessionalId == professionalId && x.StartsAt < end && x.EndsAt > start, ct)) throw new SchedulingConflictException("Block overlaps an existing block."); db.ScheduleBlocks.Add(new ScheduleBlock(guard.RequireTenantId(), professionalId, start, end, r.Reason)); await db.SaveChangesAsync(ct); }
     public async Task<IReadOnlyList<ScheduleBlockResponse>> GetScheduleBlocksAsync(Guid professionalId, CancellationToken ct) { await RequireProfessional(professionalId, ct); return await db.ScheduleBlocks.Where(x => x.ProfessionalId == professionalId).OrderBy(x => x.StartsAt).Select(x => new ScheduleBlockResponse(x.Id, x.StartsAt, x.EndsAt, x.Reason)).ToListAsync(ct); }
     public async Task DeleteScheduleBlockAsync(Guid professionalId, Guid blockId, CancellationToken ct) { await RequireProfessional(professionalId, ct); var block = await db.ScheduleBlocks.SingleOrDefaultAsync(x => x.Id == blockId && x.ProfessionalId == professionalId, ct) ?? throw new KeyNotFoundException("Schedule block not found."); db.ScheduleBlocks.Remove(block); await db.SaveChangesAsync(ct); }
@@ -47,6 +67,116 @@ public sealed class SchedulingService(ClinicAssistantDbContext db, TenantAccessG
     public async Task AddVacationAsync(Guid professionalId, VacationRequest r, CancellationToken ct) { await RequireProfessional(professionalId, ct); var start = r.StartsAt.ToUniversalTime(); var end = r.EndsAt.ToUniversalTime(); if (end <= start) throw new InvalidOperationException("Vacation end must be after start."); if (await db.ProfessionalVacations.AnyAsync(x => x.ProfessionalId == professionalId && x.StartsAt < end && x.EndsAt > start, ct)) throw new SchedulingConflictException("Vacation overlaps an existing vacation."); if (await db.Appointments.AnyAsync(x => x.ProfessionalId == professionalId && x.Status != AppointmentStatus.Cancelled && x.StartsAt < end && x.EndsAt > start, ct)) throw new SchedulingConflictException("Vacation conflicts with an existing appointment."); db.ProfessionalVacations.Add(new ProfessionalVacation(guard.RequireTenantId(), professionalId, start, end, r.Reason)); await db.SaveChangesAsync(ct); }
     public async Task DeleteVacationAsync(Guid professionalId, Guid vacationId, CancellationToken ct) { await RequireProfessional(professionalId, ct); var vacation = await db.ProfessionalVacations.SingleOrDefaultAsync(x => x.Id == vacationId && x.ProfessionalId == professionalId, ct) ?? throw new KeyNotFoundException("Vacation not found."); db.ProfessionalVacations.Remove(vacation); await db.SaveChangesAsync(ct); }
     public async Task<ProfessionalScheduleResponse> GetProfessionalScheduleAsync(Guid professionalId, DateTimeOffset startsAt, DateTimeOffset endsAt, CancellationToken ct) { await RequireProfessional(professionalId, ct); if (endsAt <= startsAt) throw new InvalidOperationException("Schedule period is invalid."); var start = startsAt.ToUniversalTime(); var end = endsAt.ToUniversalTime(); var appointments = await db.Appointments.Where(x => x.ProfessionalId == professionalId && x.StartsAt < end && x.EndsAt > start).OrderBy(x => x.StartsAt).Select(x => new AppointmentListItem(x.Id, x.ClinicUnitId, x.ProfessionalId, x.SpecialtyId, x.PatientId, x.StartsAt, x.EndsAt, x.Status.ToString(), x.Source.ToString(), x.Notes)).ToListAsync(ct); var blocks = await db.ScheduleBlocks.Where(x => x.ProfessionalId == professionalId && x.StartsAt < end && x.EndsAt > start).OrderBy(x => x.StartsAt).Select(x => new ScheduleBlockResponse(x.Id, x.StartsAt, x.EndsAt, x.Reason)).ToListAsync(ct); var vacations = await db.ProfessionalVacations.Where(x => x.ProfessionalId == professionalId && x.StartsAt < end && x.EndsAt > start).OrderBy(x => x.StartsAt).Select(x => new VacationResponse(x.Id, x.StartsAt, x.EndsAt, x.Reason)).ToListAsync(ct); return new(appointments, blocks, vacations); }
+    public async Task<ScheduleImportPreview> PreviewScheduleImportAsync(Stream source, string? fileName, CancellationToken ct)
+    {
+        using var activity = ScheduleImportTelemetry.ActivitySource.StartActivity("ScheduleImport.Preview");
+        var preview = await ScheduleImportParser.ParseAsync(source, ct);
+        var errors = preview.Errors.ToList();
+        var warnings = (preview.Warnings ?? []).ToList();
+        var registrations = preview.Rows.Select(x => x.ProfessionalRegistration).Where(x => !string.IsNullOrWhiteSpace(x)).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+        var known = await db.Professionals.Where(x => registrations.Contains(x.RegistrationNumber) && x.Status == ClinicAssistant.Domain.Clinics.CatalogStatus.Active).Select(x => x.RegistrationNumber).ToListAsync(ct);
+        var knownSet = known.ToHashSet(StringComparer.OrdinalIgnoreCase);
+        foreach (var row in preview.Rows.Select((item, index) => new { item, index = index + 2 }))
+            if (!string.IsNullOrWhiteSpace(row.item.ProfessionalRegistration) && !knownSet.Contains(row.item.ProfessionalRegistration))
+                errors.Add(new(row.index, "professional_registration", "Não encontramos um profissional ativo com esse registro."));
+        var clinicTimeZone = await db.Clinics.Where(x => x.TenantId == guard.RequireTenantId()).Select(x => x.TimeZone).SingleOrDefaultAsync(ct) ?? "UTC";
+        var professionalIds = await db.Professionals.Where(x => registrations.Contains(x.RegistrationNumber) && x.Status == ClinicAssistant.Domain.Clinics.CatalogStatus.Active).ToDictionaryAsync(x => x.RegistrationNumber, x => x.Id, StringComparer.OrdinalIgnoreCase, ct);
+        var acceptedAvailabilityRows = new List<(int Row, Guid ProfessionalId, DayOfWeek Day, TimeOnly Start, TimeOnly End)>();
+        foreach (var row in preview.Rows.Select((item, index) => new { item, index = index + 2 }))
+        {
+            if (row.item.RecordType != "availability_rule" || !professionalIds.TryGetValue(row.item.ProfessionalRegistration, out var professionalId) ||
+                !Enum.TryParse<DayOfWeek>(row.item.DayOfWeek, true, out var day) ||
+                !TimeOnly.TryParse(row.item.StartTime, CultureInfo.InvariantCulture, out var startTime) ||
+                !TimeOnly.TryParse(row.item.EndTime, CultureInfo.InvariantCulture, out var endTime)) continue;
+
+            if (await db.AvailabilityRules.AnyAsync(x => x.ProfessionalId == professionalId && x.Active && x.DayOfWeek == day && x.StartTime < endTime && x.EndTime > startTime, ct))
+            {
+                errors.Add(new(row.index, "availability", $"Já existe uma disponibilidade sobreposta para {row.item.ProfessionalRegistration} neste dia e horário."));
+                continue;
+            }
+
+            var duplicate = acceptedAvailabilityRows.FirstOrDefault(x => x.ProfessionalId == professionalId && x.Day == day && x.Start < endTime && x.End > startTime);
+            if (duplicate != default)
+            {
+                errors.Add(new(row.index, "availability", $"Esta disponibilidade sobrepõe a linha {duplicate.Row} da própria planilha."));
+                continue;
+            }
+
+            acceptedAvailabilityRows.Add((row.index, professionalId, day, startTime, endTime));
+        }
+        foreach (var row in preview.Rows.Select((item, index) => new { item, index = index + 2 }))
+        {
+            if (!professionalIds.TryGetValue(row.item.ProfessionalRegistration, out var professionalId) || row.item.RecordType == "availability_rule" || !DateOnly.TryParseExact(row.item.StartDate, "dd/MM/yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None, out var startDate) || !DateOnly.TryParseExact(row.item.EndDate, "dd/MM/yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None, out var endDate)) continue;
+            var start = ToUtc(startDate, TimeOnly.TryParse(row.item.StartTime, CultureInfo.InvariantCulture, out var parsedStart) ? parsedStart : TimeOnly.MinValue, clinicTimeZone);
+            var end = ToUtc(endDate, TimeOnly.TryParse(row.item.EndTime, CultureInfo.InvariantCulture, out var parsedEnd) ? parsedEnd : new TimeOnly(23, 59), clinicTimeZone);
+            if (await db.Appointments.AnyAsync(x => x.ProfessionalId == professionalId && x.Status != AppointmentStatus.Cancelled && x.StartsAt < end && x.EndsAt > start, ct)) warnings.Add(new(row.index, "data", "Há uma consulta existente neste período. A consulta não será alterada."));
+        }
+        var result = preview with { Errors = errors, ValidRows = preview.TotalRows - errors.Select(x => x.Row).Distinct().Count(), Warnings = warnings, FileName = fileName };
+        var tenantId = guard.RequireTenantId();
+        db.AuditRecords.Add(new AuditRecord(tenantId, null, "schedule.import.validated", "ScheduleImport", null, result.Errors.Count == 0 ? "Succeeded" : "Failed", $"Validated {result.TotalRows} row(s); {result.Errors.Count} error(s)."));
+        await db.SaveChangesAsync(ct);
+        activity?.SetTag("import.type", "schedule"); activity?.SetTag("rows.total", result.TotalRows); activity?.SetTag("rows.valid", result.ValidRows); activity?.SetTag("rows.error", result.Errors.Count);
+        return result;
+    }
+    public async Task<ScheduleImportResult> ImportScheduleAsync(Stream source, string idempotencyKey, CancellationToken ct)
+    {
+        using var activity = ScheduleImportTelemetry.ActivitySource.StartActivity("ScheduleImport.Commit");
+        if (string.IsNullOrWhiteSpace(idempotencyKey)) throw new InvalidOperationException("Idempotency-Key is required.");
+        var tenantId = guard.RequireTenantId();
+        var scope = $"schedule.import:{tenantId}";
+        var prior = await db.IdempotencyRecords.AsNoTracking().SingleOrDefaultAsync(x => x.Scope == scope && x.Key == idempotencyKey, ct);
+        if (prior is not null) return JsonSerializer.Deserialize<ScheduleImportResult>(prior.ResponseJson)! with { Replayed = true };
+        var preview = await ScheduleImportParser.ParseAsync(source, ct);
+        if (preview.Errors.Count > 0) throw new InvalidOperationException($"Importação inválida: {preview.Errors.Count} erro(s) encontrado(s).");
+        await using var transaction = await db.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable, ct);
+        var clinicTimeZone = await db.Clinics.Where(x => x.TenantId == tenantId).Select(x => x.TimeZone).SingleOrDefaultAsync(ct) ?? "UTC";
+        var rules = new List<AvailabilityRule>(); var blocks = new List<ScheduleBlock>(); var vacations = new List<ProfessionalVacation>();
+        var importLine = 2;
+        foreach (var row in preview.Rows)
+        {
+            var rowNumber = importLine++;
+            var professional = await db.Professionals.SingleOrDefaultAsync(x => x.RegistrationNumber == row.ProfessionalRegistration && x.Status == ClinicAssistant.Domain.Clinics.CatalogStatus.Active, ct) ?? throw new InvalidOperationException($"Profissional não encontrado na linha de importação: {row.ProfessionalRegistration}.");
+            if (row.RecordType.Equals("availability_rule", StringComparison.OrdinalIgnoreCase))
+            {
+                if (!Enum.TryParse<DayOfWeek>(row.DayOfWeek, true, out var day) || !TimeOnly.TryParse(row.StartTime, CultureInfo.InvariantCulture, out var startTime) || !TimeOnly.TryParse(row.EndTime, CultureInfo.InvariantCulture, out var endTime) || row.SlotDurationMinutes is null) throw new InvalidOperationException("Disponibilidade inválida.");
+                if (await db.AvailabilityRules.AnyAsync(x => x.ProfessionalId == professional.Id && x.Active && x.DayOfWeek == day && x.StartTime < endTime && x.EndTime > startTime, ct) || rules.Any(x => x.ProfessionalId == professional.Id && x.DayOfWeek == day && x.StartTime < endTime && x.EndTime > startTime)) throw new SchedulingConflictException($"Linha {rowNumber}: a disponibilidade de {professional.RegistrationNumber} sobrepõe outra regra recorrente.");
+                rules.Add(new AvailabilityRule(tenantId, professional.Id, day, startTime, endTime, row.SlotDurationMinutes.Value));
+            }
+            else
+            {
+                if (!DateOnly.TryParseExact(row.StartDate, "dd/MM/yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None, out var startDate) || !DateOnly.TryParseExact(row.EndDate, "dd/MM/yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None, out var endDate)) throw new InvalidOperationException("Data inválida. Use dd/MM/aaaa.");
+                var startTime = TimeOnly.TryParse(row.StartTime, CultureInfo.InvariantCulture, out var parsedStart) ? parsedStart : TimeOnly.MinValue;
+                var endTime = TimeOnly.TryParse(row.EndTime, CultureInfo.InvariantCulture, out var parsedEnd) ? parsedEnd : new TimeOnly(23, 59);
+                var start = ToUtc(startDate, startTime, clinicTimeZone);
+                var end = ToUtc(endDate, endTime, clinicTimeZone);
+                if (end <= start) throw new InvalidOperationException("O período informado é inválido.");
+                start = start.ToUniversalTime(); end = end.ToUniversalTime();
+                if (await db.Appointments.AnyAsync(x => x.ProfessionalId == professional.Id && x.Status != AppointmentStatus.Cancelled && x.StartsAt < end && x.EndsAt > start, ct)) throw new SchedulingConflictException("Importação conflita com uma consulta existente.");
+                if (row.RecordType.Equals("schedule_block", StringComparison.OrdinalIgnoreCase)) { if (await db.ScheduleBlocks.AnyAsync(x => x.ProfessionalId == professional.Id && x.StartsAt < end && x.EndsAt > start, ct) || blocks.Any(x => x.ProfessionalId == professional.Id && x.StartsAt < end && x.EndsAt > start)) throw new SchedulingConflictException($"Linha {rowNumber}: o bloqueio sobrepõe outro bloqueio existente."); blocks.Add(new ScheduleBlock(tenantId, professional.Id, start, end, row.Reason)); }
+                else
+                {
+                    if (await db.ProfessionalVacations.AnyAsync(x => x.ProfessionalId == professional.Id && x.StartsAt < end && x.EndsAt > start, ct) || vacations.Any(x => x.ProfessionalId == professional.Id && x.StartsAt < end && x.EndsAt > start))
+                        throw new SchedulingConflictException($"Linha {rowNumber}: o período de férias sobrepõe férias já cadastradas.");
+                    vacations.Add(new ProfessionalVacation(tenantId, professional.Id, start, end, row.Reason));
+                }
+            }
+        }
+        db.AddRange(rules); db.AddRange(blocks); db.AddRange(vacations);
+        var result = new ScheduleImportResult(rules.Count, blocks.Count, vacations.Count, false);
+        activity?.SetTag("import.type", "schedule"); activity?.SetTag("rows.total", preview.TotalRows); activity?.SetTag("rows.valid", preview.ValidRows); activity?.SetTag("rows.error", preview.Errors.Count);
+        db.AddRange(new AuditRecord(tenantId, null, "schedule.imported", "ScheduleImport", null, "Succeeded", $"Created {rules.Count} rule(s), {blocks.Count} block(s), {vacations.Count} vacation(s)."), new IdempotencyRecord(scope, idempotencyKey, JsonSerializer.Serialize(result)));
+        await db.SaveChangesAsync(ct); await transaction.CommitAsync(ct);
+        return result;
+    }
+    private static DateTimeOffset ToUtc(DateOnly date, TimeOnly time, string timeZoneId)
+    {
+        var local = DateTime.SpecifyKind(date.ToDateTime(time), DateTimeKind.Unspecified);
+        TimeZoneInfo zone;
+        try { zone = TimeZoneInfo.FindSystemTimeZoneById(timeZoneId); }
+        catch (TimeZoneNotFoundException) { zone = TimeZoneInfo.Utc; }
+        catch (InvalidTimeZoneException) { zone = TimeZoneInfo.Utc; }
+        return new DateTimeOffset(TimeZoneInfo.ConvertTimeToUtc(local, zone));
+    }
     public async Task<IReadOnlyList<AvailableSlot>> GetAvailabilityAsync(Guid professionalId, DateOnly appointmentDate, CancellationToken ct)
     {
         await RequireProfessional(professionalId, ct); var rules = await db.AvailabilityRules.Where(x => x.ProfessionalId == professionalId && x.Active && x.DayOfWeek == appointmentDate.DayOfWeek).ToListAsync(ct);
@@ -107,6 +237,11 @@ public sealed class SchedulingService(ClinicAssistantDbContext db, TenantAccessG
     private async Task<Patient> PatientById(Guid id, CancellationToken ct) => await db.Patients.SingleOrDefaultAsync(x => x.Id == id, ct) ?? throw new KeyNotFoundException("Patient not found.");
     private async Task<Appointment> AppointmentById(Guid id, CancellationToken ct) => await db.Appointments.SingleOrDefaultAsync(x => x.Id == id, ct) ?? throw new KeyNotFoundException("Appointment not found.");
     private async Task RequireProfessional(Guid id, CancellationToken ct) { if (!await db.Professionals.AnyAsync(x => x.Id == id && x.Status == ClinicAssistant.Domain.Clinics.CatalogStatus.Active, ct)) throw new KeyNotFoundException("Active professional not found."); }
+    private static void ValidateAvailabilityRule(AvailabilityRuleRequest rule)
+    {
+        if (rule.EndTime <= rule.StartTime || rule.SlotDurationMinutes is < 5 or > 240)
+            throw new InvalidOperationException("Invalid availability rule.");
+    }
     private Task PublishAuditAsync(Guid tenantId, string action, string resourceType, Guid resourceId, CancellationToken ct) => events.PublishAsync(tenantId, "audit.created", new { Action = action, ResourceType = resourceType, ResourceId = resourceId, Result = "Succeeded" }, ct);
     private static ConsentStatus ParseConsent(string value) => Enum.TryParse<ConsentStatus>(value, true, out var status) ? status : throw new InvalidOperationException("Invalid consent status.");
     private static PatientResponse Map(Patient x) => new(x.Id, x.Name, x.Phone, x.Email, x.BirthDate, x.ConsentStatus.ToString());

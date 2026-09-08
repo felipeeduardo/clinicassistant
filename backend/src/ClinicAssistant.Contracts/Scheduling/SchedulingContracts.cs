@@ -27,3 +27,13 @@ public sealed record AppointmentSearchRequest(int Page = 1, int PageSize = 25, G
 public sealed record AppointmentPage(IReadOnlyList<AppointmentListItem> Items, int Page, int PageSize, int TotalCount);
 public sealed record AppointmentDetailResponse(AppointmentListItem Appointment, string PatientName, string ProfessionalName, string UnitName, string SpecialtyName, DateTimeOffset? CancelledAt, string? CancellationReason, int Version);
 public sealed record AvailableSlot(DateTimeOffset StartsAt, DateTimeOffset EndsAt);
+public sealed record ScheduleImportRow(string ProfessionalRegistration, string RecordType, string? DayOfWeek, string? StartTime, string? EndTime, int? SlotDurationMinutes, string? Reason, string? StartDate = null, string? EndDate = null);
+public sealed record ScheduleImportValidationError(int Row, string Field, string Message);
+public sealed record ScheduleImportPreview(int TotalRows, int ValidRows, IReadOnlyList<ScheduleImportRow> Rows, IReadOnlyList<ScheduleImportValidationError> Errors, IReadOnlyList<ScheduleImportValidationError>? Warnings = null, string? FileName = null)
+{
+    public int AvailabilityRows => Rows.Count(x => x.RecordType == "availability_rule");
+    public int BlockRows => Rows.Count(x => x.RecordType == "schedule_block");
+    public int VacationRows => Rows.Count(x => x.RecordType == "vacation");
+    public int WarningCount => Warnings?.Count ?? 0;
+}
+public sealed record ScheduleImportResult(int CreatedRules, int CreatedBlocks, int CreatedVacations, bool Replayed);

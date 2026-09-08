@@ -41,11 +41,6 @@ function RealtimeBridge({ token, queryClient, setStatus }: { token: string | nul
     connection.on("whatsapp.integration.updated", (event: RealtimeEvent) => invalidate(event, [["integration-status"]]));
     connection.on("whatsapp.inbound.received", (event: RealtimeEvent) => invalidate(event, [["conversations"], ["conversation"], ["conversation-messages"], ["dashboard"]]));
     connection.on("whatsapp.message.status.changed", (event: RealtimeEvent) => invalidate(event, [["conversations"], ["conversation"], ["conversation-messages"]]));
-    connection.on("whatsapp.template.created", (event: RealtimeEvent) => invalidate(event, [["whatsapp-templates"]]));
-    connection.on("whatsapp.template.updated", (event: RealtimeEvent) => invalidate(event, [["whatsapp-templates"], ["whatsapp-template"]]));
-    connection.on("whatsapp.template.activated", (event: RealtimeEvent) => invalidate(event, [["whatsapp-templates"], ["whatsapp-template"]]));
-    connection.on("whatsapp.template.deactivated", (event: RealtimeEvent) => invalidate(event, [["whatsapp-templates"], ["whatsapp-template"]]));
-    connection.on("whatsapp.template.synced", (event: RealtimeEvent) => invalidate(event, [["whatsapp-templates"]]));
     connection.on("queue.item.created", (event: RealtimeEvent) => invalidate(event, [["conversation-queue"], ["conversations"], ["conversation"]]));
     connection.on("queue.item.updated", (event: RealtimeEvent) => invalidate(event, [["conversation-queue"], ["conversations"], ["conversation"]]));
     connection.on("queue.item.assigned", (event: RealtimeEvent) => invalidate(event, [["conversation-queue"], ["conversations"], ["conversation"]]));
