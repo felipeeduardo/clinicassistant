@@ -75,7 +75,7 @@ export function AppShell({ user, realtimeStatus, onLogout, children }: { user: U
       <div className="brand-scrollbar min-h-0 flex-1 overflow-y-auto">{auth ? <NotificationNav collapsed={collapsed} user={user} /> : <NavLinks collapsed={collapsed} user={user} />}</div>
       <div className="mt-3 grid gap-2 border-t border-brand-dark-border pt-3">
         <p className={cn("truncate px-2 text-xs text-slate-400", collapsed && "sr-only")}>{user.name}</p>
-        <Button aria-label={collapsed ? "Expandir menu" : "Recolher menu"} className={cn("w-full justify-start text-slate-300 hover:bg-slate-800 hover:text-white", collapsed && "justify-center")} onClick={() => setCollapsed(value => !value)} size="sm" variant="ghost">
+        <Button aria-label={collapsed ? "Expandir menu" : "Recolher menu"} className={cn("w-full justify-start !text-slate-300 hover:!bg-brand-dark-surface hover:!text-white focus-visible:!bg-brand-dark-surface focus-visible:!text-white", collapsed && "justify-center")} onClick={() => setCollapsed(value => !value)} size="sm" variant="ghost">
           <Icon className={cn("transition-transform", !collapsed && "rotate-180")} name="collapse" />
           <span className={collapsed ? "sr-only" : ""}>Recolher menu</span>
         </Button>
